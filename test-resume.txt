@@ -1,0 +1,12 @@
+John Doe
+
+john.doe@example.com
+555-123-4567
+
+Software Engineer with 5 years of experience in React and Node.js.
+Experience:
+- Built a web app with React.
+- Created a REST API with Node.js and Express.
+
+Education:
+BS Computer Science, University of X
