@@ -46,6 +46,12 @@ interface AnalysisResult {
     confidence: number;
     alternatives: { role: string; match: number }[];
   };
+  careerTimeline?: {
+    role: string;
+    company: string;
+    duration: string;
+    highlights: string[];
+  }[];
   atsAnalysis: {
     formattingScore: number;
     keywordDensity: number;
@@ -80,10 +86,10 @@ const GlassCard = ({ children, className = "", delay = 0 }: { children: React.Re
   </motion.div>
 );
 
-const ScoringCircle = ({ score, label, color, delay }: { score: number, label: string, color: string, delay: number }) => {
+const ScoringCircle = ({ score, label, color, delay, tooltip }: { score: number, label: string, color: string, delay: number, tooltip?: React.ReactNode }) => {
   const data = [{ name: 'Score', value: score, fill: color }];
   return (
-    <div className="flex flex-col items-center justify-center">
+    <div className="flex flex-col items-center justify-center relative">
       <div className="h-32 w-32 relative">
         <ResponsiveContainer width="100%" height="100%">
           <RadialBarChart 
@@ -112,7 +118,18 @@ const ScoringCircle = ({ score, label, color, delay }: { score: number, label: s
           </motion.span>
         </div>
       </div>
-      <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
+      <div className="mt-2 flex items-center justify-center gap-1.5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
+        {tooltip && (
+          <div className="group relative cursor-pointer">
+            <Info className="h-3.5 w-3.5 text-slate-500 hover:text-white transition-colors" />
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-60 bg-slate-800 text-white text-[10px] font-medium p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-white/10 shadow-2xl leading-relaxed text-left">
+              {tooltip}
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45 border-r border-b border-white/10"></div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -863,7 +880,21 @@ export default function App() {
               {/* Scoring Infrastructure */}
               <div className="grid md:grid-cols-3 gap-6">
                 <GlassCard className="col-span-1 flex flex-col items-center justify-center border-teal-500/20">
-                  <ScoringCircle score={result.overallScore} label="Overall Match" color="#14b8a6" delay={0.1} />
+                  <ScoringCircle 
+                    score={result.overallScore} 
+                    label="Overall Match" 
+                    color="#14b8a6" 
+                    delay={0.1} 
+                    tooltip={
+                      <>
+                        <strong className="text-teal-400 block mb-2 uppercase tracking-widest text-xs border-b border-white/10 pb-1">Overall Match</strong>
+                        This composite score represents your holistic fitness for the role, combining ATS formatting health, keyword density, and experiential overlap.<br/><br/>
+                        <span className="text-slate-300 block mb-1"><strong className="text-white">90-100%:</strong> Outstanding fit</span>
+                        <span className="text-slate-300 block mb-1"><strong className="text-white">70-89%:</strong> Strong fit</span>
+                        <span className="text-slate-300 block mb-1"><strong className="text-white">&lt;70%:</strong> Needs optimization</span>
+                      </>
+                    }
+                  />
                 </GlassCard>
                 
                 <GlassCard className="col-span-2">
@@ -876,10 +907,49 @@ export default function App() {
                   </div>
                   <div className="grid grid-cols-2 gap-x-12 gap-y-6">
                     {[
-                      { label: "ATS Score", score: result.atsCompatibility, color: "#14b8a6", desc: "System compatibility" },
-                      { label: "Skills Match", score: result.skillsMatch, color: "#0ea5e9", desc: "Role alignment" },
-                      { label: "Keywords", score: result.atsAnalysis.keywordDensity, color: "#10b981", desc: "Density factor" },
-                      { label: "Formatting", score: result.atsAnalysis.formattingScore, color: "#f59e0b", desc: "Visual health" }
+                      { 
+                        label: "ATS Score", score: result.atsCompatibility, color: "#14b8a6", desc: "System compatibility",
+                        tooltip: (
+                           <>
+                             <strong className="text-teal-400 block mb-3 uppercase tracking-widest text-xs border-b border-white/10 pb-2">Score Calculation</strong>
+                             <div className="space-y-4">
+                               <div>
+                                 <div className="flex justify-between mb-1.5"><span className="text-slate-300">Keyword Matching</span><span className="text-white font-black">{result.atsAnalysis.keywordDensity}%</span></div>
+                                 <div className="h-1.5 w-full bg-slate-700/50 rounded-full overflow-hidden"><div className="h-full bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.5)] rounded-full" style={{ width: `${result.atsAnalysis.keywordDensity}%` }} /></div>
+                               </div>
+                               <div>
+                                 <div className="flex justify-between mb-1.5"><span className="text-slate-300">Formatting</span><span className="text-white font-black">{result.atsAnalysis.formattingScore}%</span></div>
+                                 <div className="h-1.5 w-full bg-slate-700/50 rounded-full overflow-hidden"><div className="h-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)] rounded-full" style={{ width: `${result.atsAnalysis.formattingScore}%` }} /></div>
+                               </div>
+                               <div>
+                                 <div className="flex justify-between mb-1.5"><span className="text-slate-300">Section Headers</span><span className="text-white font-black">{Math.round((result.atsAnalysis.formattingScore + result.atsCompatibility) / 2)}%</span></div>
+                                 <div className="h-1.5 w-full bg-slate-700/50 rounded-full overflow-hidden"><div className="h-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.5)] rounded-full" style={{ width: `${Math.round((result.atsAnalysis.formattingScore + result.atsCompatibility) / 2)}%` }} /></div>
+                               </div>
+                             </div>
+                           </>
+                        )
+                      },
+                      { 
+                        label: "Skills Match", score: result.skillsMatch, color: "#0ea5e9", desc: "Role alignment",
+                        tooltip: (
+                            <>
+                              <strong className="text-sky-400 block mb-2 uppercase tracking-widest text-xs border-b border-white/10 pb-1">Skills Match</strong>
+                               The overlap between your extracted skills and the job's core requirements. High scores indicate strong technical and domain alignment.
+                            </>
+                        )
+                      },
+                      { 
+                        label: "Keywords", score: result.atsAnalysis.keywordDensity, color: "#10b981", desc: "Density factor" 
+                      },
+                      { 
+                        label: "Formatting", score: result.atsAnalysis.formattingScore, color: "#f59e0b", desc: "Visual health",
+                        tooltip: (
+                            <>
+                              <strong className="text-amber-400 block mb-2 uppercase tracking-widest text-xs border-b border-white/10 pb-1">Formatting Health</strong>
+                               Assesses how easily an ATS parser can process your resume. Penalizes complex layouts, graphics, tables, or unreadable fonts.
+                            </>
+                        )
+                      }
                     ].map((m, i) => (
                       <div key={`m-${i}`} className="space-y-3">
                         <div className="flex justify-between items-end">
@@ -888,44 +958,11 @@ export default function App() {
                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">{m.label}</span>
                                <span className="text-[8px] font-bold text-slate-600 uppercase tracking-tighter">{m.desc}</span>
                              </div>
-                             {m.label === "ATS Score" && (
+                             {m.tooltip && (
                                <div className="group relative cursor-pointer">
-                                 <Info className="h-4 w-4 text-slate-400 hover:text-teal-400 transition-colors" />
+                                 <Info className="h-4 w-4 text-slate-400 hover:text-white transition-colors" />
                                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 w-64 bg-slate-800 text-white text-[10px] font-medium p-4 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-white/10 shadow-2xl leading-relaxed">
-                                   <strong className="text-teal-400 block mb-3 uppercase tracking-widest text-xs border-b border-white/10 pb-2">Score Calculation</strong>
-                                   
-                                   <div className="space-y-4">
-                                     <div>
-                                       <div className="flex justify-between mb-1.5">
-                                         <span className="text-slate-300">Keyword Matching</span>
-                                         <span className="text-white font-black">{result.atsAnalysis.keywordDensity}%</span>
-                                       </div>
-                                       <div className="h-1.5 w-full bg-slate-700/50 rounded-full overflow-hidden">
-                                         <div className="h-full bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.5)] rounded-full" style={{ width: `${result.atsAnalysis.keywordDensity}%` }} />
-                                       </div>
-                                     </div>
-
-                                     <div>
-                                       <div className="flex justify-between mb-1.5">
-                                         <span className="text-slate-300">Formatting</span>
-                                         <span className="text-white font-black">{result.atsAnalysis.formattingScore}%</span>
-                                       </div>
-                                       <div className="h-1.5 w-full bg-slate-700/50 rounded-full overflow-hidden">
-                                         <div className="h-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)] rounded-full" style={{ width: `${result.atsAnalysis.formattingScore}%` }} />
-                                       </div>
-                                     </div>
-
-                                     <div>
-                                       <div className="flex justify-between mb-1.5">
-                                         <span className="text-slate-300">Section Headers</span>
-                                         <span className="text-white font-black">{Math.round((result.atsAnalysis.formattingScore + result.atsCompatibility) / 2)}%</span>
-                                       </div>
-                                       <div className="h-1.5 w-full bg-slate-700/50 rounded-full overflow-hidden">
-                                         <div className="h-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.5)] rounded-full" style={{ width: `${Math.round((result.atsAnalysis.formattingScore + result.atsCompatibility) / 2)}%` }} />
-                                       </div>
-                                     </div>
-                                   </div>
-
+                                   {m.tooltip}
                                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 rotate-45 border-r border-b border-white/10"></div>
                                  </div>
                                </div>
@@ -947,6 +984,47 @@ export default function App() {
                   </div>
                 </GlassCard>
               </div>
+
+              {/* Career Progression Timeline */}
+              {result.careerTimeline && result.careerTimeline.length > 0 && (
+                <GlassCard className="mb-8">
+                  <div className="flex flex-col items-center justify-center space-y-2 mb-10">
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] text-center">Career Progression Timeline</h3>
+                    <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Trajectory extracted from your resume</p>
+                  </div>
+                  
+                  <div className="relative pl-4 md:pl-8 max-w-4xl mx-auto">
+                    <div className="absolute left-[27px] md:left-[43px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-teal-500 via-sky-500 to-transparent opacity-30"></div>
+                    
+                    <div className="space-y-12">
+                      {result.careerTimeline.map((item, idx) => (
+                        <div key={`timeline-${idx}`} className="relative pl-12 md:pl-16">
+                          {/* Timeline dot */}
+                          <div className="absolute left-[-5px] md:left-[11px] top-1 h-6 w-6 rounded-full bg-[#050510] border-2 border-teal-500 flex items-center justify-center shadow-[0_0_10px_rgba(20,184,166,0.3)] z-10">
+                            <div className="h-2 w-2 rounded-full bg-teal-400"></div>
+                          </div>
+                          
+                          <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-2 gap-2">
+                             <h4 className="text-lg md:text-xl font-black text-white">{item.role}</h4>
+                             <span className="text-xs font-bold text-teal-400 bg-teal-500/10 px-3 py-1 rounded-full border border-teal-500/20 whitespace-nowrap">{item.duration}</span>
+                          </div>
+                          
+                          <p className="text-sm font-bold text-slate-400 mb-4">{item.company}</p>
+                          
+                          <ul className="space-y-2">
+                            {item.highlights.map((highlight, hIdx) => (
+                              <li key={`hl-${hIdx}`} className="text-[12px] text-slate-300 leading-relaxed font-medium flex items-start gap-3">
+                                <span className="text-teal-500 mt-1.5 opacity-50">•</span>
+                                <span>{highlight}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </GlassCard>
+              )}
 
               {/* Skill Cloud Visualizer */}
               <GlassCard>
@@ -1025,7 +1103,26 @@ export default function App() {
                   </GlassCard>
 
                   <GlassCard>
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6">Keyword Analysis</h3>
+                    <div className="flex justify-between items-center mb-6">
+                       <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Keyword Analysis</h3>
+                       {result.atsAnalysis.jobKeywordsFound && result.atsAnalysis.jobKeywordsMissing && (
+                         <div className="text-xs font-black text-white">
+                           {Math.round((result.atsAnalysis.jobKeywordsFound.length / (result.atsAnalysis.jobKeywordsFound.length + result.atsAnalysis.jobKeywordsMissing.length)) * 100) || 0}% Match
+                         </div>
+                       )}
+                    </div>
+                    
+                    {result.atsAnalysis.jobKeywordsFound && result.atsAnalysis.jobKeywordsMissing && (
+                      <div className="h-1.5 w-full bg-slate-700/50 rounded-full overflow-hidden mb-5">
+                        <div 
+                          className="h-full bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.5)] rounded-full transition-all duration-1000" 
+                          style={{ 
+                            width: `${Math.round((result.atsAnalysis.jobKeywordsFound.length / (result.atsAnalysis.jobKeywordsFound.length + result.atsAnalysis.jobKeywordsMissing.length)) * 100) || 0}%` 
+                          }} 
+                        />
+                      </div>
+                    )}
+
                     <div className="space-y-5">
                       <div>
                         <h4 className="text-[9px] font-black text-teal-500 uppercase mb-2">Resume Top Keywords</h4>

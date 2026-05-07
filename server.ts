@@ -359,10 +359,20 @@ async function startServer() {
             "confidence": number,
             "alternatives": { "role": string, "match": number }[]
           },
+          "careerTimeline": [
+            {
+              "role": string,
+              "company": string,
+              "duration": string,
+              "highlights": string[]
+            }
+          ],
           "atsAnalysis": {
             "formattingScore": number (0-100),
             "keywordDensity": number (0-100),
-            "recommendations": string[]
+            "recommendations": string[],
+            "jobKeywordsFound": string[],
+            "jobKeywordsMissing": string[]
           },
           "skillGapReport": { "skill": string, "importance": "Critical" | "High" | "Medium" }[],
           "sectionsFound": string[],
@@ -370,6 +380,8 @@ async function startServer() {
           "suggestions": string[]
         }
         For "suggestions", provide 5-7 actionable tips to improve the resume's impact, clarity, and ATS performance.
+        Extract the career timeline from the resume history. 
+        Populate "jobKeywordsFound" and "jobKeywordsMissing" by strictly checking which Job Keywords from the user's description are actually present in the resume. Highlight any significant mismatches.
         No markdown, no preamble. Just raw JSON.
       `;
 
