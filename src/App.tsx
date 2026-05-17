@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { GoogleGenAI } from "@google/genai";
 import { useDropzone } from 'react-dropzone';
 import DOMPurify from 'dompurify';
 import { 
@@ -22,7 +23,13 @@ import {
   ShieldCheck,
   Lock,
   EyeOff,
-  Trash2
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  XCircle,
+  Copy,
+  Check,
+  BookOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -55,14 +62,17 @@ interface AnalysisResult {
   atsAnalysis: {
     formattingScore: number;
     keywordDensity: number;
+    bulletPointQualityScore?: number;
     recommendations: string[];
     topResumeKeywords?: string[];
     jobKeywordsFound?: string[];
     jobKeywordsMissing?: string[];
     jobKeywordDensity?: number;
+    keywordOptimizations?: { keyword: string; suggestedPhrases: string[] }[];
   };
   skillGapReport: { skill: string; importance: string }[];
   sectionsFound: string[];
+  sectionsDetailed?: { sectionName: string; summary: string }[];
   summary: string;
   suggestions: string[];
 }
@@ -86,49 +96,75 @@ const GlassCard = ({ children, className = "", delay = 0 }: { children: React.Re
   </motion.div>
 );
 
+const getScoreLevel = (score: number) => {
+  if (score >= 90) return { label: 'Exceptional (Top 5%)', color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20' };
+  if (score >= 80) return { label: 'Much Better', color: 'text-teal-400', bg: 'bg-teal-400/10', border: 'border-teal-400/20' };
+  if (score >= 60) return { label: 'Moderate Fit', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' };
+  return { label: 'Needs Opt', color: 'text-rose-400', bg: 'bg-rose-400/10', border: 'border-rose-400/20' };
+};
+
 const ScoringCircle = ({ score, label, color, delay, tooltip }: { score: number, label: string, color: string, delay: number, tooltip?: React.ReactNode }) => {
   const data = [{ name: 'Score', value: score, fill: color }];
+  const level = getScoreLevel(score);
   return (
-    <div className="flex flex-col items-center justify-center relative">
-      <div className="h-32 w-32 relative">
-        <ResponsiveContainer width="100%" height="100%">
+    <div className="flex flex-col items-center justify-center relative w-full pt-4 pb-2">
+      <div className="h-40 w-full max-w-[220px] relative overflow-hidden -mb-10">
+        <ResponsiveContainer width="100%" height="200%">
           <RadialBarChart 
             cx="50%" cy="50%" 
-            innerRadius="70%" outerRadius="100%" 
-            barSize={10} 
+            innerRadius="75%" outerRadius="100%" 
+            barSize={14} 
             data={data}
-            startAngle={90}
-            endAngle={90 - (3.6 * score)}
+            startAngle={180}
+            endAngle={180 - (1.8 * score)}
           >
             <RadialBar
               background={{ fill: 'rgba(255,255,255,0.05)' }}
               dataKey="value"
-              cornerRadius={5}
+              cornerRadius={8}
             />
           </RadialBarChart>
         </ResponsiveContainer>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-start pt-16">
           <motion.span 
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: delay + 0.3 }}
-            className="text-2xl font-bold font-display"
+            transition={{ delay: delay + 0.3, type: "spring", stiffness: 100 }}
+            className="text-5xl font-black font-display flex flex-col items-center leading-none text-white tracking-tighter"
           >
-            {score}%
+            {score}<span className="text-[10px] text-slate-500 font-sans tracking-widest uppercase mt-2">out of 100</span>
           </motion.span>
         </div>
+        <div className="absolute bottom-11 w-full flex justify-between px-6 text-[9px] font-black tracking-widest text-slate-600">
+          <span>0</span>
+          <span>100</span>
+        </div>
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-32 h-32 bg-teal-500/20 rounded-full blur-3xl -z-10" />
       </div>
-      <div className="mt-2 flex items-center justify-center gap-1.5">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
-        {tooltip && (
-          <div className="group relative cursor-pointer">
-            <Info className="h-3.5 w-3.5 text-slate-500 hover:text-white transition-colors" />
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-60 bg-slate-800 text-white text-[10px] font-medium p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-white/10 shadow-2xl leading-relaxed text-left">
-              {tooltip}
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45 border-r border-b border-white/10"></div>
+      
+      <div className="mt-10 flex flex-col items-center justify-center gap-3">
+        <motion.div 
+          initial={{ y: 5, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: delay + 0.5 }}
+          className={`px-6 py-2 rounded-full border shadow-xl ${level.bg} ${level.border}`}
+        >
+          <span className={`text-xs font-black uppercase tracking-widest ${level.color}`}>
+            Level: {level.label}
+          </span>
+        </motion.div>
+        <div className="flex items-center gap-1.5 mt-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
+          {tooltip && (
+            <div className="group relative cursor-pointer">
+              <Info className="h-3.5 w-3.5 text-slate-500 hover:text-white transition-colors" />
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-slate-800 text-white text-[10px] font-medium p-4 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-white/10 shadow-2xl leading-relaxed text-left">
+                {tooltip}
+                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 rotate-45 border-r border-b border-white/10"></div>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
@@ -181,8 +217,12 @@ export default function App() {
   const [history, setHistory] = useState<AnalysisHistoryItem[]>([]);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isLinkedInModalOpen, setIsLinkedInModalOpen] = useState(false);
   const [isPurgePromptOpen, setIsPurgePromptOpen] = useState(false);
+  const [selectedRecommendation, setSelectedRecommendation] = useState<string | null>(null);
+  const [recommendationDetail, setRecommendationDetail] = useState<{explanation: string, examples: string[]} | null>(null);
+  const [isGeneratingRecDetail, setIsGeneratingRecDetail] = useState(false);
 
   const linkedinCopy = `🚀 Just analyzed my resume with AI Resume Pro! Accurate ATS scores, skill gap analysis, and tailored career roadmap insights. Check it out to level up your professional profile! 📄✨ 
 
@@ -345,53 +385,33 @@ export default function App() {
       const { text, pageCount, atsMetadata } = await extractionResponse.json();
 
       setAnalysisStep('Initiating high-dimensional intelligence model generation...');
-      // API call to the backend for AI generation
-      const analysisResponse = await fetch('/api/generate-analysis', {
+      
+      const generationResponse = await fetch('/api/generate-analysis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           text,
           jobDescription,
           pageCount,
           atsMetadata,
           linkedinUrl
-        })
+        }),
       });
+
+      if (!generationResponse.ok) {
+         const errorData = await generationResponse.json().catch(() => ({}));
+         let errMessage = errorData.error || 'Intelligence processing failed.';
+         if (errMessage.includes('API key is missing') || errMessage.includes('API_KEY_INVALID') || errMessage.includes('API key')) {
+             errMessage = 'Your Gemini API Key is missing, invalid or has been revoked. Please update it in the settings / environment variables.';
+         }
+         throw new Error(errMessage);
+      }
 
       setAnalysisStep('Parsing cognitive matrices output...');
 
-      if (!analysisResponse.ok) {
-        let errMessage = 'Intelligence extraction failed on server.';
-        try {
-          const errData = await analysisResponse.json();
-          if (errData.details && errData.details.includes('API key not valid')) {
-            errMessage = 'Your Gemini API Key is invalid or has been revoked. Please update it in the settings / environment variables.';
-          } else if (errData.details && (errData.details.includes('503') || errData.details.includes('high demand'))) {
-            errMessage = 'The AI model is currently experiencing high demand. Please try again in a few moments.';
-          } else {
-            errMessage = errData.error || errMessage;
-          }
-        } catch (e) {
-           // fallback to default error
-        }
-        throw new Error(errMessage);
-      }
-
-      let analysisJson = await analysisResponse.text();
-
-      if (!analysisJson) throw new Error("AI returned empty response");
-      
-      // Clean potential markdown
-      analysisJson = analysisJson.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
-      const startIdx = analysisJson.indexOf('{');
-      const endIdx = analysisJson.lastIndexOf('}');
-      if (startIdx === -1 || endIdx === -1) {
-        console.error("Malformed AI response:", analysisJson);
-        throw new Error('Parsing error: Intelligence component returned invalid format.');
-      }
-      analysisJson = analysisJson.substring(startIdx, endIdx + 1);
-      
-      const analysis: AnalysisResult = JSON.parse(analysisJson);
+      const analysis: AnalysisResult = await generationResponse.json();
       
       // Inject rule-based keyword data
       if (analysis.atsAnalysis) {
@@ -399,6 +419,7 @@ export default function App() {
         analysis.atsAnalysis.jobKeywordsFound = atsMetadata.jobKeywordsFound;
         analysis.atsAnalysis.jobKeywordsMissing = atsMetadata.jobKeywordsMissing;
         analysis.atsAnalysis.jobKeywordDensity = atsMetadata.keywordDensity;
+        analysis.atsAnalysis.bulletPointQualityScore = atsMetadata.bulletPointQualityScore;
       }
       
       setResult(analysis);
@@ -409,6 +430,45 @@ export default function App() {
     } finally {
       setIsAnalyzing(false);
       clearInterval(timer);
+    }
+  };
+
+  const handleExpandRecommendation = async (recommendation: string) => {
+    if (selectedRecommendation === recommendation) {
+      setSelectedRecommendation(null);
+      return;
+    }
+    
+    setSelectedRecommendation(recommendation);
+    setRecommendationDetail(null);
+    setIsGeneratingRecDetail(true);
+    
+    try {
+      const response = await fetch('/api/expand-recommendation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ recommendation, jobDescription }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        let errMessage = errorData.error || 'Intelligence processing failed.';
+        if (errMessage.includes('API key is missing') || errMessage.includes('API_KEY_INVALID') || errMessage.includes('API key')) {
+            errMessage = 'Your Gemini API Key is missing, invalid or has been revoked. Please update it in the settings / environment variables.';
+        }
+        throw new Error(errMessage);
+      }
+
+      const parsedResponse = await response.json();
+
+      setRecommendationDetail(parsedResponse);
+    } catch (err) {
+      console.error(err);
+      setSelectedRecommendation(null);
+    } finally {
+      setIsGeneratingRecDetail(false);
     }
   };
 
@@ -453,6 +513,13 @@ export default function App() {
           
           <div className="hidden md:flex items-center gap-8 text-[11px] font-black uppercase tracking-widest text-slate-400">
             <button 
+              onClick={() => setIsGuideOpen(true)}
+              className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition-all flex items-center gap-2"
+            >
+              <BookOpen className="h-4 w-4" />
+              Formatting Guide
+            </button>
+            <button 
               onClick={() => setIsHistoryOpen(!isHistoryOpen)}
               className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition-all flex items-center gap-2"
             >
@@ -465,6 +532,118 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-6 py-12">
         <AnimatePresence>
+          {isGuideOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm overflow-y-auto">
+              <motion.div 
+                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                className="max-w-4xl w-full bg-brand-deep rounded-3xl border border-white/10 p-8 md:p-12 space-y-8 my-auto"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-3xl font-black text-white font-display uppercase tracking-tighter mb-2">Resume Formatting Protocol</h3>
+                    <p className="text-slate-400 text-sm font-bold uppercase tracking-[0.2em]">Best Practices for ATS & Human Readability</p>
+                  </div>
+                  <button onClick={() => setIsGuideOpen(false)} className="h-10 w-10 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+                    <XCircle className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-8 h-[60vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                  {/* Typography & Spacing */}
+                  <div className="space-y-6">
+                    <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="h-8 w-8 bg-teal-500/10 rounded-lg flex items-center justify-center text-teal-400">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <h4 className="text-sm font-black text-white uppercase tracking-widest">Typography & Layout</h4>
+                      </div>
+                      <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
+                        <div>
+                          <strong className="text-white block mb-1">Fonts:</strong> Avoid complex serif fonts. Stick to clean, modern sans-serif fonts like <strong>Helvetica, Arial, Calibri, Arial, or Roboto</strong>. Size should be <strong>10-12pt</strong> for body, and <strong>14-16pt</strong> for headers.
+                        </div>
+                        <div>
+                          <strong className="text-white block mb-1">Margins:</strong> Maintain <strong>0.5 to 1-inch margins</strong> on all sides to ensure it prints well and provides enough whitespace.
+                        </div>
+                        <div>
+                          <strong className="text-white block mb-1">Formats:</strong> Always export to <strong>PDF</strong>. Word documents (.docx) can break formatting depending on the ATS or the recruiter's system.
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section Structuring */}
+                    <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="h-8 w-8 bg-sky-500/10 rounded-lg flex items-center justify-center text-sky-400">
+                          <Layout className="h-4 w-4" />
+                        </div>
+                        <h4 className="text-sm font-black text-white uppercase tracking-widest">Section Structuring</h4>
+                      </div>
+                      <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
+                        <div><strong className="text-white">1. Contact Header:</strong> Name, Phone, Email, Location, LinkedIn/Portfolio. (No photos or exact street addresses).</div>
+                        <div><strong className="text-white">2. Professional Summary:</strong> 2-3 sentences targeting the specific role. No objective statements.</div>
+                        <div><strong className="text-white">3. Experience:</strong> Reverse-chronological order. Use 3-5 bullet points per role focusing on impact.</div>
+                        <div><strong className="text-white">4. Skills:</strong> Group by category (e.g., Languages, Frameworks, Tools). Keep it scannable.</div>
+                        <div><strong className="text-white">5. Education:</strong> Degree, Major, Institution, Year (Optional if 5+ years exp).</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bullet Points & Visual Example */}
+                  <div className="space-y-6">
+                     <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="h-8 w-8 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-400">
+                          <Zap className="h-4 w-4" />
+                        </div>
+                        <h4 className="text-sm font-black text-white uppercase tracking-widest">The XYZ Formula</h4>
+                      </div>
+                      <p className="text-xs text-slate-300 mb-4 leading-relaxed">
+                        Google recruiters recommend the <strong>XYZ formula</strong> for achievements: "Accomplished [X] as measured by [Y], by doing [Z]."
+                      </p>
+                      
+                      <div className="space-y-3">
+                        <div className="p-3 bg-rose-500/5 border-l-2 border-rose-500 text-xs">
+                          <span className="text-rose-400 font-bold uppercase text-[10px] block mb-1">Bad Example</span>
+                          <span className="text-slate-400 line-through">Helped increase sales for the company.</span>
+                        </div>
+                        <div className="p-3 bg-emerald-500/5 border-l-2 border-emerald-500 text-xs text-slate-200">
+                          <span className="text-emerald-400 font-bold uppercase text-[10px] block mb-1">Good Example</span>
+                          "Grew Q3 revenue by 24% ($1.2M) mapping new sales territories and introducing a CRM automation pipeline."
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-6 bg-teal-500/5 border border-teal-500/20 rounded-2xl">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="h-8 w-8 bg-teal-500/20 rounded-lg flex items-center justify-center text-teal-400">
+                          <Target className="h-4 w-4" />
+                        </div>
+                        <h4 className="text-sm font-black text-teal-400 uppercase tracking-widest">ATS Anti-Patterns</h4>
+                      </div>
+                      <ul className="text-xs text-slate-300 space-y-3">
+                        <li className="flex gap-2">
+                          <XCircle className="h-4 w-4 text-rose-500 shrink-0" />
+                          <span><strong>2-Column Layouts:</strong> Many ATS parse left-to-right, completely scrambling two-column designs.</span>
+                        </li>
+                        <li className="flex gap-2">
+                          <XCircle className="h-4 w-4 text-rose-500 shrink-0" />
+                          <span><strong>Tables & Graphics:</strong> Exclude images, complex tables, progress bars, or skill rating circles.</span>
+                        </li>
+                        <li className="flex gap-2">
+                          <XCircle className="h-4 w-4 text-rose-500 shrink-0" />
+                          <span><strong>Headers/Footers:</strong> Don't put contact info in the document header/footer; some parsers ignore them.</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+
           {isLinkedInModalOpen && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
               <motion.div 
@@ -752,23 +931,37 @@ export default function App() {
                   </div>
                   <div 
                     {...getRootProps()} 
-                    className={`group relative border-2 border-dashed rounded-2xl p-6 transition-all cursor-pointer text-center h-40 flex items-center justify-center mb-4
-                      ${isDragActive ? 'border-teal-400 bg-teal-500/10' : 'border-white/10 hover:border-white/20 bg-white/5'}`}
+                    className={`group relative rounded-2xl transition-all cursor-pointer text-center h-[14rem] flex flex-col items-center justify-center overflow-hidden
+                      ${isDragActive ? 'bg-teal-500/10' : 'bg-white/[0.02] hover:bg-white/[0.04]'}`}
                   >
+                    <div className="absolute inset-0 border-2 border-dashed rounded-2xl opacity-40 transition-colors duration-500 group-hover:border-teal-500/50" 
+                         style={{ borderColor: isDragActive ? '#14b8a6' : 'rgba(255,255,255,0.15)' }} />
                     <input {...getInputProps()} />
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="h-12 w-12 rounded-2xl bg-teal-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                        <Upload className="h-6 w-6 text-teal-400" />
+                    
+                    <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                       <ShieldCheck className="h-4 w-4 text-slate-500" />
+                    </div>
+
+                    <div className="flex flex-col items-center gap-4 relative z-10 transition-transform duration-500 group-hover:-translate-y-2">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-teal-500/30 blur-xl rounded-full scale-0 group-hover:scale-150 transition-transform duration-700"></div>
+                        <div className="h-16 w-16 rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 flex items-center justify-center border border-white/10 shadow-2xl relative z-10">
+                          <Upload className={`h-7 w-7 transition-colors duration-500 ${isDragActive ? 'text-teal-400' : 'text-slate-400 group-hover:text-white'}`} />
+                        </div>
                       </div>
+                      
                       {file ? (
-                        <div className="space-y-1">
-                          <p className="text-teal-400 font-black text-sm uppercase tracking-tight">{file.name}</p>
-                          <p className="text-slate-500 text-[10px] font-bold">READY FOR INGESTION</p>
+                        <div className="space-y-1.5 px-6">
+                          <p className="text-teal-400 font-black text-sm uppercase tracking-tight truncate max-w-[250px]">{file.name}</p>
+                          <div className="flex items-center justify-center gap-2">
+                             <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
+                             <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">Ready For Ingestion</p>
+                          </div>
                         </div>
                       ) : (
-                        <div className="space-y-1">
-                          <p className="text-slate-300 font-bold text-sm tracking-tight">Drop Resume Source</p>
-                          <p className="text-slate-600 text-[10px] font-black tracking-widest uppercase">PDF • DOCX • TXT</p>
+                        <div className="space-y-2">
+                          <p className="text-slate-200 font-black text-[13px] uppercase tracking-widest">Drop Source File Here</p>
+                          <p className="text-slate-500 text-[10px] font-bold tracking-[0.2em] uppercase">Supports PDF • DOCX • TXT</p>
                         </div>
                       )}
                     </div>
@@ -798,12 +991,22 @@ export default function App() {
                        Match Context
                     </h3>
                   </div>
-                  <textarea
-                    value={jobDescription}
-                    onChange={(e) => setJobDescription(e.target.value)}
-                    placeholder="Paste the target requirements to calibrate the intelligence engine..."
-                    className="w-full h-48 bg-white/5 border border-white/10 rounded-2xl p-6 text-slate-300 placeholder:text-slate-700 focus:outline-none focus:border-teal-500/50 transition-all resize-none font-medium leading-relaxed"
-                  />
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-teal-500/20 to-sky-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 -z-10"></div>
+                    <textarea
+                      value={jobDescription}
+                      onChange={(e) => {
+                        setJobDescription(e.target.value);
+                        e.target.style.height = 'inherit';
+                        e.target.style.height = `${e.target.scrollHeight}px`;
+                      }}
+                      placeholder="Paste the target job requirements to calibrate the intelligence engine..."
+                      className="w-full min-h-[14rem] max-h-[30rem] bg-[#0A0A15]/80 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-teal-500/60 focus:ring-1 focus:ring-teal-500/60 transition-all resize-y font-medium leading-relaxed custom-scrollbar relative z-10 shadow-inner"
+                    />
+                    <div className="absolute bottom-4 right-4 text-[9px] font-bold uppercase tracking-widest text-slate-500 pointer-events-none z-20 bg-[#0A0A15]/80 px-2 py-1 rounded">
+                      {jobDescription.length > 0 ? `${jobDescription.length} chars` : 'Optional Context'}
+                    </div>
+                  </div>
                 </GlassCard>
               </div>
 
@@ -878,112 +1081,154 @@ export default function App() {
               </div>
 
               {/* Scoring Infrastructure */}
-              <div className="grid md:grid-cols-3 gap-6">
-                <GlassCard className="col-span-1 flex flex-col items-center justify-center border-teal-500/20">
+              <div className="grid md:grid-cols-2 gap-8 mb-8">
+                <GlassCard className="flex flex-col items-center justify-center py-8 border-t-4 border-t-teal-500 bg-gradient-to-b from-teal-500/5 to-transparent relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-50">
+                    <CheckCircle2 className="h-6 w-6 text-teal-500" />
+                  </div>
+                  <h3 className="text-xl font-black text-white font-display uppercase tracking-widest mb-2">Overall Match</h3>
+                  <p className="text-slate-400 text-[11px] font-bold uppercase tracking-[0.2em] mb-8 text-center max-w-xs">Holistic evaluation of your resume against the target role</p>
                   <ScoringCircle 
                     score={result.overallScore} 
-                    label="Overall Match" 
+                    label="Composite Fitness Score" 
                     color="#14b8a6" 
                     delay={0.1} 
-                    tooltip={
-                      <>
-                        <strong className="text-teal-400 block mb-2 uppercase tracking-widest text-xs border-b border-white/10 pb-1">Overall Match</strong>
-                        This composite score represents your holistic fitness for the role, combining ATS formatting health, keyword density, and experiential overlap.<br/><br/>
-                        <span className="text-slate-300 block mb-1"><strong className="text-white">90-100%:</strong> Outstanding fit</span>
-                        <span className="text-slate-300 block mb-1"><strong className="text-white">70-89%:</strong> Strong fit</span>
-                        <span className="text-slate-300 block mb-1"><strong className="text-white">&lt;70%:</strong> Needs optimization</span>
-                      </>
-                    }
                   />
                 </GlassCard>
-                
-                <GlassCard className="col-span-2">
-                  <div className="flex justify-between items-center mb-8">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">Quick Overview</h3>
-                    <div className="flex items-center gap-2 text-[10px] font-black text-teal-400 uppercase tracking-widest">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Scan Validated
-                    </div>
+                <GlassCard className="flex flex-col items-center justify-center py-8 border-t-4 border-t-sky-500 bg-gradient-to-b from-sky-500/5 to-transparent relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-50">
+                    <Layers className="h-6 w-6 text-sky-500" />
                   </div>
-                  <div className="grid grid-cols-2 gap-x-12 gap-y-6">
-                    {[
-                      { 
-                        label: "ATS Score", score: result.atsCompatibility, color: "#14b8a6", desc: "System compatibility",
-                        tooltip: (
-                           <>
-                             <strong className="text-teal-400 block mb-3 uppercase tracking-widest text-xs border-b border-white/10 pb-2">Score Calculation</strong>
-                             <div className="space-y-4">
-                               <div>
-                                 <div className="flex justify-between mb-1.5"><span className="text-slate-300">Keyword Matching</span><span className="text-white font-black">{result.atsAnalysis.keywordDensity}%</span></div>
-                                 <div className="h-1.5 w-full bg-slate-700/50 rounded-full overflow-hidden"><div className="h-full bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.5)] rounded-full" style={{ width: `${result.atsAnalysis.keywordDensity}%` }} /></div>
-                               </div>
-                               <div>
-                                 <div className="flex justify-between mb-1.5"><span className="text-slate-300">Formatting</span><span className="text-white font-black">{result.atsAnalysis.formattingScore}%</span></div>
-                                 <div className="h-1.5 w-full bg-slate-700/50 rounded-full overflow-hidden"><div className="h-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)] rounded-full" style={{ width: `${result.atsAnalysis.formattingScore}%` }} /></div>
-                               </div>
-                               <div>
-                                 <div className="flex justify-between mb-1.5"><span className="text-slate-300">Section Headers</span><span className="text-white font-black">{Math.round((result.atsAnalysis.formattingScore + result.atsCompatibility) / 2)}%</span></div>
-                                 <div className="h-1.5 w-full bg-slate-700/50 rounded-full overflow-hidden"><div className="h-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.5)] rounded-full" style={{ width: `${Math.round((result.atsAnalysis.formattingScore + result.atsCompatibility) / 2)}%` }} /></div>
-                               </div>
-                             </div>
-                           </>
-                        )
-                      },
-                      { 
-                        label: "Skills Match", score: result.skillsMatch, color: "#0ea5e9", desc: "Role alignment",
-                        tooltip: (
-                            <>
-                              <strong className="text-sky-400 block mb-2 uppercase tracking-widest text-xs border-b border-white/10 pb-1">Skills Match</strong>
-                               The overlap between your extracted skills and the job's core requirements. High scores indicate strong technical and domain alignment.
-                            </>
-                        )
-                      },
-                      { 
-                        label: "Keywords", score: result.atsAnalysis.keywordDensity, color: "#10b981", desc: "Density factor" 
-                      },
-                      { 
-                        label: "Formatting", score: result.atsAnalysis.formattingScore, color: "#f59e0b", desc: "Visual health",
-                        tooltip: (
-                            <>
-                              <strong className="text-amber-400 block mb-2 uppercase tracking-widest text-xs border-b border-white/10 pb-1">Formatting Health</strong>
-                               Assesses how easily an ATS parser can process your resume. Penalizes complex layouts, graphics, tables, or unreadable fonts.
-                            </>
-                        )
-                      }
-                    ].map((m, i) => (
-                      <div key={`m-${i}`} className="space-y-3">
-                        <div className="flex justify-between items-end">
-                           <div className="flex items-center gap-2">
-                             <div>
-                               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">{m.label}</span>
-                               <span className="text-[8px] font-bold text-slate-600 uppercase tracking-tighter">{m.desc}</span>
-                             </div>
-                             {m.tooltip && (
-                               <div className="group relative cursor-pointer">
-                                 <Info className="h-4 w-4 text-slate-400 hover:text-white transition-colors" />
-                                 <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 w-64 bg-slate-800 text-white text-[10px] font-medium p-4 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-white/10 shadow-2xl leading-relaxed">
-                                   {m.tooltip}
-                                   <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 rotate-45 border-r border-b border-white/10"></div>
-                                 </div>
-                               </div>
-                             )}
-                           </div>
-                           <span className="text-xl font-black text-white font-display leading-none">{m.score}%</span>
+                  <h3 className="text-xl font-black text-white font-display uppercase tracking-widest mb-2">ATS Score</h3>
+                  <p className="text-slate-400 text-[11px] font-bold uppercase tracking-[0.2em] mb-8 text-center max-w-xs">Applicant Tracking System Parsing & Compatibility Level</p>
+                  
+                  <div className="flex flex-col xl:flex-row items-center justify-center gap-8 w-full px-4 lg:px-8">
+                    <div className="shrink-0">
+                      <ScoringCircle 
+                        score={result.atsCompatibility} 
+                        label="System Compatibility" 
+                        color="#0ea5e9" 
+                        delay={0.2} 
+                      />
+                    </div>
+                    
+                    <div className="w-full max-w-[200px] xl:max-w-none xl:flex-1 space-y-5">
+                      <div>
+                        <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest mb-2">
+                          <span className="text-slate-400">Keyword Density</span>
+                          <span className="text-sky-400">{result.atsAnalysis?.keywordDensity || 0}%</span>
                         </div>
-                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                          <motion.div 
-                            initial={{ width: 0 }} 
-                            animate={{ width: `${m.score}%` }} 
-                            className="h-full rounded-full shadow-[0_0_8px_rgba(255,255,255,0.1)]" 
-                            style={{ backgroundColor: m.color }}
-                            transition={{ delay: 0.5 + (i * 0.1), duration: 1.5, ease: "easeOut" }} 
-                          />
+                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                          <div className="h-full bg-sky-500 rounded-full shadow-[0_0_8px_rgba(14,165,233,0.5)]" style={{ width: `${result.atsAnalysis?.keywordDensity || 0}%` }} />
                         </div>
                       </div>
-                    ))}
+                      
+                      <div>
+                        <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest mb-2">
+                          <span className="text-slate-400">Formatting Score</span>
+                          <span className="text-emerald-400">{result.atsAnalysis?.formattingScore || 0}%</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                          <div className="h-full bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" style={{ width: `${result.atsAnalysis?.formattingScore || 0}%` }} />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest mb-2">
+                          <span className="text-slate-400">Bullet Quality</span>
+                          <span className="text-amber-400">{result.atsAnalysis?.bulletPointQualityScore || 0}%</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                          <div className="h-full bg-amber-400 rounded-full shadow-[0_0_8px_rgba(251,191,36,0.5)]" style={{ width: `${result.atsAnalysis?.bulletPointQualityScore || 0}%` }} />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </GlassCard>
               </div>
+
+              <GlassCard className="mb-8">
+                <div className="flex justify-between items-center mb-8">
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">Detailed Sub-Metrics</h3>
+                  <div className="flex items-center gap-2 text-[10px] font-black text-teal-400 uppercase tracking-widest">
+                    <Target className="h-3 w-3" />
+                    Deep Analysis
+                  </div>
+                </div>
+                <div className="grid sm:grid-cols-3 lg:grid-cols-5 gap-x-8 gap-y-8">
+                  {[
+                    { 
+                      label: "Skills Match", score: result.skillsMatch, color: "#0ea5e9", desc: "Role alignment",
+                      tooltip: (
+                          <>
+                            <strong className="text-sky-400 block mb-2 uppercase tracking-widest text-xs border-b border-white/10 pb-1">Skills Match</strong>
+                             The overlap between your extracted skills and the job's core requirements. High scores indicate strong technical and domain alignment.
+                          </>
+                      )
+                    },
+                    { 
+                      label: "Keywords", score: result.atsAnalysis.keywordDensity, color: "#10b981", desc: "Density factor" 
+                    },
+                    { 
+                      label: "Formatting", score: result.atsAnalysis.formattingScore, color: "#f59e0b", desc: "Visual health",
+                      tooltip: (
+                          <>
+                            <strong className="text-amber-400 block mb-2 uppercase tracking-widest text-xs border-b border-white/10 pb-1">Formatting Health</strong>
+                             Assesses how easily an ATS parser can process your resume. Penalizes complex layouts, graphics, tables, or unreadable fonts.
+                          </>
+                      )
+                    },
+                    { 
+                      label: "System Match", score: Math.round((result.atsAnalysis.formattingScore + result.atsCompatibility) / 2), color: "#8b5cf6", desc: "Averaged health",
+                      tooltip: (
+                          <>
+                            <strong className="text-purple-400 block mb-2 uppercase tracking-widest text-xs border-b border-white/10 pb-1">Average Health</strong>
+                             Combines your formatting score and base ATS score into a single indicator of parsing reliability.
+                          </>
+                      )
+                    },
+                    {
+                      label: "Bullet Quality", score: result.atsAnalysis.bulletPointQualityScore || 0, color: "#ec4899", desc: "Impact score",
+                      tooltip: (
+                          <>
+                            <strong className="text-pink-400 block mb-2 uppercase tracking-widest text-xs border-b border-white/10 pb-1">Bullet Quality</strong>
+                            Focuses on the presence of strong action verbs and quantifiable metrics (numbers, %, $) in your experience descriptions.
+                          </>
+                      )
+                    }
+                  ].map((m, i) => (
+                    <div key={`m-${i}`} className="space-y-3">
+                      <div className="flex justify-between items-end">
+                         <div className="flex items-center gap-2">
+                           <div>
+                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">{m.label}</span>
+                             <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">{m.desc}</span>
+                           </div>
+                           {m.tooltip && (
+                             <div className="group relative cursor-pointer">
+                               <Info className="h-4 w-4 text-slate-500 hover:text-white transition-colors" />
+                               <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 w-64 bg-slate-800 text-white text-[10px] font-medium p-4 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-white/10 shadow-2xl leading-relaxed">
+                                 {m.tooltip}
+                                 <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 rotate-45 border-r border-b border-white/10"></div>
+                               </div>
+                             </div>
+                           )}
+                         </div>
+                         <span className="text-2xl font-black text-white font-display leading-none">{m.score}%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }} 
+                          animate={{ width: `${m.score}%` }} 
+                          className="h-full rounded-full shadow-[0_0_8px_rgba(255,255,255,0.1)]" 
+                          style={{ backgroundColor: m.color }}
+                          transition={{ delay: 0.5 + (i * 0.1), duration: 1.5, ease: "easeOut" }} 
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
 
               {/* Career Progression Timeline */}
               {result.careerTimeline && result.careerTimeline.length > 0 && (
@@ -1073,13 +1318,101 @@ export default function App() {
                   </div>
                   <div className="space-y-4">
                     {[...result.atsAnalysis.recommendations, ...result.suggestions].slice(0, 5).map((step, i) => (
-                      <div key={`rec-${i}`} className="flex gap-5 p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 transition-all items-center group">
-                        <div className="h-10 w-10 shrink-0 rounded-full border-2 border-slate-700 flex items-center justify-center text-slate-500 font-black text-xs group-hover:border-teal-500 group-hover:text-teal-400 transition-all">
-                          {i + 1}
+                      <div key={`rec-${i}`} className="space-y-3">
+                        <div 
+                          className={`flex gap-5 p-5 rounded-2xl bg-white/5 border transition-all items-start group ${selectedRecommendation === step ? 'border-teal-500 shadow-[0_0_20px_rgba(20,184,166,0.15)] bg-white/10' : 'border-white/5 hover:border-white/20'}`}
+                        >
+                          <div className={`h-10 w-10 mt-1 shrink-0 rounded-full border-2 flex items-center justify-center font-black text-xs transition-all ${selectedRecommendation === step ? 'border-teal-500 text-teal-400' : 'border-slate-700 text-slate-500 group-hover:border-teal-500 group-hover:text-teal-400'}`}>
+                            {i + 1}
+                          </div>
+                          <div className="flex-1 flex flex-col gap-3">
+                            <div className="flex items-start justify-between gap-4">
+                              <p className="text-slate-300 font-medium text-[13px] leading-relaxed italic pr-4">
+                                {step}
+                              </p>
+                              {selectedRecommendation === step ? (
+                                <button onClick={() => handleExpandRecommendation(step)} className="p-1 rounded bg-white/5 hover:bg-white/10 text-teal-400 shrink-0">
+                                  <ChevronUp className="h-4 w-4" />
+                                </button>
+                              ) : null}
+                            </div>
+                            
+                            {selectedRecommendation !== step && (
+                              <button 
+                                onClick={() => handleExpandRecommendation(step)}
+                                className="self-start flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-teal-400/80 hover:text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 px-4 py-2 rounded-lg transition-all border border-teal-500/20 hover:border-teal-500/40"
+                              >
+                                <Sparkles className="h-3 w-3" /> Get AI-Generated Example Content
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-slate-300 font-medium text-[13px] leading-relaxed italic">
-                          {step}
-                        </p>
+                        
+                        {/* Expanded Detail View */}
+                        <AnimatePresence>
+                          {selectedRecommendation === step && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="p-6 rounded-2xl bg-[#050510] border border-teal-500/20 shadow-inner ml-14 relative">
+                                <div className="absolute top-[-10px] left-10 w-4 h-4 bg-[#050510] border-t border-l border-teal-500/20 rotate-45 transform origin-center z-10" />
+                                
+                                {isGeneratingRecDetail ? (
+                                  <div className="flex flex-col items-center justify-center py-6 space-y-4">
+                                     <BrainCircuit className="h-6 w-6 text-teal-500 animate-pulse" />
+                                     <p className="text-xs font-black text-slate-400 uppercase tracking-widest animate-pulse">Generating strategic insights...</p>
+                                  </div>
+                                ) : recommendationDetail ? (
+                                  <div className="space-y-6">
+                                    <div>
+                                      <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                        <Info className="h-3.5 w-3.5" /> Context & Rationale
+                                      </h4>
+                                      <p className="text-slate-300 text-sm leading-relaxed">{recommendationDetail.explanation}</p>
+                                    </div>
+                                    
+                                    {recommendationDetail.examples && recommendationDetail.examples.length > 0 && (
+                                      <div>
+                                        <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                          <TrendingUp className="h-3.5 w-3.5" /> Implementation Examples
+                                        </h4>
+                                        <div className="space-y-3">
+                                          {recommendationDetail.examples.map((example, eIdx) => (
+                                            <div key={`ex-${eIdx}`} className="group/ex relative p-4 pr-12 rounded-xl bg-white/5 border border-white/5 text-sm text-slate-300 leading-relaxed font-mono">
+                                              {example}
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  navigator.clipboard.writeText(example);
+                                                  const btn = e.currentTarget;
+                                                  const originalHTML = btn.innerHTML;
+                                                  const checkHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check text-teal-400"><path d="M20 6 9 17l-5-5"/></svg>';
+                                                  btn.innerHTML = checkHtml;
+                                                  setTimeout(() => {
+                                                    btn.innerHTML = originalHTML;
+                                                  }, 2000);
+                                                }}
+                                                className="absolute top-4 right-4 p-2 rounded-lg bg-white/5 opacity-0 group-hover/ex:opacity-100 hover:bg-white/10 transition-all cursor-pointer text-slate-400 hover:text-white"
+                                                title="Copy to clipboard"
+                                              >
+                                                <Copy className="h-3.5 w-3.5" />
+                                              </button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-4 text-rose-400 text-xs">Failed to load details. Please try again.</div>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     ))}
                   </div>
@@ -1128,17 +1461,19 @@ export default function App() {
                         <h4 className="text-[9px] font-black text-teal-500 uppercase mb-2">Resume Top Keywords</h4>
                         <div className="flex flex-wrap gap-2">
                            {result.atsAnalysis.topResumeKeywords?.slice(0,10).map((kw, i) => (
-                              <span key={`kw-${i}`} className="text-[10px] font-medium px-2 py-1 bg-teal-500/10 border border-teal-500/20 rounded text-teal-300">{kw}</span>
+                              <span key={`kw-${i}`} className="text-[10px] font-bold px-2.5 py-1 bg-teal-500/10 border border-teal-500/30 rounded-full text-teal-300 hover:bg-teal-500/20 hover:scale-105 transition-all shadow-[0_0_10px_rgba(20,184,166,0.1)] cursor-default">{kw}</span>
                            ))}
                         </div>
                       </div>
                       
                       {result.atsAnalysis.jobKeywordsFound && result.atsAnalysis.jobKeywordsFound.length > 0 && (
                         <div>
-                          <h4 className="text-[9px] font-black text-slate-400 uppercase mb-2">Matched Job Keywords</h4>
+                          <h4 className="text-[9px] font-black text-sky-400/80 uppercase mb-2 flex items-center gap-1.5 hover:text-sky-400 transition-colors">
+                            <CheckCircle2 className="h-3 w-3 text-sky-400" /> Matched Job Keywords
+                          </h4>
                           <div className="flex flex-wrap gap-2">
                              {result.atsAnalysis.jobKeywordsFound?.map((kw, i) => (
-                                <span key={`jkf-${i}`} className="text-[10px] font-medium px-2 py-1 bg-white/5 border border-white/10 rounded text-slate-300">{kw}</span>
+                                <span key={`jkf-${i}`} className="text-[10px] font-bold px-2.5 py-1 bg-sky-500/10 border border-sky-500/30 rounded-full text-sky-300 hover:bg-sky-500/20 hover:scale-105 transition-all shadow-[0_0_10px_rgba(56,189,248,0.1)] cursor-default">{kw}</span>
                              ))}
                           </div>
                         </div>
@@ -1146,12 +1481,59 @@ export default function App() {
 
                       {result.atsAnalysis.jobKeywordsMissing && result.atsAnalysis.jobKeywordsMissing.length > 0 && (
                         <div>
-                          <h4 className="text-[9px] font-black text-rose-400 uppercase mb-2">Missing Job Keywords</h4>
+                          <h4 className="text-[9px] font-black text-rose-400/80 uppercase mb-2 flex items-center gap-1.5 hover:text-rose-400 transition-colors">
+                            <XCircle className="h-3 w-3 text-rose-500" /> Missing Job Keywords
+                          </h4>
                           <div className="flex flex-wrap gap-2">
                              {result.atsAnalysis.jobKeywordsMissing?.slice(0, 8).map((kw, i) => (
-                                <span key={`jkm-${i}`} className="text-[10px] font-medium px-2 py-1 bg-rose-500/10 border border-rose-500/20 rounded text-rose-300">{kw}</span>
+                                <span key={`jkm-${i}`} className="text-[10px] font-bold px-2.5 py-1 bg-rose-500/10 border border-rose-500/30 rounded-full text-rose-300 hover:bg-rose-500/20 hover:scale-105 transition-all shadow-[0_0_10px_rgba(244,63,94,0.1)] cursor-default">{kw}</span>
                              ))}
                           </div>
+                        </div>
+                      )}
+
+                      {result.atsAnalysis.keywordOptimizations && result.atsAnalysis.keywordOptimizations.length > 0 && (
+                        <div className="pt-4 border-t border-white/10 mt-6">
+                           <h4 className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                              <Sparkles className="h-3.5 w-3.5" /> Keyword Optimizations
+                           </h4>
+                           <div className="space-y-4">
+                             {result.atsAnalysis.keywordOptimizations.map((opt, i) => (
+                               <details key={`ko-${i}`} className="group bg-white/5 border border-white/10 rounded-xl px-4 py-3 transition-colors hover:border-amber-500/30">
+                                 <summary className="text-[11px] font-bold text-white flex items-center justify-between cursor-pointer outline-none list-none [&::-webkit-details-marker]:hidden">
+                                    <div className="flex items-center gap-2">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                                      {opt.keyword}
+                                    </div>
+                                    <ChevronDown className="h-3.5 w-3.5 text-slate-400 transition-transform duration-200 group-open:rotate-180" />
+                                 </summary>
+                                 <div className="space-y-2 mt-4">
+                                   {opt.suggestedPhrases.map((phrase, pIdx) => (
+                                     <div key={`phrase-${i}-${pIdx}`} className="group/phrase relative p-3 pr-10 rounded-lg bg-black/40 border border-white/5 text-xs text-slate-300 leading-relaxed font-mono">
+                                       {phrase}
+                                       <button
+                                         onClick={(e) => {
+                                           e.stopPropagation();
+                                           navigator.clipboard.writeText(phrase);
+                                           const btn = e.currentTarget;
+                                           const originalHTML = btn.innerHTML;
+                                           const checkHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check text-amber-400"><path d="M20 6 9 17l-5-5"/></svg>';
+                                           btn.innerHTML = checkHtml;
+                                           setTimeout(() => {
+                                             btn.innerHTML = originalHTML;
+                                           }, 2000);
+                                         }}
+                                         className="absolute top-1/2 -translate-y-1/2 right-3 p-1.5 rounded-md bg-white/5 opacity-0 group-hover/phrase:opacity-100 hover:bg-white/10 transition-all cursor-pointer text-slate-400 hover:text-white"
+                                         title="Copy suggested phrase"
+                                       >
+                                         <Copy className="h-3 w-3" />
+                                       </button>
+                                     </div>
+                                   ))}
+                                 </div>
+                               </details>
+                             ))}
+                           </div>
                         </div>
                       )}
                     </div>
@@ -1163,6 +1545,29 @@ export default function App() {
                        "{result.summary}"
                     </p>
                   </GlassCard>
+
+                  {result.sectionsDetailed && result.sectionsDetailed.length > 0 && (
+                    <GlassCard>
+                      <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                        <Layers className="h-4 w-4 text-teal-400" /> Extracted Sections
+                      </h3>
+                      <div className="space-y-4">
+                        {result.sectionsDetailed.map((section, idx) => (
+                          <div key={idx} className="group relative">
+                            <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-white/5 border border-white/5 hover:border-teal-500/30 transition-colors">
+                              <h4 className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-2">
+                                <span className="h-1.5 w-1.5 rounded-full bg-teal-500 opacity-50 group-hover:opacity-100 transition-opacity" />
+                                {section.sectionName}
+                              </h4>
+                              <p className="text-[11px] text-slate-400 leading-relaxed border-l border-white/10 pl-3 ml-0.5 mt-1">
+                                {section.summary}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </GlassCard>
+                  )}
                 </div>
               </div>
 
