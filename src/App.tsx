@@ -29,7 +29,8 @@ import {
   XCircle,
   Copy,
   Check,
-  BookOpen
+  BookOpen,
+  Briefcase
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -39,19 +40,38 @@ import {
   ResponsiveContainer, 
   RadialBarChart, 
   RadialBar,
-  Tooltip as RechartsTooltip
+  Tooltip as RechartsTooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid
 } from 'recharts';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface AnalysisResult {
   overallScore: number;
   atsCompatibility: number;
   skillsMatch: number;
+  formattingHealthScore?: number;
+  careerTrajectoryFitScore?: number;
   foundSkills: string[];
   missingSkills: string[];
+  improvementPlan?: {
+    missingSkillsToHighlight: string[];
+    resumeHeadlineUpdates: string[];
+    recommendedCertifications: string[];
+    projectsToHighlight: string[];
+    formattingFixes: string[];
+  };
   careerPath: {
     topRole: string;
     confidence: number;
-    alternatives: { role: string; match: number }[];
+    alternatives: { role: string; match: number; reasoning?: string }[];
   };
   careerTimeline?: {
     role: string;
@@ -59,6 +79,14 @@ interface AnalysisResult {
     duration: string;
     highlights: string[];
   }[];
+  linkedinComparison?: {
+    hasLinkedIn: boolean;
+    resumeHeadline: string;
+    linkedinHeadline: string;
+    matchAnalysis: string;
+    missingFromResume: string[];
+    missingFromLinkedIn: string[];
+  };
   atsAnalysis: {
     formattingScore: number;
     keywordDensity: number;
@@ -223,6 +251,13 @@ export default function App() {
   const [selectedRecommendation, setSelectedRecommendation] = useState<string | null>(null);
   const [recommendationDetail, setRecommendationDetail] = useState<{explanation: string, examples: string[]} | null>(null);
   const [isGeneratingRecDetail, setIsGeneratingRecDetail] = useState(false);
+  const [numPages, setNumPages] = useState<number>();
+  const [pageNumber, setPageNumber] = useState<number>(1);
+
+  function onDocumentLoadSuccess({ numPages }: { numPages: number }): void {
+    setNumPages(numPages);
+    setPageNumber(1);
+  }
 
   const linkedinCopy = `🚀 Just analyzed my resume with AI Resume Pro! Accurate ATS scores, skill gap analysis, and tailored career roadmap insights. Check it out to level up your professional profile! 📄✨ 
 
@@ -299,12 +334,18 @@ export default function App() {
     setTimeout(() => setIsSessionPurged(false), 3000);
   };
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    setFile(acceptedFiles[0]);
-    setError(null);
+  const onDrop = useCallback((acceptedFiles: File[], fileRejections: any[]) => {
+    if (fileRejections.length > 0) {
+      setError(`Unsupported file format or file too large. Please upload a PDF, DOCX, or TXT file.`);
+      return;
+    }
+    if (acceptedFiles.length > 0) {
+      setFile(acceptedFiles[0]);
+      setError(null);
+    }
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     onDrop,
     accept: {
       'application/pdf': ['.pdf'],
@@ -511,7 +552,16 @@ export default function App() {
             </div>
           </div>
           
-          <div className="hidden md:flex items-center gap-8 text-[11px] font-black uppercase tracking-widest text-slate-400">
+          <div className="hidden md:flex items-center gap-4 text-[11px] font-black uppercase tracking-widest text-slate-400">
+            <button 
+              onClick={() => {
+                 document.body.classList.toggle('theme-light');
+              }}
+              className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition-all flex items-center gap-2"
+            >
+              <Zap className="h-4 w-4" />
+              Toggle Theme
+            </button>
             <button 
               onClick={() => setIsGuideOpen(true)}
               className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition-all flex items-center gap-2"
@@ -734,9 +784,12 @@ export default function App() {
                    <p className="text-[10px] font-black uppercase tracking-widest">No archival data found</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="relative pl-6 space-y-6 before:absolute before:inset-y-0 before:left-[11px] before:w-px before:bg-gradient-to-b before:from-teal-500/50 before:to-transparent">
                   {history.map((item, mapIdx) => (
-                    <div 
+                    <motion.div 
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: mapIdx * 0.1 }}
                       key={item.id + '-' + mapIdx}
                       onClick={() => {
                         setResult(item.result);
@@ -747,6 +800,8 @@ export default function App() {
                           ? 'bg-teal-500/10 border-teal-500/50' 
                           : 'bg-white/5 border-white/5 hover:border-white/20'}`}
                     >
+                      <div className="absolute left-[-29px] top-5 w-3 h-3 rounded-full bg-[#0A0A15] border-2 border-teal-500/50 z-10 transition-colors group-hover:border-teal-400 group-hover:bg-teal-500 shadow-[0_0_10px_rgba(20,184,166,0)] group-hover:shadow-[0_0_10px_rgba(20,184,166,0.5)]"></div>
+                      
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-[10px] font-bold text-slate-500 uppercase">{new Date(item.date).toLocaleDateString()}</span>
                         <div className="flex gap-2">
@@ -776,7 +831,7 @@ export default function App() {
                           <span className="text-[9px] font-bold text-slate-600 uppercase">Skills</span>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               )}
@@ -906,17 +961,21 @@ export default function App() {
                  <motion.div 
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-500/5 border border-teal-500/20 text-teal-400 text-[10px] font-black uppercase tracking-[0.3em]"
+                  className="mb-6 inline-flex items-center gap-2 group relative cursor-pointer px-4 py-2 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-300 text-[10px] font-black uppercase tracking-[0.3em] shadow-[0_0_15px_rgba(20,184,166,0.2)]"
                  >
-                   <EyeOff className="h-3 w-3" />
-                   Zero-Storage Environment Enabled
+                   <Lock className="h-3 w-3" />
+                   Privacy-First Architecture • Zero Storage
+                   <div className="absolute inset-x-0 bottom-full mb-3 hidden group-hover:block px-4 py-3 bg-[#0A0A15] border border-white/10 text-slate-300 text-[10px] font-medium normal-case tracking-normal rounded-xl shadow-2xl z-50 text-center w-64 mx-auto left-1/2 -translate-x-1/2 transition-all">
+                      All parsing and analysis vectors happen locally or via stateless API protocols. We never store your resume files or personal data on our servers.
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-3 h-3 bg-[#0A0A15] border-b border-r border-white/10 rotate-45 transform"></div>
+                   </div>
                  </motion.div>
                  <h2 className="text-6xl font-black font-display text-white mb-6 tracking-tighter leading-tight">
-                   Optimize Your <br/>
-                   <span className="glow-text-accent">Professional Identity</span>
+                   Beat the ATS.<br/>
+                   <span className="glow-text-accent">Land Your Dream Job.</span>
                  </h2>
                  <p className="text-slate-400 text-lg max-w-2xl mx-auto font-medium leading-relaxed">
-                   Advanced intelligence layer for career trajectory mapping. Our ATS-centric engine identifies efficiency gaps and predicts optimal career paths with high-fidelity accuracy.
+                   Upload your resume and target job description. Our AI evaluates your profile against Applicant Tracking Systems, identifies missing keywords, and provides actionable recommendations to get you hired.
                  </p>
               </div>
 
@@ -926,16 +985,18 @@ export default function App() {
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
                        <Layers className="h-4 w-4 text-teal-400" />
-                       Source Upload
+                       Resume Upload
                     </h3>
                   </div>
-                  <div 
-                    {...getRootProps()} 
+                  <motion.div 
+                    {...(getRootProps() as any)} 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     className={`group relative rounded-2xl transition-all cursor-pointer text-center h-[14rem] flex flex-col items-center justify-center overflow-hidden
-                      ${isDragActive ? 'bg-teal-500/10' : 'bg-white/[0.02] hover:bg-white/[0.04]'}`}
+                      ${isDragReject ? 'bg-rose-500/10 border-rose-500/50' : isDragActive ? 'bg-teal-500/10 border-teal-500/50' : 'bg-white/[0.02] hover:bg-white/[0.04]'}`}
                   >
                     <div className="absolute inset-0 border-2 border-dashed rounded-2xl opacity-40 transition-colors duration-500 group-hover:border-teal-500/50" 
-                         style={{ borderColor: isDragActive ? '#14b8a6' : 'rgba(255,255,255,0.15)' }} />
+                         style={{ borderColor: isDragReject ? '#f43f5e' : isDragActive ? '#14b8a6' : 'rgba(255,255,255,0.15)' }} />
                     <input {...getInputProps()} />
                     
                     <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -944,9 +1005,13 @@ export default function App() {
 
                     <div className="flex flex-col items-center gap-4 relative z-10 transition-transform duration-500 group-hover:-translate-y-2">
                       <div className="relative">
-                        <div className="absolute inset-0 bg-teal-500/30 blur-xl rounded-full scale-0 group-hover:scale-150 transition-transform duration-700"></div>
+                        <div className={`absolute inset-0 blur-xl rounded-full scale-0 group-hover:scale-150 transition-transform duration-700 ${isDragReject ? 'bg-rose-500/30' : 'bg-teal-500/30'}`}></div>
                         <div className="h-16 w-16 rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 flex items-center justify-center border border-white/10 shadow-2xl relative z-10">
-                          <Upload className={`h-7 w-7 transition-colors duration-500 ${isDragActive ? 'text-teal-400' : 'text-slate-400 group-hover:text-white'}`} />
+                          {isDragReject ? (
+                            <AlertCircle className="h-7 w-7 transition-colors duration-500 text-rose-400" />
+                          ) : (
+                            <Upload className={`h-7 w-7 transition-colors duration-500 ${isDragActive ? 'text-teal-400' : 'text-slate-400 group-hover:text-white'}`} />
+                          )}
                         </div>
                       </div>
                       
@@ -955,18 +1020,49 @@ export default function App() {
                           <p className="text-teal-400 font-black text-sm uppercase tracking-tight truncate max-w-[250px]">{file.name}</p>
                           <div className="flex items-center justify-center gap-2">
                              <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
-                             <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">Ready For Ingestion</p>
+                             <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">Ready For Analysis</p>
                           </div>
                         </div>
                       ) : (
-                        <div className="space-y-2">
-                          <p className="text-slate-200 font-black text-[13px] uppercase tracking-widest">Drop Source File Here</p>
-                          <p className="text-slate-500 text-[10px] font-bold tracking-[0.2em] uppercase">Supports PDF • DOCX • TXT</p>
+                        <div className="space-y-4">
+                          <p className={`font-black text-[13px] uppercase tracking-widest transition-colors ${isDragReject ? 'text-rose-400' : 'text-slate-200'}`}>
+                            {isDragReject ? "Unsupported Format" : "Drag & Drop Resume Here"}
+                          </p>
+                          <div className="flex items-center justify-center gap-4 text-slate-500">
+                             <div className="flex flex-col items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                                <FileText className="h-4 w-4" />
+                                <span className="text-[9px] font-black tracking-widest uppercase">PDF</span>
+                             </div>
+                             <div className="flex flex-col items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                                <FileText className="h-4 w-4" />
+                                <span className="text-[9px] font-black tracking-widest uppercase">DOCX</span>
+                             </div>
+                             <div className="flex flex-col items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                                <FileText className="h-4 w-4" />
+                                <span className="text-[9px] font-black tracking-widest uppercase">TXT</span>
+                             </div>
+                          </div>
                         </div>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                   
+                  <div className="flex justify-center mt-3">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Creating a mock sample file
+                        const sampleContent = "John Doe\nSoftware Engineer\nExperience: 5 years at TechCorp using React, Node.js.\nSkills: JavaScript, HTML, CSS.";
+                        const sample = new File([sampleContent], "sample_resume.txt", { type: "text/plain" });
+                        setFile(sample);
+                        setJobDescription("Looking for a Senior Frontend Developer with strong React and TypeScript background. Must know Node.js.");
+                      }}
+                      className="text-[10px] font-black text-teal-400 hover:text-teal-300 uppercase tracking-widest bg-teal-500/10 hover:bg-teal-500/20 px-4 py-2 rounded-lg transition-all border border-teal-500/20 hover:border-teal-500/40"
+                    >
+                      Use Sample Resume & Job Description
+                    </button>
+                  </div>
+
                   <div className="mt-4 border-t border-white/5 pt-4">
                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2 block">LinkedIn Profile (Optional)</label>
                      <div className="flex bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:border-teal-500/50 transition-colors">
@@ -1010,6 +1106,66 @@ export default function App() {
                 </GlassCard>
               </div>
 
+              {file && file.type === 'application/pdf' && (
+                <div className="mt-8 flex justify-center">
+                  <GlassCard className="w-full relative flex flex-col items-center">
+                    <div className="flex items-center justify-between w-full mb-6">
+                      <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-teal-400" />
+                        Document Preview
+                      </h3>
+                      {numPages && numPages > 1 && (
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => setPageNumber(p => Math.max(1, p - 1))}
+                            disabled={pageNumber <= 1}
+                            className="w-8 h-8 flex items-center justify-center bg-white/5 disabled:opacity-50 text-slate-300 rounded-lg hover:bg-white/10 transition-colors"
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </button>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest w-16 text-center">
+                            {pageNumber} / {numPages}
+                          </span>
+                          <button 
+                            onClick={() => setPageNumber(p => Math.min(numPages, p + 1))}
+                            disabled={pageNumber >= numPages}
+                            className="w-8 h-8 flex items-center justify-center bg-white/5 disabled:opacity-50 text-slate-300 rounded-lg hover:bg-white/10 transition-colors"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5 w-full overflow-auto flex justify-center document-preview-container max-h-[600px] scrollbar-thin scrollbar-thumb-white/10">
+                       <Document
+                         file={file}
+                         onLoadSuccess={onDocumentLoadSuccess}
+                         loading={
+                           <div className="p-12 flex flex-col items-center justify-center gap-4">
+                             <div className="w-6 h-6 border-2 border-teal-500/20 border-t-teal-500 rounded-full animate-spin" />
+                             <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Loading Document...</span>
+                           </div>
+                         }
+                         error={
+                           <div className="p-8 text-rose-400 text-xs font-bold uppercase flex items-center gap-2 border border-rose-500/20 bg-rose-500/5 rounded-xl">
+                             <AlertCircle className="h-4 w-4" /> Failed to load preview
+                           </div>
+                         }
+                       >
+                         <Page 
+                            pageNumber={pageNumber} 
+                            width={1000} 
+                            scale={0.8}
+                            renderTextLayer={true} 
+                            renderAnnotationLayer={true} 
+                            className="shadow-2xl !bg-transparent mx-auto"
+                         />
+                       </Document>
+                    </div>
+                  </GlassCard>
+                </div>
+              )}
+
               <div className="mt-16 text-center">
                 <button 
                   id="initiateAnalysis"
@@ -1029,7 +1185,7 @@ export default function App() {
                   ) : (
                     <div className="flex items-center gap-4">
                       <Zap className="h-5 w-5 fill-current shadow-glow" />
-                      Analyze Identity
+                      Analyze Resume
                     </div>
                   )}
                 </button>
@@ -1043,6 +1199,89 @@ export default function App() {
                     {error}
                   </motion.div>
                 )}
+              </div>
+
+              {/* Trust & How It Works */}
+              <div className="mt-32 pt-16 border-t border-white/5">
+                 <div className="text-center mb-16">
+                    <h3 className="text-2xl font-black font-display text-white mb-4">How It Works</h3>
+                    <p className="text-slate-400 text-sm max-w-2xl mx-auto">Our AI engine reverse-engineers the Applicant Tracking Systems used by top Fortune 500 companies to give you a competitive edge.</p>
+                 </div>
+                 
+                 <div className="grid md:grid-cols-3 gap-8 relative">
+                    <div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-teal-500/20 to-transparent -z-10 hidden md:block"></div>
+                    
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} viewport={{ once: true }}
+                      className="flex flex-col items-center text-center p-6 bg-[#0A0A15] border border-white/5 rounded-2xl relative z-10"
+                    >
+                       <div className="w-12 h-12 rounded-full bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-6 text-teal-400 font-black">1</div>
+                       <h4 className="text-white font-bold mb-3 uppercase tracking-wider text-sm">Upload & Parse</h4>
+                       <p className="text-slate-500 text-xs leading-relaxed">Drop in your resume and an optional job description. Our engine parses your formatting just like workday or greenhouse.</p>
+                    </motion.div>
+
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} viewport={{ once: true }}
+                      className="flex flex-col items-center text-center p-6 bg-[#0A0A15] border border-white/5 rounded-2xl relative z-10"
+                    >
+                       <div className="w-12 h-12 rounded-full bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-6 text-teal-400 font-black">2</div>
+                       <h4 className="text-white font-bold mb-3 uppercase tracking-wider text-sm">Deep AI Analysis</h4>
+                       <p className="text-slate-500 text-xs leading-relaxed">We scan for keyword density, structural integrity, and skill gaps using the latest Gemini models.</p>
+                    </motion.div>
+
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} viewport={{ once: true }}
+                      className="flex flex-col items-center text-center p-6 bg-[#0A0A15] border border-white/5 rounded-2xl relative z-10"
+                    >
+                       <div className="w-12 h-12 rounded-full bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-6 text-teal-400 font-black">3</div>
+                       <h4 className="text-white font-bold mb-3 uppercase tracking-wider text-sm">Actionable Report</h4>
+                       <p className="text-slate-500 text-xs leading-relaxed">Get a visual dashboard with your ATS score, missing keywords, and ready-to-copy bullet point improvements.</p>
+                    </motion.div>
+                 </div>
+
+                 <div className="mt-24 text-center">
+                    <p className="text-[10px] font-black tracking-[0.2em] text-slate-500 uppercase mb-8">Built to beat top ATS platforms</p>
+                    <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-40 grayscale">
+                       <div className="text-lg font-black tracking-widest fill-current">WORKDAY</div>
+                       <div className="text-lg font-black tracking-widest fill-current">GREENHOUSE</div>
+                       <div className="text-lg font-black tracking-widest fill-current">LEVER</div>
+                       <div className="text-lg font-black tracking-widest fill-current">TALEOS</div>
+                    </div>
+                 </div>
+
+                 {/* Video Demo & Recruiter Appeal Section */}
+                 <div className="mt-32 border border-white/10 rounded-3xl overflow-hidden relative shadow-[0_0_50px_rgba(20,184,166,0.1)]">
+                    <div className="absolute inset-0 bg-gradient-to-b from-teal-500/5 to-transparent"></div>
+                    <div className="p-8 md:p-16 text-center relative z-10">
+                       <h3 className="text-3xl md:text-5xl font-black font-display text-white mb-6">See It In Action</h3>
+                       <p className="text-slate-400 text-base md:text-lg max-w-2xl mx-auto mb-12">Watch how a candidate goes from a 45% match to a 95% match with AI Resume Pro in under exactly 3 minutes.</p>
+                       
+                       <div className="relative aspect-video max-w-4xl mx-auto rounded-2xl bg-black border border-white/10 shadow-2xl flex items-center justify-center group cursor-pointer overflow-hidden mb-12">
+                         {/* Mock Video Thumbnail */}
+                         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:scale-105 transition-transform duration-700 blur-[2px]"></div>
+                         <div className="w-20 h-20 rounded-full bg-teal-500/80 backdrop-blur-md flex items-center justify-center text-white scale-100 group-hover:scale-110 transition-transform shadow-[0_0_30px_rgba(20,184,166,0.5)] z-10">
+                           <div className="w-0 h-0 border-t-8 border-b-8 border-l-[14px] border-transparent border-l-white ml-2"></div>
+                         </div>
+                         <div className="absolute top-4 left-4 flex gap-2 z-10">
+                           <div className="w-3 h-3 rounded-full bg-rose-500"></div>
+                           <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                           <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                         </div>
+                       </div>
+                       
+                       <motion.button 
+                         whileHover={{ scale: 1.05 }}
+                         whileTap={{ scale: 0.95 }}
+                         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                         className="btn-primary py-4 px-12 text-sm uppercase flex items-center justify-center gap-3 mx-auto"
+                       >
+                         <Zap className="h-5 w-5" /> Try Live Demo Now
+                       </motion.button>
+                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-6">
+                         Hosted securely at <span className="text-teal-400/80">demo.airesumepro.com</span>
+                       </p>
+                    </div>
+                 </div>
               </div>
             </motion.div>
           ) : (
@@ -1072,8 +1311,14 @@ export default function App() {
                     <RefreshCw className="h-4 w-4" /> Reset Stream
                   </button>
                   <button 
+                    onClick={() => window.print()}
+                    className="px-8 py-3 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 font-black text-[11px] uppercase tracking-widest hover:bg-purple-500 hover:text-white transition-all flex items-center gap-3 shadow-xl print:hidden"
+                  >
+                    <FileText className="h-4 w-4" /> Export PDF
+                  </button>
+                  <button 
                     onClick={exportToExcel}
-                    className="btn-primary py-3 px-8 text-[11px] flex items-center gap-3"
+                    className="btn-primary py-3 px-8 text-[11px] flex items-center gap-3 print:hidden"
                   >
                     <Download className="h-4 w-4" /> Export Assets
                   </button>
@@ -1095,57 +1340,136 @@ export default function App() {
                     delay={0.1} 
                   />
                 </GlassCard>
-                <GlassCard className="flex flex-col items-center justify-center py-8 border-t-4 border-t-sky-500 bg-gradient-to-b from-sky-500/5 to-transparent relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-4 opacity-50">
-                    <Layers className="h-6 w-6 text-sky-500" />
-                  </div>
-                  <h3 className="text-xl font-black text-white font-display uppercase tracking-widest mb-2">ATS Score</h3>
-                  <p className="text-slate-400 text-[11px] font-bold uppercase tracking-[0.2em] mb-8 text-center max-w-xs">Applicant Tracking System Parsing & Compatibility Level</p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <GlassCard className="flex flex-col items-center justify-center p-6 border-t-2 border-t-sky-500 relative overflow-hidden">
+                    <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">ATS Fit</h3>
+                    <ScoringCircle 
+                      score={result.atsCompatibility} 
+                      label="" 
+                      color="#0ea5e9" 
+                      delay={0.2} 
+                    />
+                  </GlassCard>
                   
-                  <div className="flex flex-col xl:flex-row items-center justify-center gap-8 w-full px-4 lg:px-8">
-                    <div className="shrink-0">
-                      <ScoringCircle 
-                        score={result.atsCompatibility} 
-                        label="System Compatibility" 
-                        color="#0ea5e9" 
-                        delay={0.2} 
-                      />
+                  <GlassCard className="flex flex-col items-center justify-center p-6 border-t-2 border-t-indigo-500 relative overflow-hidden">
+                    <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">Skills Match</h3>
+                    <ScoringCircle 
+                      score={result.skillsMatch} 
+                      label="" 
+                      color="#6366f1" 
+                      delay={0.3} 
+                    />
+                  </GlassCard>
+
+                  <GlassCard className="flex flex-col items-center justify-center p-6 border-t-2 border-t-emerald-500 relative overflow-hidden">
+                    <h3 className="text-[11px] font-black text-white uppercase tracking-widest mb-4 text-center">Formatting Health</h3>
+                    <ScoringCircle 
+                      score={result.formattingHealthScore || result.atsAnalysis.formattingScore || 0} 
+                      label="" 
+                      color="#10b981" 
+                      delay={0.4} 
+                    />
+                  </GlassCard>
+
+                  <GlassCard className="flex flex-col items-center justify-center p-6 border-t-2 border-t-amber-500 relative overflow-hidden">
+                    <h3 className="text-[11px] font-black text-white uppercase tracking-widest mb-4 text-center">Career Trajectory</h3>
+                    <ScoringCircle 
+                      score={result.careerTrajectoryFitScore || 0} 
+                      label="" 
+                      color="#f59e0b" 
+                      delay={0.5} 
+                    />
+                  </GlassCard>
+                </div>
+              </div>
+
+              {/* Actionable Improvement Plan (Pointwise) */}
+              {result.improvementPlan && (
+                <GlassCard className="mb-8 border-l-4 border-l-rose-500">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-rose-500/10 rounded-lg text-rose-400">
+                      <Target className="h-5 w-5" />
                     </div>
-                    
-                    <div className="w-full max-w-[200px] xl:max-w-none xl:flex-1 space-y-5">
-                      <div>
-                        <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest mb-2">
-                          <span className="text-slate-400">Keyword Density</span>
-                          <span className="text-sky-400">{result.atsAnalysis?.keywordDensity || 0}%</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden shadow-inner">
-                          <div className="h-full bg-sky-500 rounded-full shadow-[0_0_8px_rgba(14,165,233,0.5)]" style={{ width: `${result.atsAnalysis?.keywordDensity || 0}%` }} />
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest mb-2">
-                          <span className="text-slate-400">Formatting Score</span>
-                          <span className="text-emerald-400">{result.atsAnalysis?.formattingScore || 0}%</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden shadow-inner">
-                          <div className="h-full bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" style={{ width: `${result.atsAnalysis?.formattingScore || 0}%` }} />
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest mb-2">
-                          <span className="text-slate-400">Bullet Quality</span>
-                          <span className="text-amber-400">{result.atsAnalysis?.bulletPointQualityScore || 0}%</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden shadow-inner">
-                          <div className="h-full bg-amber-400 rounded-full shadow-[0_0_8px_rgba(251,191,36,0.5)]" style={{ width: `${result.atsAnalysis?.bulletPointQualityScore || 0}%` }} />
-                        </div>
-                      </div>
+                    <div>
+                      <h3 className="text-lg font-black text-white uppercase tracking-widest">Actionable Improvement Plan</h3>
+                      <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Specific steps to bridge the gap</p>
                     </div>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {result.improvementPlan.missingSkillsToHighlight && result.improvementPlan.missingSkillsToHighlight.length > 0 && (
+                      <div className="bg-[#0A0A15]/50 p-5 rounded-xl border border-white/5">
+                        <h4 className="text-[11px] font-black text-sky-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Sparkles className="w-3 h-3"/> Skills to Add</h4>
+                        <ul className="space-y-3">
+                          {result.improvementPlan.missingSkillsToHighlight.map((s, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                              <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5" />
+                              <span>{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {result.improvementPlan.resumeHeadlineUpdates && result.improvementPlan.resumeHeadlineUpdates.length > 0 && (
+                      <div className="bg-[#0A0A15]/50 p-5 rounded-xl border border-white/5">
+                        <h4 className="text-[11px] font-black text-amber-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Layout className="w-3 h-3"/> Headline Updates</h4>
+                        <ul className="space-y-3">
+                          {result.improvementPlan.resumeHeadlineUpdates.map((s, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                              <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5" />
+                              <span>{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {result.improvementPlan.recommendedCertifications && result.improvementPlan.recommendedCertifications.length > 0 && (
+                      <div className="bg-[#0A0A15]/50 p-5 rounded-xl border border-white/5">
+                        <h4 className="text-[11px] font-black text-emerald-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Award className="w-3 h-3"/> Certifications</h4>
+                        <ul className="space-y-3">
+                          {result.improvementPlan.recommendedCertifications.map((s, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                              <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5" />
+                              <span>{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {result.improvementPlan.projectsToHighlight && result.improvementPlan.projectsToHighlight.length > 0 && (
+                      <div className="bg-[#0A0A15]/50 p-5 rounded-xl border border-white/5 lg:col-span-2">
+                        <h4 className="text-[11px] font-black text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Briefcase className="w-3 h-3"/> Projects to Highlight</h4>
+                        <ul className="space-y-3">
+                          {result.improvementPlan.projectsToHighlight.map((s, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                              <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5" />
+                              <span>{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {result.improvementPlan.formattingFixes && result.improvementPlan.formattingFixes.length > 0 && (
+                      <div className="bg-[#0A0A15]/50 p-5 rounded-xl border border-white/5">
+                        <h4 className="text-[11px] font-black text-rose-400 uppercase tracking-widest mb-4 flex items-center gap-2"><FileText className="w-3 h-3"/> Formatting Fixes</h4>
+                        <ul className="space-y-3">
+                          {result.improvementPlan.formattingFixes.map((s, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                              <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5" />
+                              <span>{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </GlassCard>
-              </div>
+              )}
 
               <GlassCard className="mb-8">
                 <div className="flex justify-between items-center mb-8">
@@ -1271,41 +1595,192 @@ export default function App() {
                 </GlassCard>
               )}
 
-              {/* Skill Cloud Visualizer */}
-              <GlassCard>
-                <div className="flex flex-col items-center justify-center space-y-2 mb-4">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] text-center">Skill Landscape Profile</h3>
-                  <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Visual distribution of matched & missing capabilities</p>
-                </div>
-                <SkillCloud found={result.foundSkills} missing={result.skillGapReport.map(g => g.skill)} />
-              </GlassCard>
+              {/* LinkedIn Comparison (if available) */}
+              {result.linkedinComparison && result.linkedinComparison.hasLinkedIn && (
+                <GlassCard className="mb-8 border-t-2 border-t-blue-500 overflow-hidden relative">
+                  <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="80" height="80" alt="LI" className="grayscale" />
+                  </div>
+                  
+                  <div className="flex flex-col items-center justify-center space-y-2 mb-10">
+                    <h3 className="text-xs font-black text-blue-400 uppercase tracking-[0.3em] text-center">LinkedIn Profile Sync</h3>
+                    <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Cross-vector analysis of resume vs public profile</p>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-8 relative">
+                    <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-white/10 hidden md:block" />
+                    
+                    {/* Resume Side */}
+                    <div className="space-y-6">
+                      <div className="bg-[#0A0A15]/60 p-5 rounded-2xl border border-white/5">
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-white/5 pb-2">Resume Headline</h4>
+                        <p className="text-white text-sm font-bold">{result.linkedinComparison.resumeHeadline}</p>
+                      </div>
+                      
+                      {result.linkedinComparison.missingFromLinkedIn && result.linkedinComparison.missingFromLinkedIn.length > 0 && (
+                        <div>
+                          <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                             <CheckCircle2 className="w-3 h-3"/> Present on Resume (Missing on LinkedIn)
+                          </h4>
+                          <ul className="space-y-2">
+                            {result.linkedinComparison.missingFromLinkedIn.map((s, i) => (
+                              <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
+                                <span className="text-emerald-500">•</span> {s}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* LinkedIn Side */}
+                    <div className="space-y-6">
+                      <div className="bg-blue-500/10 p-5 rounded-2xl border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
+                        <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2 border-b border-blue-500/20 pb-2">LinkedIn Headline</h4>
+                        <p className="text-white text-sm font-bold">{result.linkedinComparison.linkedinHeadline}</p>
+                      </div>
+
+                      {result.linkedinComparison.missingFromResume && result.linkedinComparison.missingFromResume.length > 0 && (
+                        <div>
+                          <h4 className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                             <AlertCircle className="w-3 h-3"/> Present on LinkedIn (Missing on Resume)
+                          </h4>
+                          <ul className="space-y-2">
+                            {result.linkedinComparison.missingFromResume.map((s, i) => (
+                              <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
+                                <span className="text-rose-500">•</span> {s}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="mt-8 pt-6 border-t border-white/5 mx-auto max-w-2xl text-center">
+                    <p className="text-xs text-slate-400 font-medium italic leading-relaxed">
+                      " {result.linkedinComparison.matchAnalysis} "
+                    </p>
+                  </div>
+                </GlassCard>
+              )}
+
+              {/* Skill Cloud Visualizer & Gap Chart */}
+              <div className="grid lg:grid-cols-2 gap-8">
+                <GlassCard>
+                  <div className="flex flex-col items-center justify-center space-y-2 mb-4">
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] text-center">Skill Landscape Profile</h3>
+                    <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Visual distribution of matched & missing capabilities</p>
+                  </div>
+                  <SkillCloud found={result.foundSkills} missing={result.skillGapReport.map(g => g.skill)} />
+                </GlassCard>
+                
+                <GlassCard>
+                  <div className="flex flex-col items-center justify-center space-y-2 mb-4">
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] text-center">Skill Gap Analysis</h3>
+                    <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Severity of missing requirements</p>
+                  </div>
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart 
+                        data={result.skillGapReport.map(sg => ({ 
+                          name: sg.skill, 
+                          severity: sg.importance.toLowerCase().includes('critical') ? 95 : 
+                                    sg.importance.toLowerCase().includes('high') ? 75 : 
+                                    sg.importance.toLowerCase().includes('medium') ? 50 : 30 
+                        }))}
+                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                        <XAxis 
+                          dataKey="name" 
+                          stroke="rgba(255,255,255,0.3)" 
+                          tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }} 
+                          tickMargin={10}
+                        />
+                        <YAxis 
+                          stroke="rgba(255,255,255,0.3)" 
+                          tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10 }}
+                          tickFormatter={(val) => `${val}%`}
+                        />
+                        <RechartsTooltip 
+                          cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              return (
+                                <div className="bg-[#0A0A15]/90 border border-white/10 p-3 rounded-lg shadow-xl backdrop-blur-md">
+                                  <p className="text-white text-xs font-bold uppercase">{payload[0].payload.name}</p>
+                                  <p className="text-rose-400 text-[10px] font-black uppercase mt-1">Gap Severity: {payload[0].value}%</p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Bar 
+                          dataKey="severity" 
+                          fill="#f43f5e" 
+                          radius={[4, 4, 0, 0]} 
+                          barSize={20}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </GlassCard>
+              </div>
 
               <div className="grid lg:grid-cols-12 gap-8">
                 {/* Simplified Header with Core Strengths & Weaknesses */}
                 <GlassCard className="lg:col-span-12">
                    <div className="grid md:grid-cols-3 gap-8">
-                     <div className="p-6 rounded-2xl bg-teal-500/5 border border-teal-500/20">
-                        <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                           <ShieldCheck className="h-3.5 w-3.5" /> Core Strength
-                        </h4>
-                        <p className="text-sm text-white font-black uppercase mb-1">Excellent {result.foundSkills[0] || 'Domain'} Exposure</p>
-                        <p className="text-[11px] text-slate-400 leading-relaxed font-medium">Your experience in {result.foundSkills.slice(0, 3).join(', ')} provides a strong foundation for this role.</p>
+                     <div className="p-6 rounded-2xl bg-teal-500/5 border border-teal-500/20 flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                             <ShieldCheck className="h-3.5 w-3.5" /> Core Strength
+                          </h4>
+                          <p className="text-sm text-white font-black uppercase mb-1">Excellent {result.foundSkills[0] || 'Domain'} Exposure</p>
+                          <p className="text-[11px] text-slate-400 leading-relaxed font-medium">Your experience in {result.foundSkills.slice(0, 3).join(', ')} provides a strong foundation for this role.</p>
+                        </div>
                      </div>
-                     <div className="p-6 rounded-2xl bg-rose-500/5 border border-rose-500/20">
-                        <h4 className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                           <Zap className="h-3.5 w-3.5" /> High Priority Fix
-                        </h4>
-                        <p className="text-sm text-white font-black uppercase mb-1">Missing {result.skillGapReport[0]?.skill || 'Core Keywords'}</p>
-                        <p className="text-[11px] text-slate-400 leading-relaxed font-medium">The recruiter will look for {result.skillGapReport[0]?.skill}. Add this to your summary or experience.</p>
+                     <div className="p-6 rounded-2xl bg-rose-500/5 border border-rose-500/20 flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                             <Zap className="h-3.5 w-3.5" /> High Priority Fix
+                          </h4>
+                          <p className="text-sm text-white font-black uppercase mb-1">Missing {result.skillGapReport[0]?.skill || 'Core Keywords'}</p>
+                          <p className="text-[11px] text-slate-400 leading-relaxed font-medium">The recruiter will look for {result.skillGapReport[0]?.skill}. Add this to your summary or experience.</p>
+                        </div>
                      </div>
-                     <div className="p-6 rounded-2xl bg-blue-500/5 border border-blue-500/20">
-                        <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                           <Target className="h-3.5 w-3.5" /> Target Role
-                        </h4>
-                        <p className="text-sm text-white font-black uppercase mb-1">{result.careerPath.topRole}</p>
-                        <p className="text-[11px] text-slate-400 leading-relaxed font-medium">You are a {Math.round(result.careerPath.confidence * 100)}% match for this trajectory based on current assets.</p>
+                     <div className="p-6 rounded-2xl bg-blue-500/5 border border-blue-500/20 flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                             <Target className="h-3.5 w-3.5" /> Target Role Fit
+                          </h4>
+                          <p className="text-sm text-white font-black uppercase mb-1">{result.careerPath.topRole}</p>
+                          <p className="text-[11px] text-slate-400 leading-relaxed font-medium">You are a {Math.round(result.careerPath.confidence * 100)}% match for this trajectory based on current assets.</p>
+                        </div>
                      </div>
                    </div>
+
+                   {/* Adjacent Roles */}
+                   {result.careerPath.alternatives && result.careerPath.alternatives.length > 0 && (
+                     <div className="mt-8 border-t border-white/5 pt-8">
+                       <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Adjacent Career Vectors</h4>
+                       <div className="grid md:grid-cols-2 gap-4">
+                         {result.careerPath.alternatives.map((alt, i) => (
+                           <div key={i} className="p-4 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-2">
+                             <div className="flex justify-between items-center">
+                               <p className="text-xs text-white font-black uppercase">{alt.role}</p>
+                               <span className="text-[10px] font-black text-sky-400 block">{alt.match}% Match</span>
+                             </div>
+                             {alt.reasoning && (
+                               <p className="text-[10px] text-slate-500 leading-relaxed italic">{alt.reasoning}</p>
+                             )}
+                           </div>
+                         ))}
+                       </div>
+                     </div>
+                   )}
                 </GlassCard>
 
                 {/* Main Improvement Checklist */}
@@ -1318,7 +1793,13 @@ export default function App() {
                   </div>
                   <div className="space-y-4">
                     {[...result.atsAnalysis.recommendations, ...result.suggestions].slice(0, 5).map((step, i) => (
-                      <div key={`rec-${i}`} className="space-y-3">
+                      <motion.div 
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                        key={`rec-${i}`} 
+                        className="space-y-3"
+                      >
                         <div 
                           className={`flex gap-5 p-5 rounded-2xl bg-white/5 border transition-all items-start group ${selectedRecommendation === step ? 'border-teal-500 shadow-[0_0_20px_rgba(20,184,166,0.15)] bg-white/10' : 'border-white/5 hover:border-white/20'}`}
                         >
@@ -1413,7 +1894,7 @@ export default function App() {
                             </motion.div>
                           )}
                         </AnimatePresence>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 </GlassCard>

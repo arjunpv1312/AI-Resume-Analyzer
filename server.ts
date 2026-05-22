@@ -434,12 +434,21 @@ async function startServer() {
             overallScore: 85,
             atsCompatibility: 80,
             skillsMatch: 90,
+            formattingHealthScore: 85,
+            careerTrajectoryFitScore: 88,
             foundSkills: ["React", "JavaScript", "TypeScript"],
             missingSkills: ["Python", "AWS"],
+            improvementPlan: {
+              missingSkillsToHighlight: ["Python", "AWS"],
+              resumeHeadlineUpdates: ["Senior Frontend Engineer | TypeScript Expert"],
+              recommendedCertifications: ["AWS Certified Developer"],
+              projectsToHighlight: ["High-traffic Next.js migration project"],
+              formattingFixes: ["Use strict bulleted lists for experience section"]
+            },
             careerPath: {
               topRole: "Senior Software Engineer",
               confidence: 95,
-              alternatives: [{ role: "Engineering Manager", match: 80 }]
+              alternatives: [{ role: "Engineering Manager", match: 80, reasoning: "Strong leadership experience demonstrated" }]
             },
             careerTimeline: [
               {
@@ -449,6 +458,14 @@ async function startServer() {
                 highlights: ["Improved performance by 30%", "Led frontend team"]
               }
             ],
+            linkedinComparison: {
+              hasLinkedIn: true,
+              resumeHeadline: "Software Engineer",
+              linkedinHeadline: "Software Engineer at Tech Corp",
+              matchAnalysis: "Generally aligned, but LinkedIn lacks recent project details.",
+              missingFromResume: ["Agile Management"],
+              missingFromLinkedIn: ["GraphQL Integrations"]
+            },
             atsAnalysis: {
               formattingScore: 90,
               keywordDensity: 85,
@@ -491,6 +508,15 @@ async function startServer() {
         LINKEDIN PROFILE URL (if provided, incorporate this into analysis for richer recommendations):
         ${linkedinUrl || "Not provided."}
 
+        INSTRUCTIONS:
+        1. Parse LinkedIn profile links to extract headline, experience, skills, and education. If you cannot fetch it directly, infer what you can from the URL and combine it with the resume text. Treat this data as part of the candidate profile.
+        2. Compare resumes and LinkedIn data with job descriptions using semantic similarity (embeddings and contextual meaning) instead of just exact keyword matching.
+        3. If the match score is low or generic (e.g., suggesting "Software Engineer"), generate specific improvement points in the improvementPlan.
+        4. Break down the overall score into sub-scores: atsCompatibility, skillsMatch, formattingHealthScore, careerTrajectoryFitScore.
+        5. Provide a clear, pointwise improvement plan alongside the score in the improvementPlan object.
+        6. Suggest both primary role fit and adjacent roles (e.g., ML Engineer, Data Scientist) with reasoning!
+        7. Always output actionable feedback in bullet points, not just a percentage score.
+
         PRE-COLLECTED RULE-BASED DATA:
         - Reported Pages: ${pageCount}
         - Base ATS Compatibility Score: ${atsMetadata.rulesScore}/100
@@ -508,12 +534,21 @@ async function startServer() {
           "overallScore": number (0-100),
           "atsCompatibility": number (0-100),
           "skillsMatch": number (0-100),
+          "formattingHealthScore": number (0-100),
+          "careerTrajectoryFitScore": number (0-100),
           "foundSkills": string[],
           "missingSkills": string[],
+          "improvementPlan": {
+            "missingSkillsToHighlight": string[],
+            "resumeHeadlineUpdates": string[],
+            "recommendedCertifications": string[],
+            "projectsToHighlight": string[],
+            "formattingFixes": string[]
+          },
           "careerPath": {
             "topRole": string,
             "confidence": number,
-            "alternatives": { "role": string, "match": number }[]
+            "alternatives": [ { "role": string, "match": number, "reasoning": string } ]
           },
           "careerTimeline": [
             {
@@ -523,17 +558,25 @@ async function startServer() {
               "highlights": string[]
             }
           ],
+          "linkedinComparison": {
+            "hasLinkedIn": boolean,
+            "resumeHeadline": string,
+            "linkedinHeadline": string,
+            "matchAnalysis": string,
+            "missingFromResume": string[],
+            "missingFromLinkedIn": string[]
+          },
           "atsAnalysis": {
             "formattingScore": number (0-100),
             "keywordDensity": number (0-100),
             "recommendations": string[],
             "jobKeywordsFound": string[],
             "jobKeywordsMissing": string[],
-            "keywordOptimizations": { "keyword": string, "suggestedPhrases": string[] }[]
+            "keywordOptimizations": [ { "keyword": string, "suggestedPhrases": string[] } ]
           },
-          "skillGapReport": { "skill": string, "importance": "Critical" | "High" | "Medium" }[],
+          "skillGapReport": [ { "skill": string, "importance": "Critical" | "High" | "Medium" } ],
           "sectionsFound": string[],
-          "sectionsDetailed": { "sectionName": string, "summary": string }[],
+          "sectionsDetailed": [ { "sectionName": string, "summary": string } ],
           "summary": string,
           "suggestions": string[]
         }

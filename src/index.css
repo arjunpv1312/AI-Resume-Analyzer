@@ -23,6 +23,11 @@
     background-color: #000000;
     background-attachment: fixed;
     min-height: 100vh;
+    transition: filter 0.5s ease;
+  }
+
+  body.theme-light {
+    filter: invert(1) hue-rotate(180deg);
   }
 }
 
@@ -62,5 +67,11 @@
 
   .roadmap-line {
     @apply absolute left-[19px] top-8 bottom-0 w-px bg-gradient-to-b from-brand-glow/50 via-brand-purple/30 to-transparent;
+  }
+
+  .document-preview-container .react-pdf__Page__canvas {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 0.5rem;
   }
 }
