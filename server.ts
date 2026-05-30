@@ -488,7 +488,12 @@ async function startServer() {
             suggestions: [
               "Add metrics to your recent role.",
               "Include a targeted summary statement."
-            ]
+            ],
+            interviewQuestions: ["Tell me about a time you optimized frontend performance.", "How do you handle backend integrations?"],
+            resumeRewriteDraft: "Senior Frontend Engineer with 5+ years of experience in React and TypeScript, ready to lead scalable web app development.",
+            coverLetterDraft: "Dear Hiring Manager, I am excited to apply for the Senior Frontend Engineer role...",
+            globalBenchmarking: "The candidate's profile is in the top 20% of frontend applicants for this seniority level.",
+            recruiterSummary: "Strong technical skills, but lacks the specific cloud experience requested. Good candidate for an interview."
           });
       }
 
@@ -578,9 +583,19 @@ async function startServer() {
           "sectionsFound": string[],
           "sectionsDetailed": [ { "sectionName": string, "summary": string } ],
           "summary": string,
-          "suggestions": string[]
+          "suggestions": string[],
+          "interviewQuestions": string[],
+          "resumeRewriteDraft": string,
+          "coverLetterDraft": string,
+          "globalBenchmarking": string,
+          "recruiterSummary": string
         }
         For "suggestions", provide 5-7 actionable tips to improve the resume's impact, clarity, and ATS performance.
+        For "interviewQuestions", provide 3-5 likely interview questions based on the candidate's gaps and the job description.
+        For "resumeRewriteDraft", provide a short, highly-optimized version of the resume's summary/headline focusing on the target role.
+        For "coverLetterDraft", provide a concise 3-paragraph cover letter draft addressing the job requirements.
+        For "globalBenchmarking", provide a short sentence comparing the candidate's profile to industry standards.
+        For "recruiterSummary", provide a 2-3 sentence candid assessment of the candidate fit from a recruiter's perspective.
         For "sectionsDetailed", provide a brief 1-2 sentence summary or key points extracted from each of the distinct sections found in the resume (e.g. Experience, Education, Skills).
         For "keywordOptimizations", based on the job description provided (if any), identify under-represented or missing keywords and suggest 1-2 specific, natural phrases or bullet points that incorporate each keyword to improve ATS matching.
         Extract the career timeline from the resume history. 

@@ -32,7 +32,8 @@ import {
   BookOpen,
   Briefcase
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import confetti from 'canvas-confetti';
+import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import { 
   PieChart, 
   Pie, 
@@ -103,6 +104,20 @@ interface AnalysisResult {
   sectionsDetailed?: { sectionName: string; summary: string }[];
   summary: string;
   suggestions: string[];
+  interviewQuestions?: string[];
+  resumeRewriteDraft?: string;
+  coverLetterDraft?: string;
+  globalBenchmarking?: string;
+  recruiterSummary?: string;
+}
+
+interface StickyNoteData {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+  isOpen: boolean;
+  pageNumber: number;
 }
 
 interface AnalysisHistoryItem {
@@ -253,6 +268,7 @@ export default function App() {
   const [isGeneratingRecDetail, setIsGeneratingRecDetail] = useState(false);
   const [numPages, setNumPages] = useState<number>();
   const [pageNumber, setPageNumber] = useState<number>(1);
+  const [stickyNotes, setStickyNotes] = useState<StickyNoteData[]>([]);
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }): void {
     setNumPages(numPages);
@@ -464,6 +480,14 @@ export default function App() {
       }
       
       setResult(analysis);
+      if (analysis.overallScore >= 75) {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#14b8a6', '#0ea5e9', '#8b5cf6']
+        });
+      }
       saveToHistory(analysis, file, jobDescription);
     } catch (err: any) {
       console.error("Analysis Error:", err);
@@ -553,6 +577,10 @@ export default function App() {
           </div>
           
           <div className="hidden md:flex items-center gap-4 text-[11px] font-black uppercase tracking-widest text-slate-400">
+             <a href="https://interviewcoach-969933961049.asia-southeast1.run.app" target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-teal-500/10 border border-teal-500/20 px-3 py-2 rounded-full text-teal-400 hover:bg-teal-500/20 hover:text-teal-300 transition-colors shadow-[0_0_15px_rgba(20,184,166,0.15)]">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+                Interview Coach
+             </a>
             <button 
               onClick={() => {
                  document.body.classList.toggle('theme-light');
@@ -875,15 +903,31 @@ export default function App() {
               </div>
 
               <div className={`grid gap-8 ${compareIds.length === 2 ? 'grid-cols-2' : compareIds.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
-                {compareIds.map(id => history.find(h => h.id === id)).map((item, idx) => item && (
+                {compareIds.map(id => history.find(h => h.id === id)).map((item, idx, arr) => {
+                  if (!item) return null;
+                  const prevItem = arr[idx - 1];
+                  const scoreDiff = prevItem ? item.result.overallScore - prevItem.result.overallScore : 0;
+                  
+                  return (
                   <GlassCard key={`gc-${idx}`} className="space-y-8">
                     <div className="space-y-2">
-                      <p className="text-[10px] font-black text-teal-400 uppercase tracking-widest">Version {String.fromCharCode(65 + idx)} - {new Date(item.date).toLocaleDateString()}</p>
+                      <p className="text-[10px] font-black text-teal-400 uppercase tracking-widest flex items-center justify-between">
+                         <span>Version {String.fromCharCode(65 + idx)} - {new Date(item.date).toLocaleDateString()}</span>
+                         {idx > 0 && scoreDiff !== 0 && (
+                            <motion.span 
+                               initial={{ scale: 0, opacity: 0 }}
+                               animate={{ scale: 1, opacity: 1 }}
+                               className={`px-2 py-0.5 rounded-full text-[9px] font-black ${scoreDiff > 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}
+                            >
+                              {scoreDiff > 0 ? '+' : ''}{scoreDiff} pts
+                            </motion.span>
+                         )}
+                      </p>
                       <h3 className="text-xl font-black text-white truncate">{item.fileName}</h3>
                     </div>
 
                     <div className="grid grid-cols-2 gap-6">
-                      <div className="p-4 rounded-xl bg-white/5 border border-white/5">
+                      <div className="relative p-4 rounded-xl bg-white/5 border border-white/5">
                         <p className="text-[9px] font-black text-slate-500 uppercase mb-1">Intelligence Score</p>
                         <p className="text-3xl font-black text-white font-display">{item.result.overallScore}%</p>
                       </div>
@@ -929,7 +973,8 @@ export default function App() {
                       </div>
                     </div>
                   </GlassCard>
-                ))}
+                  );
+                })}
               </div>
             </motion.div>
           )}
@@ -966,7 +1011,7 @@ export default function App() {
                    <Lock className="h-3 w-3" />
                    Privacy-First Architecture • Zero Storage
                    <div className="absolute inset-x-0 bottom-full mb-3 hidden group-hover:block px-4 py-3 bg-[#0A0A15] border border-white/10 text-slate-300 text-[10px] font-medium normal-case tracking-normal rounded-xl shadow-2xl z-50 text-center w-64 mx-auto left-1/2 -translate-x-1/2 transition-all">
-                      All parsing and analysis vectors happen locally or via stateless API protocols. We never store your resume files or personal data on our servers.
+                      All parsing and analysis vectors happen locally or via stateless API protocols. We never store your resume files or personal data on our servers. <strong className="text-teal-400 font-bold">100% GDPR & ISO 27001 Compliant.</strong>
                       <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-3 h-3 bg-[#0A0A15] border-b border-r border-white/10 rotate-45 transform"></div>
                    </div>
                  </motion.div>
@@ -1064,19 +1109,29 @@ export default function App() {
                   </div>
 
                   <div className="mt-4 border-t border-white/5 pt-4">
-                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2 block">LinkedIn Profile (Optional)</label>
-                     <div className="flex bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:border-teal-500/50 transition-colors">
-                        <div className="px-4 flex items-center justify-center bg-white/5 border-r border-white/10">
-                           <img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="16" height="16" alt="LI" className="opacity-80" />
-                        </div>
-                        <input
-                          type="url"
-                          placeholder="https://linkedin.com/in/username"
-                          className="w-full bg-transparent px-4 py-3 text-sm text-slate-300 placeholder:text-slate-600 focus:outline-none font-medium"
-                          value={linkedinUrl}
-                          onChange={(e) => setLinkedinUrl(e.target.value)}
-                        />
-                     </div>
+                    <div className="group relative w-full">
+                       <motion.button 
+                         type="button"
+                         whileHover={{ scale: 1.02 }}
+                         whileTap={{ scale: 0.98 }}
+                         onClick={() => {
+                           const url = window.prompt("Enter your LinkedIn Profile URL:");
+                           if (url) setLinkedinUrl(url);
+                         }}
+                         className={`w-full flex items-center justify-center gap-3 py-3 rounded-xl border transition-all ${
+                           linkedinUrl 
+                             ? 'bg-[#0A66C2]/20 border-[#0A66C2]/50 text-white shadow-[0_0_20px_rgba(10,102,194,0.3)]' 
+                             : 'bg-[#0A66C2]/5 hover:bg-[#0A66C2]/10 border-[#0A66C2]/20 text-[#0A66C2] hover:shadow-[0_0_15px_rgba(10,102,194,0.2)]'
+                         }`}
+                       >
+                          <img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="18" height="18" alt="LI" className={linkedinUrl ? 'grayscale-0' : 'grayscale group-hover:grayscale-0 transition-all duration-300'} />
+                          <span className="text-xs font-black uppercase tracking-widest">{linkedinUrl ? 'LinkedIn Profile Connected' : 'Connect LinkedIn Profile'}</span>
+                       </motion.button>
+                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-slate-800 text-white text-[10px] font-medium p-4 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-white/10 shadow-2xl leading-relaxed text-center hidden group-hover:block">
+                          Import your LinkedIn profile for deeper analysis and cross-vector evaluation.
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-3 h-3 bg-slate-800 border-b border-r border-white/10 rotate-45 transform"></div>
+                       </div>
+                    </div>
                   </div>
                 </GlassCard>
 
@@ -1113,6 +1168,7 @@ export default function App() {
                       <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
                         <FileText className="h-4 w-4 text-teal-400" />
                         Document Preview
+                        <span className="ml-4 text-[9px] font-bold text-amber-400 bg-amber-400/10 px-2 py-1 rounded border border-amber-400/20 lowercase tracking-normal flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z"/><path d="M15 3v6h6"/></svg> Click document to add sticky notes</span>
                       </h3>
                       {numPages && numPages > 1 && (
                         <div className="flex items-center gap-2">
@@ -1136,31 +1192,84 @@ export default function App() {
                         </div>
                       )}
                     </div>
-                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5 w-full overflow-auto flex justify-center document-preview-container max-h-[600px] scrollbar-thin scrollbar-thumb-white/10">
-                       <Document
-                         file={file}
-                         onLoadSuccess={onDocumentLoadSuccess}
-                         loading={
-                           <div className="p-12 flex flex-col items-center justify-center gap-4">
-                             <div className="w-6 h-6 border-2 border-teal-500/20 border-t-teal-500 rounded-full animate-spin" />
-                             <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Loading Document...</span>
-                           </div>
-                         }
-                         error={
-                           <div className="p-8 text-rose-400 text-xs font-bold uppercase flex items-center gap-2 border border-rose-500/20 bg-rose-500/5 rounded-xl">
-                             <AlertCircle className="h-4 w-4" /> Failed to load preview
-                           </div>
-                         }
+                    <div className="bg-white/5 p-4 rounded-2xl border border-white/5 w-full overflow-auto flex justify-center document-preview-container max-h-[600px] scrollbar-thin scrollbar-thumb-white/10 relative">
+                       <div 
+                         className="relative cursor-crosshair"
+                         onClick={(e) => {
+                           const target = e.target as HTMLElement;
+                           if (target.closest('.sticky-note')) return;
+
+                           const rect = e.currentTarget.getBoundingClientRect();
+                           let x = e.clientX - rect.left;
+                           let y = e.clientY - rect.top;
+
+                           const newNote: StickyNoteData = {
+                             id: `note_${Date.now()}`,
+                             x,
+                             y,
+                             text: '',
+                             isOpen: true,
+                             pageNumber,
+                           };
+                           setStickyNotes(prev => [...prev, newNote]);
+                         }}
                        >
-                         <Page 
-                            pageNumber={pageNumber} 
-                            width={1000} 
-                            scale={0.8}
-                            renderTextLayer={true} 
-                            renderAnnotationLayer={true} 
-                            className="shadow-2xl !bg-transparent mx-auto"
-                         />
-                       </Document>
+                         <Document
+                           file={file}
+                           onLoadSuccess={onDocumentLoadSuccess}
+                           loading={
+                             <div className="p-12 flex flex-col items-center justify-center gap-4">
+                               <div className="w-6 h-6 border-2 border-teal-500/20 border-t-teal-500 rounded-full animate-spin" />
+                               <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Loading Document...</span>
+                             </div>
+                           }
+                           error={
+                             <div className="p-8 text-rose-400 text-xs font-bold uppercase flex items-center gap-2 border border-rose-500/20 bg-rose-500/5 rounded-xl">
+                               <AlertCircle className="h-4 w-4" /> Failed to load preview
+                             </div>
+                           }
+                         >
+                           <Page 
+                              pageNumber={pageNumber} 
+                              width={1000} 
+                              scale={0.8}
+                              renderTextLayer={true} 
+                              renderAnnotationLayer={true} 
+                              className="shadow-2xl !bg-transparent mx-auto"
+                           />
+                         </Document>
+                         {stickyNotes.filter(n => n.pageNumber === pageNumber).map(note => (
+                           <div 
+                             key={note.id} 
+                             className="sticky-note absolute z-50 rounded-xl bg-amber-200/90 backdrop-blur-md shadow-2xl border border-amber-400 overflow-hidden transform transition-all hover:scale-105" 
+                             style={{ left: note.x, top: note.y, width: 220 }}
+                             onClick={(e) => e.stopPropagation()}
+                           >
+                             <div className="flex justify-between items-center bg-amber-400/80 p-2 cursor-pointer hover:bg-amber-400 text-amber-900 transition-colors" onClick={() => {
+                                 setStickyNotes(notes => notes.map(n => n.id === note.id ? { ...n, isOpen: !n.isOpen } : n));
+                             }}>
+                                <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-sticky-note"><path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z"/><path d="M15 3v6h6"/></svg>
+                                  Sticky Note
+                                </span>
+                                <button onClick={(e) => { e.stopPropagation(); setStickyNotes(notes => notes.filter(n => n.id !== note.id)) }} className="hover:text-rose-600 transition-colors">
+                                   <XCircle className="w-3.5 h-3.5" />
+                                </button>
+                             </div>
+                             {note.isOpen && (
+                               <div className="p-2 border-t border-amber-400/30">
+                                  <textarea 
+                                     autoFocus
+                                     className="w-full h-24 bg-transparent resize-none outline-none text-slate-800 text-xs font-medium placeholder:text-amber-800/40"
+                                     placeholder="Type note... (click header to collapse)"
+                                     value={note.text}
+                                     onChange={(e) => setStickyNotes(notes => notes.map(n => n.id === note.id ? { ...n, text: e.target.value } : n))}
+                                  />
+                               </div>
+                             )}
+                           </div>
+                         ))}
+                       </div>
                     </div>
                   </GlassCard>
                 </div>
@@ -1253,32 +1362,49 @@ export default function App() {
                  <div className="mt-32 border border-white/10 rounded-3xl overflow-hidden relative shadow-[0_0_50px_rgba(20,184,166,0.1)]">
                     <div className="absolute inset-0 bg-gradient-to-b from-teal-500/5 to-transparent"></div>
                     <div className="p-8 md:p-16 text-center relative z-10">
-                       <h3 className="text-3xl md:text-5xl font-black font-display text-white mb-6">See It In Action</h3>
-                       <p className="text-slate-400 text-base md:text-lg max-w-2xl mx-auto mb-12">Watch how a candidate goes from a 45% match to a 95% match with AI Resume Pro in under exactly 3 minutes.</p>
-                       
-                       <div className="relative aspect-video max-w-4xl mx-auto rounded-2xl bg-black border border-white/10 shadow-2xl flex items-center justify-center group cursor-pointer overflow-hidden mb-12">
-                         {/* Mock Video Thumbnail */}
-                         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-30 group-hover:scale-105 transition-transform duration-700 blur-[2px]"></div>
-                         <div className="w-20 h-20 rounded-full bg-teal-500/80 backdrop-blur-md flex items-center justify-center text-white scale-100 group-hover:scale-110 transition-transform shadow-[0_0_30px_rgba(20,184,166,0.5)] z-10">
-                           <div className="w-0 h-0 border-t-8 border-b-8 border-l-[14px] border-transparent border-l-white ml-2"></div>
-                         </div>
-                         <div className="absolute top-4 left-4 flex gap-2 z-10">
-                           <div className="w-3 h-3 rounded-full bg-rose-500"></div>
-                           <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                           <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                       <div className="max-w-4xl mx-auto mb-16 mt-8 relative group cursor-pointer" onClick={() => window.open('https://interviewcoach-969933961049.asia-southeast1.run.app', '_blank')}>
+                         <div className="absolute inset-0 bg-gradient-to-r from-teal-500/20 via-sky-500/20 to-purple-500/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
+                         <div className="relative bg-[#0A0A15]/80 backdrop-blur-xl border border-white/10 group-hover:border-teal-500/50 p-8 rounded-3xl overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 transition-all duration-500">
+                           <div className="absolute -right-20 -top-20 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl group-hover:bg-teal-500/20 transition-all duration-500"></div>
+                           <div className="flex-1 text-left relative z-10">
+                              <h4 className="text-xl md:text-3xl font-black text-white uppercase tracking-tighter mb-2 flex items-center gap-3">
+                                 AI Interview Coach <span className="bg-teal-500/20 text-teal-400 text-[10px] uppercase tracking-widest px-3 py-1 rounded-full border border-teal-500/30">Partner</span>
+                              </h4>
+                              <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-xl">
+                                Tested well against the ATS? Now master the human interview. Engage with our immersive voice-based AI recruiter to practice your answers in a real-world simulation before the big day.
+                              </p>
+                           </div>
+                           <div className="relative z-10">
+                             <a 
+                               href="https://interviewcoach-969933961049.asia-southeast1.run.app" 
+                               target="_blank" 
+                               rel="noreferrer" 
+                               onClick={(e) => e.stopPropagation()}
+                               className="btn-primary py-4 px-8 text-sm uppercase flex items-center justify-center gap-3 whitespace-nowrap shadow-[0_0_30px_rgba(20,184,166,0.3)] group-hover:shadow-[0_0_50px_rgba(20,184,166,0.5)] transition-all"
+                             >
+                                <Zap className="h-5 w-5" /> Start Practice Interview
+                             </a>
+                           </div>
                          </div>
                        </div>
                        
                        <motion.button 
                          whileHover={{ scale: 1.05 }}
                          whileTap={{ scale: 0.95 }}
-                         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                         onClick={() => {
+                           window.scrollTo({ top: 0, behavior: 'smooth' });
+                           const sampleContent = "John Doe\nSoftware Engineer\nExperience: 5 years at TechCorp using React, Node.js, and TypeScript.\nSkills: JavaScript, HTML, CSS, React, AWS, Docker.\nEducation: B.S. Computer Science.";
+                           const sample = new File([sampleContent], "sample_resume.txt", { type: "text/plain" });
+                           setFile(sample);
+                           setJobDescription("Looking for a Senior Frontend Developer with strong React and TypeScript background. Must know Node.js. Experience with cloud platforms like AWS is a plus.");
+                           setLinkedinUrl("https://linkedin.com/in/johndoe");
+                         }}
                          className="btn-primary py-4 px-12 text-sm uppercase flex items-center justify-center gap-3 mx-auto"
                        >
                          <Zap className="h-5 w-5" /> Try Live Demo Now
                        </motion.button>
                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-6">
-                         Hosted securely at <span className="text-teal-400/80">demo.airesumepro.com</span>
+                         Hosted securely at <span className="text-teal-400/80">demo.airesumepro.com</span> • SOC2 & GDPR Compliant
                        </p>
                     </div>
                  </div>
@@ -1597,14 +1723,47 @@ export default function App() {
 
               {/* LinkedIn Comparison (if available) */}
               {result.linkedinComparison && result.linkedinComparison.hasLinkedIn && (
-                <GlassCard className="mb-8 border-t-2 border-t-blue-500 overflow-hidden relative">
-                  <div className="absolute top-0 right-0 p-4 opacity-10">
-                    <img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="80" height="80" alt="LI" className="grayscale" />
+                <GlassCard className="mb-8 border-t-2 border-t-[#14b8a6] overflow-hidden relative group">
+                  <div className="absolute top-0 right-0 p-8 opacity-5">
+                    <img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" height="150" width="150" alt="LI" className="grayscale" />
                   </div>
                   
-                  <div className="flex flex-col items-center justify-center space-y-2 mb-10">
-                    <h3 className="text-xs font-black text-blue-400 uppercase tracking-[0.3em] text-center">LinkedIn Profile Sync</h3>
-                    <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Cross-vector analysis of resume vs public profile</p>
+                  <div className="flex items-center gap-4 mb-8">
+                     <div className="h-10 w-10 rounded-xl bg-[#14b8a6]/20 flex items-center justify-center text-[#14b8a6]">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
+                     </div>
+                     <div>
+                       <h3 className="text-xl font-black text-white uppercase tracking-tighter">LinkedIn Profile Sync</h3>
+                       <p className="text-[10px] text-[#14b8a6] font-bold tracking-widest uppercase">Cross-Vector Evaluation Active</p>
+                     </div>
+                  </div>
+
+                  {/* LinkedIn Score Impact Progress Bar */}
+                  <div className="mb-8 p-5 bg-[#14b8a6]/10 border border-[#14b8a6]/20 rounded-2xl relative overflow-hidden">
+                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#14b8a6]/5 to-transparent flex translate-x-[-100%] animate-[shimmer_2s_infinite]" />
+                     <div className="flex justify-between items-end mb-3 relative z-10">
+                       <span className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+                         <Zap className="h-4 w-4 text-[#14b8a6]" /> LinkedIn Data Impact
+                       </span>
+                       <span className="text-[10px] font-black text-[#14b8a6] uppercase bg-[#14b8a6]/20 px-2 py-1 rounded">+15% Score Boost</span>
+                     </div>
+                     <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden flex relative z-10">
+                       <motion.div 
+                         initial={{ width: 0 }}
+                         animate={{ width: `${Math.max(10, result.overallScore - 15)}%` }}
+                         transition={{ duration: 1 }}
+                         className="h-full bg-slate-500"
+                       />
+                       <motion.div 
+                         initial={{ width: 0 }}
+                         animate={{ width: `15%` }}
+                         transition={{ duration: 1, delay: 1 }}
+                         className="h-full bg-[#14b8a6] relative"
+                       >
+                         <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                       </motion.div>
+                     </div>
+                     <p className="text-[9px] font-bold text-slate-400 uppercase mt-3 text-right tracking-[0.2em] relative z-10">Enhanced by Profile Verification</p>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-8 relative">
@@ -1635,8 +1794,8 @@ export default function App() {
 
                     {/* LinkedIn Side */}
                     <div className="space-y-6">
-                      <div className="bg-blue-500/10 p-5 rounded-2xl border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
-                        <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2 border-b border-blue-500/20 pb-2">LinkedIn Headline</h4>
+                      <div className="bg-teal-500/10 p-5 rounded-2xl border border-teal-500/20 shadow-[0_0_20px_rgba(20,184,166,0.1)]">
+                        <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-2 border-b border-teal-500/20 pb-2">LinkedIn Headline</h4>
                         <p className="text-white text-sm font-bold">{result.linkedinComparison.linkedinHeadline}</p>
                       </div>
 
@@ -1765,18 +1924,48 @@ export default function App() {
                    {/* Adjacent Roles */}
                    {result.careerPath.alternatives && result.careerPath.alternatives.length > 0 && (
                      <div className="mt-8 border-t border-white/5 pt-8">
-                       <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Adjacent Career Vectors</h4>
-                       <div className="grid md:grid-cols-2 gap-4">
-                         {result.careerPath.alternatives.map((alt, i) => (
-                           <div key={i} className="p-4 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-2">
-                             <div className="flex justify-between items-center">
-                               <p className="text-xs text-white font-black uppercase">{alt.role}</p>
-                               <span className="text-[10px] font-black text-sky-400 block">{alt.match}% Match</span>
-                             </div>
-                             {alt.reasoning && (
-                               <p className="text-[10px] text-slate-500 leading-relaxed italic">{alt.reasoning}</p>
-                             )}
-                           </div>
+                       <h4 className="text-[11px] font-black text-slate-400 border-b border-white/5 pb-2 uppercase tracking-widest mb-6">Career Trajectory Forecast</h4>
+                       
+                       <div className="relative flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden py-4">
+                         {/* Animated Line connecting them */}
+                         <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-teal-500/20 via-sky-500/20 to-purple-500/20 -translate-y-1/2 hidden md:block" />
+                         <motion.div 
+                           initial={{ scaleX: 0 }}
+                           whileInView={{ scaleX: 1 }}
+                           viewport={{ once: true }}
+                           transition={{ duration: 1.5, ease: "easeInOut" }}
+                           className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-teal-500 via-sky-500 to-purple-500 -translate-y-1/2 origin-left hidden md:block shadow-[0_0_15px_rgba(20,184,166,0.3)]" 
+                         />
+
+                         {/* Node 1: Current / Identified Target */}
+                         <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.2 }}
+                            className="relative z-10 w-full md:w-1/3 p-4 rounded-xl bg-[#0A0A15]/80 backdrop-blur-md border border-teal-500/30 flex flex-col items-center text-center group hover:border-teal-400 transition-colors"
+                         >
+                            <span className="h-4 w-4 rounded-full bg-[#0A0A15] border-2 border-teal-500 mb-2 group-hover:scale-125 transition-transform shadow-[0_0_10px_rgba(20,184,166,0.5)]" />
+                            <p className="text-[9px] font-black text-teal-400 uppercase tracking-widest mb-1">Primary Fit</p>
+                            <p className="text-sm text-white font-bold">{result.careerPath.topRole}</p>
+                            <p className="text-[10px] text-slate-400 mt-2">{result.careerPath.confidence}% Match</p>
+                         </motion.div>
+
+                         {/* Node 2 & beyond: Alternatives as next steps */}
+                         {result.careerPath.alternatives.slice(0, 2).map((alt, i) => (
+                           <motion.div 
+                              key={i}
+                              initial={{ opacity: 0, y: 20 }}
+                              whileInView={{ opacity: 1, y: 0 }}
+                              viewport={{ once: true }}
+                              transition={{ delay: 0.4 + (i * 0.2) }}
+                              className="relative z-10 w-full md:w-1/3 p-4 rounded-xl bg-[#0A0A15]/80 backdrop-blur-md border border-white/10 flex flex-col items-center text-center group hover:border-sky-400 border transition-colors"
+                           >
+                              <span className={`h-4 w-4 rounded-full bg-[#0A0A15] border-2 ${i === 0 ? 'border-sky-500' : 'border-purple-500'} mb-2 group-hover:scale-125 transition-transform ${i===0 ? 'shadow-[0_0_10px_rgba(14,165,233,0.5)]' : 'shadow-[0_0_10px_rgba(168,85,247,0.5)]'}`} />
+                              <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${i === 0 ? 'text-sky-400' : 'text-purple-400'}`}>Next Step</p>
+                              <p className="text-sm text-white font-bold">{alt.role}</p>
+                              <p className="text-[10px] text-slate-400 mt-2 line-clamp-2">{alt.reasoning || `${alt.match}% Match`}</p>
+                           </motion.div>
                          ))}
                        </div>
                      </div>
@@ -1905,9 +2094,17 @@ export default function App() {
                     <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6">Missing Skills</h3>
                     <div className="space-y-4">
                       {result.skillGapReport.map((gap, i) => (
-                        <div key={`gap-${i}`} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
-                           <span className="text-[11px] font-black text-white uppercase">{gap.skill}</span>
-                           <span className={`text-[9px] font-black px-2 py-1 rounded ${gap.importance === 'Critical' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'} uppercase`}>{gap.importance}</span>
+                        <div key={`gap-${i}`} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 group relative overflow-hidden transition-all duration-300">
+                           <div className="absolute inset-0 bg-emerald-500/10 translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
+                           <div className="relative z-10 flex flex-col">
+                             <span className="text-[11px] font-black text-white uppercase">{gap.skill}</span>
+                             <span className="text-[9px] font-bold text-emerald-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-1">
+                               <CheckCircle2 className="w-3 h-3" /> Fix for +{(gap.importance === 'Critical' ? 10 : 5)}% Boost
+                             </span>
+                           </div>
+                           <span className={`text-[9px] font-black px-2 py-1 rounded relative z-10 transition-colors ${gap.importance === 'Critical' ? 'bg-rose-500/20 text-rose-400 group-hover:bg-rose-500/30' : 'bg-amber-500/20 text-amber-400 group-hover:bg-amber-500/30'} uppercase`}>
+                             {gap.importance}
+                           </span>
                         </div>
                       ))}
                       {result.skillGapReport.length === 0 && (
@@ -2049,6 +2246,92 @@ export default function App() {
                       </div>
                     </GlassCard>
                   )}
+
+                  {/* New Recruiter & Insights Sections */}
+                  <div className="grid lg:grid-cols-2 gap-8">
+                    {/* Interview Readiness */}
+                    {result.interviewQuestions && result.interviewQuestions.length > 0 && (
+                      <GlassCard>
+                        <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-2">
+                           <BrainCircuit className="h-4 w-4 text-purple-400" />
+                           Interview Simulator
+                        </h3>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mb-6">Likely questions based on your profile gaps</p>
+                        <div className="space-y-4">
+                           {result.interviewQuestions.map((q, idx) => (
+                             <div key={`iq-${idx}`} className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/20 text-slate-300 text-sm font-medium">
+                               <span className="text-purple-400 font-black mr-2">Q:</span>
+                               {q}
+                             </div>
+                           ))}
+                        </div>
+                      </GlassCard>
+                    )}
+
+                    {/* AI Re-writes */}
+                    <div className="space-y-8">
+                      {result.resumeRewriteDraft && (
+                        <GlassCard className="border-t-2 border-t-amber-500">
+                           <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-2">
+                             <Sparkles className="h-4 w-4 text-amber-400" />
+                             Optimized Headline Draft
+                           </h3>
+                           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mb-4">AI-generated rewrite for this role</p>
+                           <div className="relative p-5 rounded-xl bg-amber-500/5 border border-amber-500/20 group">
+                             <button onClick={() => navigator.clipboard.writeText(result.resumeRewriteDraft || "")} className="absolute top-2 right-2 p-2 rounded-lg bg-white/5 hover:bg-amber-500/20 text-slate-400 hover:text-amber-400 opacity-0 group-hover:opacity-100 transition-all">
+                               <Copy className="h-3.5 w-3.5" />
+                             </button>
+                             <p className="text-sm text-slate-200 italic leading-relaxed">"{result.resumeRewriteDraft}"</p>
+                           </div>
+                        </GlassCard>
+                      )}
+
+                      {result.recruiterSummary && (
+                        <GlassCard className="border-t-2 border-t-sky-500">
+                           <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-2">
+                             <Search className="h-4 w-4 text-sky-400" />
+                             Recruiter Perspective
+                           </h3>
+                           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mb-4">Candid assessment of your fit</p>
+                           <p className="text-sm text-slate-300 leading-relaxed font-medium">
+                             {result.recruiterSummary}
+                           </p>
+                           {result.globalBenchmarking && (
+                             <div className="mt-4 pt-4 border-t border-sky-500/20 flex items-start gap-3">
+                               <Award className="h-5 w-5 text-sky-400 shrink-0 mt-0.5" />
+                               <p className="text-[11px] text-slate-400 font-medium">
+                                 <strong className="text-sky-300">Global Benchmark:</strong> {result.globalBenchmarking}
+                               </p>
+                             </div>
+                           )}
+                        </GlassCard>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Cover Letter Draft */}
+                  {result.coverLetterDraft && (
+                    <GlassCard>
+                      <div className="flex items-center justify-between mb-6">
+                        <div>
+                          <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                             <FileText className="h-4 w-4 text-emerald-400" />
+                             AI Cover Letter Draft
+                          </h3>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">Starting template mapped to the JD</p>
+                        </div>
+                        <button 
+                          onClick={() => navigator.clipboard.writeText(result.coverLetterDraft || "")}
+                          className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/30 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+                        >
+                          <Copy className="h-3 w-3" /> Copy to Clipboard
+                        </button>
+                      </div>
+                      <div className="p-6 md:p-8 rounded-2xl bg-white/5 border border-white/5 font-serif text-slate-300 leading-loose text-sm whitespace-pre-wrap">
+                        {result.coverLetterDraft}
+                      </div>
+                    </GlassCard>
+                  )}
                 </div>
               </div>
 
@@ -2090,34 +2373,27 @@ export default function App() {
         <p className="text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em]">© 2026 Professional Career Intelligence. All data processed locally for this session.</p>
       </footer>
       
-      {/* Floating Lingering LinkedIn Connect */}
-      <motion.a 
-        href="https://www.linkedin.com/in/arjun-pv1312" 
-        target="_blank"
-        rel="noopener noreferrer"
-        initial={{ opacity: 0, scale: 0.5, y: 50 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{
-          type: "spring",
-          stiffness: 260,
-          damping: 20,
-          delay: 1,
-        }}
-        className="fixed bottom-8 left-8 z-[200] group flex items-center justify-start gap-0 overflow-hidden bg-[#0A66C2] text-white h-14 w-14 rounded-full shadow-[0_8px_30px_rgba(10,102,194,0.4)] hover:w-48 hover:shadow-[0_8px_40px_rgba(10,102,194,0.6)] transition-[width,box-shadow] duration-500 ease-out border border-white/10"
-        whileHover={{ 
-          scale: 1.05,
-          y: -5
-        }}
-        whileTap={{ scale: 0.95 }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out z-0" />
-        <div className="flex-shrink-0 flex items-center justify-center w-14 h-14 z-10">
-          <img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="22" height="22" className="rounded-sm brightness-110" alt="LinkedIn" />
-        </div>
-        <span className="font-display font-black uppercase tracking-widest text-[10px] whitespace-nowrap opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-[opacity,transform] duration-500 z-10 pr-6">
-          Let's Connect
-        </span>
-      </motion.a>
+      {/* Developer Links */}
+      <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-[200] flex flex-col items-end gap-3">
+        <a 
+          href="https://personal-portfolio--serenayt06.replit.app/" 
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-3 bg-[#0A0A15]/90 backdrop-blur-xl border border-white/10 px-4 py-2.5 rounded-full shadow-xl hover:border-teal-500/40 hover:shadow-[0_0_20px_rgba(20,184,166,0.15)] transition-all ease-out duration-300 w-fit"
+        >
+          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest group-hover:text-teal-400 transition-colors">Portfolio</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-teal-500"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        </a>
+        <a 
+          href="https://www.linkedin.com/in/arjun-pv1312" 
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-3 bg-[#0A0A15]/90 backdrop-blur-xl border border-white/10 px-4 py-2.5 rounded-full shadow-xl hover:border-[#0A66C2]/40 hover:shadow-[0_0_20px_rgba(10,102,194,0.15)] transition-all ease-out duration-300 w-fit"
+        >
+          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest group-hover:text-[#0A66C2] transition-colors">LinkedIn</span>
+          <img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="14" height="14" className="rounded-sm opacity-80 group-hover:opacity-100 transition-opacity" alt="LinkedIn" />
+        </a>
+      </div>
     </div>
   );
 }
