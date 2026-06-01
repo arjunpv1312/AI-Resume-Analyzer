@@ -5,39 +5,89 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", sans-serif;
   
-  --color-brand-deep: #000000;
-  --color-brand-base: #050510;
-  --color-brand-teal: #14b8a6;
-  --color-brand-glow: #00ffcc;
-  --color-brand-accent: #7000ff;
-  --color-brand-purple: #ba55d3;
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-base: var(--brand-base);
+  --color-brand-teal: var(--brand-teal);
+  --color-brand-glow: var(--brand-glow);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-purple: var(--brand-purple);
 }
 
 @layer base {
-  body {
-    @apply bg-black text-slate-300 antialiased selection:bg-brand-accent/30;
-    background-image: 
-      radial-gradient(circle at 15% 50%, rgba(112, 0, 255, 0.08), transparent 25%),
-      radial-gradient(circle at 85% 30%, rgba(0, 255, 204, 0.08), transparent 25%),
-      radial-gradient(ellipse at 50% -20%, rgba(255, 255, 255, 0.05), transparent 60%);
-    background-color: #000000;
-    background-attachment: fixed;
-    min-height: 100vh;
-    transition: filter 0.5s ease;
+  :root {
+    --brand-deep: #000000;
+    --brand-base: #050510;
+    --brand-teal: #14b8a6;
+    --brand-glow: #00ffcc;
+    --brand-accent: #7000ff;
+    --brand-purple: #ba55d3;
   }
 
-  body.theme-light {
-    filter: invert(1) hue-rotate(180deg);
+  /* Theme 1: Cosmic Dark (Default) */
+  :root[data-theme="cosmic"] {
+    --brand-deep: #000000;
+    --brand-base: #050510;
+    --brand-teal: #14b8a6;
+    --brand-glow: #00ffcc;
+    --brand-accent: #7000ff;
+    --brand-purple: #ba55d3;
+  }
+
+  /* Theme 2: Ocean Blue */
+  :root[data-theme="ocean"] {
+    --brand-deep: #000005;
+    --brand-base: #030b14;
+    --brand-teal: #0ea5e9;
+    --brand-glow: #38bdf8;
+    --brand-accent: #2563eb;
+    --brand-purple: #818cf8;
+  }
+
+  /* Theme 3: Ember Red */
+  :root[data-theme="ember"] {
+    --brand-deep: #050000;
+    --brand-base: #140505;
+    --brand-teal: #f43f5e;
+    --brand-glow: #fb7185;
+    --brand-accent: #e11d48;
+    --brand-purple: #f87171;
+  }
+
+  /* Theme 4: Forest Green */
+  :root[data-theme="forest"] {
+    --brand-deep: #000502;
+    --brand-base: #02140a;
+    --brand-teal: #10b981;
+    --brand-glow: #34d399;
+    --brand-accent: #059669;
+    --brand-purple: #6ee7b7;
+  }
+
+  body {
+    @apply bg-brand-deep text-slate-300 antialiased selection:bg-brand-accent/30;
+    background-color: var(--brand-deep);
+    transition: background-color 0.5s ease;
+    min-height: 100vh;
   }
 }
 
 @layer components {
+  .bg-gradient-body {
+    background-image: 
+      radial-gradient(circle at 15% 50%, color-mix(in srgb, var(--brand-accent) 8%, transparent), transparent 25%),
+      radial-gradient(circle at 85% 30%, color-mix(in srgb, var(--brand-glow) 8%, transparent), transparent 25%),
+      radial-gradient(ellipse at 50% -20%, rgba(255, 255, 255, 0.05), transparent 60%);
+    background-attachment: fixed;
+    content: "";
+    @apply absolute inset-0 z-[-1] pointer-events-none transition-all duration-500;
+  }
+
   .glass-panel {
-    @apply bg-white/[0.02] backdrop-blur-[40px] border border-white/10 rounded-[2rem] shadow-[0_16px_40px_-8px_rgba(0,0,0,0.8)] ring-1 ring-white/5;
+    @apply bg-black/40 backdrop-blur-[40px] border border-white/10 rounded-[2rem] shadow-[0_16px_40px_-8px_rgba(0,0,0,0.8)] ring-1 ring-white/5;
   }
   
   .glass-card {
-    @apply bg-gradient-to-br from-white/[0.04] to-transparent backdrop-blur-[30px] border border-white/[0.08] rounded-3xl transition-all duration-500 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.6)] hover:border-brand-glow/30 hover:bg-white/[0.06] hover:shadow-[0_8px_40px_-4px_rgba(0,255,204,0.15)];
+    @apply bg-gradient-to-br from-white/[0.04] to-transparent backdrop-blur-[30px] border border-white/[0.08] rounded-3xl transition-all duration-500 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.6)] hover:border-brand-glow/40 hover:bg-white/[0.08] hover:shadow-[0_8px_40px_-4px_rgba(0,0,0,0.5),auto_auto_20px_rgba(var(--brand-glow),0.1)];
   }
 
   .glow-text {
@@ -45,11 +95,11 @@
   }
 
   .glow-text-accent {
-    @apply text-transparent bg-clip-text bg-gradient-to-r from-brand-glow via-brand-teal to-brand-purple drop-shadow-[0_0_16px_rgba(0,255,204,0.5)];
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-brand-glow via-brand-teal to-brand-purple;
   }
 
   .btn-primary {
-    @apply relative overflow-hidden px-8 py-3.5 rounded-full bg-white/5 text-white font-black tracking-widest text-[11px] uppercase transition-all duration-500 border border-white/10 backdrop-blur-md hover:bg-white/10 hover:shadow-[0_0_40px_rgba(0,255,204,0.3)] hover:border-brand-glow/50 active:scale-95;
+    @apply relative overflow-hidden px-8 py-3.5 rounded-full bg-white/5 text-white font-black tracking-widest text-[11px] uppercase transition-all duration-500 border border-white/10 backdrop-blur-md hover:bg-white/10 hover:border-brand-glow/50 active:scale-95;
   }
   
   .btn-primary::before {
@@ -75,3 +125,42 @@
     border-radius: 0.5rem;
   }
 }
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Force all text to black */
+  * {
+    color: black !important;
+    border-color: #ccc !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Handle specific background colors */
+  .glass-card, .glass-panel {
+    background: transparent !important;
+    border: 1px solid #ddd !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Remove gradients from text */
+  .glow-text, .glow-text-accent {
+    background: none !important;
+    -webkit-text-fill-color: black !important;
+  }
+
+  /* Ensure charts and SVGs still have colors if needed, but text is black. Actually * selector might break SVG colors. Let's exclude SVGs */
+  svg rect, svg circle, svg path {
+    /* Don't enforce black stroke/fill on all SVG elements */
+  }
+
+  .no-print, button {
+    display: none !important;
+  }
+}
+

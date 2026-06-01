@@ -1,6 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { useDropzone } from 'react-dropzone';
+import { useReactToPrint } from 'react-to-print';
 import DOMPurify from 'dompurify';
 import { 
   Upload, 
@@ -30,7 +31,8 @@ import {
   Copy,
   Check,
   BookOpen,
-  Briefcase
+  Briefcase,
+  Printer
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
@@ -52,7 +54,10 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 interface AnalysisResult {
   overallScore: number;
@@ -130,11 +135,13 @@ interface AnalysisHistoryItem {
 
 const GlassCard = ({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5, delay }}
-    className={`glass-card p-6 ${className}`}
+    initial={{ opacity: 0, y: 30, scale: 0.95 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    transition={{ duration: 0.6, delay, type: "spring", stiffness: 100 }}
+    whileHover={{ y: -5, transition: { duration: 0.2 } }}
+    className={`glass-card p-6 relative overflow-hidden group ${className}`}
   >
+    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
     {children}
   </motion.div>
 );
@@ -248,6 +255,12 @@ const SkillCloud = ({ found, missing }: { found: string[], missing: string[] }) 
 }
 
 export default function App() {
+  const printRef = useRef<HTMLDivElement>(null);
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: 'AI_Resume_Analysis',
+  });
+
   const [file, setFile] = useState<File | null>(null);
   const [jobDescription, setJobDescription] = useState('');
   const [linkedinUrl, setLinkedinUrl] = useState('');
@@ -279,9 +292,12 @@ export default function App() {
 
 #AI #CareerDevelopment #ResumeTips #FutureOfWork`;
 
+  const [copiedText, setCopiedText] = useState(false);
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    alert("Copied to clipboard!");
+    setCopiedText(true);
+    setTimeout(() => setCopiedText(false), 2000);
   };
 
   // Load history from localStorage
@@ -470,6 +486,52 @@ export default function App() {
 
       const analysis: AnalysisResult = await generationResponse.json();
       
+      analysis.careerPath = analysis.careerPath || { topRole: 'Candidate', confidence: 0, alternatives: [] };
+      analysis.careerPath.alternatives = analysis.careerPath.alternatives || [];
+      analysis.careerTimeline = analysis.careerTimeline || [];
+      analysis.skillGapReport = analysis.skillGapReport || [];
+      analysis.sectionsDetailed = analysis.sectionsDetailed || [];
+      analysis.interviewQuestions = analysis.interviewQuestions || [];
+      analysis.suggestions = analysis.suggestions || [];
+
+      if (!analysis.atsAnalysis) {
+        analysis.atsAnalysis = {
+          formattingScore: 50,
+          keywordDensity: 50,
+          recommendations: []
+        };
+      }
+      analysis.atsAnalysis.recommendations = analysis.atsAnalysis.recommendations || [];
+      analysis.atsAnalysis.keywordOptimizations = analysis.atsAnalysis.keywordOptimizations || [];
+      
+      if (!analysis.improvementPlan) {
+        analysis.improvementPlan = {
+          missingSkillsToHighlight: [],
+          resumeHeadlineUpdates: [],
+          recommendedCertifications: [],
+          projectsToHighlight: [],
+          formattingFixes: []
+        };
+      } else {
+        analysis.improvementPlan.missingSkillsToHighlight = analysis.improvementPlan.missingSkillsToHighlight || [];
+        analysis.improvementPlan.resumeHeadlineUpdates = analysis.improvementPlan.resumeHeadlineUpdates || [];
+        analysis.improvementPlan.recommendedCertifications = analysis.improvementPlan.recommendedCertifications || [];
+        analysis.improvementPlan.projectsToHighlight = analysis.improvementPlan.projectsToHighlight || [];
+        analysis.improvementPlan.formattingFixes = analysis.improvementPlan.formattingFixes || [];
+      }
+      
+      analysis.linkedinComparison = analysis.linkedinComparison || {
+        hasLinkedIn: false,
+        resumeHeadline: '',
+        linkedinHeadline: '',
+        matchAnalysis: '',
+        missingFromResume: [],
+        missingFromLinkedIn: []
+      };
+      
+      analysis.linkedinComparison.missingFromResume = analysis.linkedinComparison.missingFromResume || [];
+      analysis.linkedinComparison.missingFromLinkedIn = analysis.linkedinComparison.missingFromLinkedIn || [];
+
       // Inject rule-based keyword data
       if (analysis.atsAnalysis) {
         analysis.atsAnalysis.topResumeKeywords = atsMetadata.topResumeKeywords;
@@ -556,20 +618,48 @@ export default function App() {
 
   return (
     <div className="min-h-screen selection:bg-teal-500/30">
-      {/* Background Orbs */}
+      <div className="bg-gradient-body"></div>
+      {/* Background Orbs & Particles */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-[-1]">
-        <div className="absolute top-[-15%] right-[-10%] w-[600px] h-[600px] rounded-full bg-brand-accent/10 blur-[150px] animate-pulse transition-opacity duration-1000"></div>
-        <div className="absolute bottom-[-15%] left-[-10%] w-[500px] h-[500px] rounded-full bg-brand-purple/10 blur-[150px] animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute top-[40%] left-[40%] w-[400px] h-[400px] rounded-full bg-brand-glow/5 blur-[150px] mix-blend-screen -z-10 animate-pulse" style={{ animationDelay: '4s' }}></div>
+        <div className="absolute top-[-15%] right-[-10%] w-[600px] h-[600px] rounded-full bg-brand-accent/10 blur-[150px] animate-pulse transition-all duration-1000"></div>
+        <div className="absolute bottom-[-15%] left-[-10%] w-[500px] h-[500px] rounded-full bg-brand-purple/10 blur-[150px] animate-pulse transition-all duration-1000" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-[40%] left-[40%] w-[400px] h-[400px] rounded-full bg-brand-glow/5 blur-[150px] mix-blend-screen -z-10 animate-pulse transition-all duration-1000" style={{ animationDelay: '4s' }}></div>
+        
+        {/* Floating Particles */}
+        {Array.from({ length: 15 }).map((_, i) => (
+          <motion.div
+            key={`particle-${i}`}
+            className="absolute rounded-full bg-white/20"
+            style={{
+              width: Math.random() * 4 + 1 + 'px',
+              height: Math.random() * 4 + 1 + 'px',
+              top: Math.random() * 100 + '%',
+              left: Math.random() * 100 + '%',
+            }}
+            animate={{
+              y: [0, -100, 0],
+              opacity: [0, 0.5, 0],
+            }}
+            transition={{
+              duration: Math.random() * 10 + 10,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+          />
+        ))}
       </div>
 
       {/* Modern Navigation */}
-      <nav className="sticky top-0 z-50 bg-black/40 backdrop-blur-[30px] border-b border-white/[0.08] shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]">
+      <nav className="sticky top-0 z-50 bg-brand-deep/60 backdrop-blur-[30px] border-b border-white/[0.08] shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-glow to-brand-accent flex items-center justify-center shadow-[0_0_24px_rgba(0,255,204,0.3)] border border-white/20">
+            <motion.div 
+              whileHover={{ rotate: 180, scale: 1.1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 10 }}
+              className="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-glow to-brand-accent flex items-center justify-center shadow-[0_0_24px_rgba(0,255,204,0.3)] border border-white/20 cursor-pointer"
+            >
               <BrainCircuit className="text-white h-6 w-6" />
-            </div>
+            </motion.div>
             <div className="flex flex-col leading-none">
               <span className="text-xl font-black font-display tracking-tight glow-text uppercase">AI Resume Pro</span>
               <span className="text-[10px] font-bold text-slate-500 tracking-[0.2em] mt-1">ADVANCED VERSION</span>
@@ -577,18 +667,21 @@ export default function App() {
           </div>
           
           <div className="hidden md:flex items-center gap-4 text-[11px] font-black uppercase tracking-widest text-slate-400">
-             <a href="https://interviewcoach-969933961049.asia-southeast1.run.app" target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-teal-500/10 border border-teal-500/20 px-3 py-2 rounded-full text-teal-400 hover:bg-teal-500/20 hover:text-teal-300 transition-colors shadow-[0_0_15px_rgba(20,184,166,0.15)]">
+             <a href="https://interviewcoach-969933961049.asia-southeast1.run.app" target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-brand-teal/10 border border-brand-teal/20 px-3 py-2 rounded-full text-brand-teal hover:bg-brand-teal/20 hover:text-white transition-colors shadow-[0_0_15px_rgba(20,184,166,0.15)]">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
                 Interview Coach
              </a>
             <button 
               onClick={() => {
-                 document.body.classList.toggle('theme-light');
+                const themes = ['cosmic', 'ocean', 'ember', 'forest'];
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'cosmic';
+                const nextTheme = themes[(themes.indexOf(currentTheme) + 1) % themes.length];
+                document.documentElement.setAttribute('data-theme', nextTheme);
               }}
               className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition-all flex items-center gap-2"
             >
-              <Zap className="h-4 w-4" />
-              Toggle Theme
+              <Zap className="h-4 w-4 text-brand-glow" />
+              Theme Switch
             </button>
             <button 
               onClick={() => setIsGuideOpen(true)}
@@ -742,7 +835,7 @@ export default function App() {
                   onClick={() => copyToClipboard(linkedinCopy)}
                   className="w-full btn-primary py-4 text-xs"
                 >
-                  Copy to Clipboard
+                  {copiedText ? "Copied!" : "Copy to Clipboard"}
                 </button>
               </motion.div>
             </div>
@@ -1015,13 +1108,23 @@ export default function App() {
                       <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-3 h-3 bg-[#0A0A15] border-b border-r border-white/10 rotate-45 transform"></div>
                    </div>
                  </motion.div>
-                 <h2 className="text-6xl font-black font-display text-white mb-6 tracking-tighter leading-tight">
+                 <motion.h2 
+                   initial={{ opacity: 0, y: 20 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+                   className="text-6xl md:text-7xl font-black font-display text-white mb-6 tracking-tighter leading-tight"
+                 >
                    Beat the ATS.<br/>
                    <span className="glow-text-accent">Land Your Dream Job.</span>
-                 </h2>
-                 <p className="text-slate-400 text-lg max-w-2xl mx-auto font-medium leading-relaxed">
+                 </motion.h2>
+                 <motion.p 
+                   initial={{ opacity: 0 }}
+                   animate={{ opacity: 1 }}
+                   transition={{ duration: 1, delay: 0.5 }}
+                   className="text-slate-400 text-lg max-w-2xl mx-auto font-medium leading-relaxed"
+                 >
                    Upload your resume and target job description. Our AI evaluates your profile against Applicant Tracking Systems, identifies missing keywords, and provides actionable recommendations to get you hired.
-                 </p>
+                 </motion.p>
               </div>
 
               {/* Upload Interface */}
@@ -1416,6 +1519,7 @@ export default function App() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               className="space-y-8"
+              ref={printRef}
             >
               {/* Header Controls */}
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-8 border-b border-white/5">
@@ -1423,12 +1527,18 @@ export default function App() {
                   <h2 className="text-4xl font-black font-display text-white tracking-tight">Executive Summary</h2>
                   <p className="text-slate-500 text-sm font-bold tracking-widest uppercase mt-2">Analysis For: {file?.name}</p>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-4 no-print">
                   <button 
                     onClick={() => setIsLinkedInModalOpen(true)}
                     className="px-8 py-3 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-black text-[11px] uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all flex items-center gap-3 shadow-xl"
                   >
                     <Layers className="h-4 w-4" /> Share On LinkedIn
+                  </button>
+                  <button 
+                    onClick={handlePrint}
+                    className="px-8 py-3 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 font-black text-[11px] uppercase tracking-widest hover:bg-teal-500 hover:text-white transition-all flex items-center gap-3 shadow-xl"
+                  >
+                    <Printer className="h-4 w-4" /> Print to PDF
                   </button>
                   <button 
                     onClick={() => { setResult(null); setFile(null); }}
@@ -1437,14 +1547,8 @@ export default function App() {
                     <RefreshCw className="h-4 w-4" /> Reset Stream
                   </button>
                   <button 
-                    onClick={() => window.print()}
-                    className="px-8 py-3 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 font-black text-[11px] uppercase tracking-widest hover:bg-purple-500 hover:text-white transition-all flex items-center gap-3 shadow-xl print:hidden"
-                  >
-                    <FileText className="h-4 w-4" /> Export PDF
-                  </button>
-                  <button 
                     onClick={exportToExcel}
-                    className="btn-primary py-3 px-8 text-[11px] flex items-center gap-3 print:hidden"
+                    className="btn-primary py-3 px-8 text-[11px] flex items-center gap-3"
                   >
                     <Download className="h-4 w-4" /> Export Assets
                   </button>
