@@ -543,7 +543,7 @@ async function startServer() {
       while (retries > 0) {
         try {
           aiResponse = await ai.models.generateContent({
-            model: "gemini-2.5-pro",
+            model: "gemini-2.5-flash",
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: {
               temperature: 0.1, // Lower temperature for more factual, deterministic, strict analysis
@@ -582,6 +582,8 @@ async function startServer() {
       let errMsg = 'Internal server error during AI generation';
       if (error.message && error.message.includes('API key')) {
         errMsg = 'Your Gemini API Key is invalid or has been revoked. Please update it in the settings / environment variables.';
+      } else if (error.message && (error.message.includes('Quota exceeded') || error.message.includes('429'))) {
+        errMsg = 'You exceeded your current API quota. Please check your plan and billing details.';
       }
       res.status(500).json({ error: errMsg, details: error.message });
     }
@@ -622,7 +624,7 @@ async function startServer() {
       `;
 
       const aiResponse = await ai.models.generateContent({
-        model: "gemini-2.5-pro",
+        model: "gemini-2.5-flash",
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
           temperature: 0.2,
@@ -655,6 +657,8 @@ async function startServer() {
       let errMsg = 'Failed to generate recommendation detail';
       if(error.message && error.message.includes('API key')) {
         errMsg = "Your Gemini API Key is invalid or has been revoked. Please update it in the settings / environment variables.";
+      } else if (error.message && (error.message.includes('Quota exceeded') || error.message.includes('429'))) {
+        errMsg = 'You exceeded your current API quota. Please check your plan and billing details.';
       }
       res.status(500).json({ error: errMsg });
     }
