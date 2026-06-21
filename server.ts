@@ -427,74 +427,8 @@ async function startServer() {
       
       let apiKey = process.env.GEMINI_API_KEY;
 
-      if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey.includes("your_api_key")) {
-          // Bypass AI when the key is missing
-          console.log("Bypassing AI generation: valid Gemini key is missing.");
-          return res.json({
-            overallScore: 85,
-            atsCompatibility: 80,
-            skillsMatch: 90,
-            formattingHealthScore: 85,
-            careerTrajectoryFitScore: 88,
-            foundSkills: ["React", "JavaScript", "TypeScript"],
-            missingSkills: ["Python", "AWS"],
-            improvementPlan: {
-              missingSkillsToHighlight: ["Python", "AWS"],
-              resumeHeadlineUpdates: ["Senior Frontend Engineer | TypeScript Expert"],
-              recommendedCertifications: ["AWS Certified Developer"],
-              projectsToHighlight: ["High-traffic Next.js migration project"],
-              formattingFixes: ["Use strict bulleted lists for experience section"]
-            },
-            careerPath: {
-              topRole: "Senior Software Engineer",
-              confidence: 95,
-              alternatives: [{ role: "Engineering Manager", match: 80, reasoning: "Strong leadership experience demonstrated" }]
-            },
-            careerTimeline: [
-              {
-                role: "Software Engineer",
-                company: "Tech Corp",
-                duration: "2020-Present",
-                highlights: ["Improved performance by 30%", "Led frontend team"]
-              }
-            ],
-            linkedinComparison: {
-              hasLinkedIn: true,
-              resumeHeadline: "Software Engineer",
-              linkedinHeadline: "Software Engineer at Tech Corp",
-              matchAnalysis: "Generally aligned, but LinkedIn lacks recent project details.",
-              missingFromResume: ["Agile Management"],
-              missingFromLinkedIn: ["GraphQL Integrations"]
-            },
-            atsAnalysis: {
-              formattingScore: 90,
-              keywordDensity: 85,
-              recommendations: ["Quantify your achievements", "Use more action verbs"],
-              jobKeywordsFound: ["React", "TypeScript"],
-              jobKeywordsMissing: ["GraphQL", "Next.js"],
-              keywordOptimizations: [
-                { keyword: "GraphQL", suggestedPhrases: ["Implemented GraphQL APIs to reduce frontend loading times"] },
-                { keyword: "Next.js", suggestedPhrases: ["Migrated legacy React app to Next.js for better SEO"] }
-              ]
-            },
-            skillGapReport: [
-              { skill: "AWS", importance: "Critical" }
-            ],
-            sectionsFound: ["Experience", "Education", "Skills"],
-            sectionsDetailed: [
-              { sectionName: "Experience", summary: "Strong history of leading complex frontend projects." }
-            ],
-            summary: "A robust software engineering resume that could be improved with more quantifiable metrics.",
-            suggestions: [
-              "Add metrics to your recent role.",
-              "Include a targeted summary statement."
-            ],
-            interviewQuestions: ["Tell me about a time you optimized frontend performance.", "How do you handle backend integrations?"],
-            resumeRewriteDraft: "Senior Frontend Engineer with 5+ years of experience in React and TypeScript, ready to lead scalable web app development.",
-            coverLetterDraft: "Dear Hiring Manager, I am excited to apply for the Senior Frontend Engineer role...",
-            globalBenchmarking: "The candidate's profile is in the top 20% of frontend applicants for this seniority level.",
-            recruiterSummary: "Strong technical skills, but lacks the specific cloud experience requested. Good candidate for an interview."
-          });
+      if (!apiKey) {
+        return res.status(500).json({ error: 'Your Gemini API Key is missing. Please add it in your project settings.' });
       }
 
       const { GoogleGenAI } = await import("@google/genai");
@@ -658,16 +592,8 @@ async function startServer() {
       }
 
       let apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey.includes("your_api_key")) {
-          console.log("Bypassing AI generation for expand recommendation: valid Gemini key is missing.");
-          return res.json({
-            explanation: "This is a bypassed AI explanation because the API key is missing. Normally, it would tell you why this recommendation is critical for getting past the ATS and making a good impression.",
-            examples: [
-               "Led a team of 5 engineers to deliver the project 2 weeks ahead of schedule.",
-               "Achieved a 20% increase in user retention by implementing the suggested feature.",
-               "Built a scalable backend architecture that reduced downtime by 99%."
-            ]
-          });
+      if (!apiKey) {
+        return res.status(500).json({ error: 'Your Gemini API Key is missing. Please add it in your project settings.' });
       }
 
       const { GoogleGenAI } = await import("@google/genai");
