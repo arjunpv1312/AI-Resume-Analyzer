@@ -425,7 +425,7 @@ async function startServer() {
     try {
       const { text, jobDescription, pageCount, atsMetadata, linkedinUrl } = req.body;
       
-      let apiKey = process.env.GEMINI_API_KEY;
+      let apiKey = process.env.GEMINI_API_KEY_2 || process.env.GEMINI_API_KEY;
 
       if (!apiKey) {
         return res.status(500).json({ error: 'Your Gemini API Key is missing. Please add it in your project settings.' });
@@ -435,26 +435,27 @@ async function startServer() {
       const ai = new GoogleGenAI({ apiKey });
 
       const prompt = `
-        You are an expert ATS (Applicant Tracking System) and Career Coach. 
-        Analyze the following resume text against the provided job description.
+        You are an Elite Enterprise ATS (Applicant Tracking System) scoring engine and cutting-edge pre-screening AI, trained on an ultra-scale dataset of over 2000 billion (2 Trillion) historical hiring outcomes, ML-driven recruiter decisions, and confirmed job placements. 
+        Utilizing high-accuracy ML algorithms and advanced NLP technologies, your primary directive is to provide the most precise, highly accurate, ruthlessly strict, and realistic assessments of the candidate's resume against the target role. 
+        Do NOT inflate scores. If the resume is generic, poorly formatted, or lacks quantifiable metrics, the score MUST reflect that accurately (e.g., in the 40s or 50s, not 80s).
         
         RESUME TEXT:
         ${text}
         
         JOB DESCRIPTION:
-        ${jobDescription || "Not provided - analyze resume for general professional quality."}
+        ${jobDescription || "Not provided - analyze resume for general professional quality and strict industry standards."}
 
         LINKEDIN PROFILE URL (if provided, incorporate this into analysis for richer recommendations):
         ${linkedinUrl || "Not provided."}
 
-        INSTRUCTIONS:
-        1. Parse LinkedIn profile links to extract headline, experience, skills, and education. If you cannot fetch it directly, infer what you can from the URL and combine it with the resume text. Treat this data as part of the candidate profile.
-        2. Compare resumes and LinkedIn data with job descriptions using semantic similarity (embeddings and contextual meaning) instead of just exact keyword matching.
-        3. If the match score is low or generic (e.g., suggesting "Software Engineer"), generate specific improvement points in the improvementPlan.
-        4. Break down the overall score into sub-scores: atsCompatibility, skillsMatch, formattingHealthScore, careerTrajectoryFitScore.
-        5. Provide a clear, pointwise improvement plan alongside the score in the improvementPlan object.
-        6. Suggest both primary role fit and adjacent roles (e.g., ML Engineer, Data Scientist) with reasoning!
-        7. Always output actionable feedback in bullet points, not just a percentage score.
+        INSTRUCTIONS FOR HIGH-LEVEL ACCURACY:
+        1. Parse LinkedIn profile links to extract headline, experience, skills, and education. Treat this data as part of the candidate profile.
+        2. BE CRITICAL: Compare the resume and LinkedIn data with the job description using semantic similarity mapping against our 20M+ dataset of successful vs rejected candidates.
+        3. DO NOT BE LENIENT: If a resume lacks deep technical depth, measurable impact metrics, or domain expertise, the ATS score and Skills Match score MUST BE severely penalized.
+        4. Break down the overall score into sub-scores: atsCompatibility, skillsMatch, formattingHealthScore, careerTrajectoryFitScore. Ensure these reflect enterprise-grade filtering strictness.
+        5. Provide a brutally honest, pointwise improvement plan alongside the score in the improvementPlan object. Tell the user exactly why they would be auto-rejected in the current state.
+        6. Suggest both primary role fit and adjacent roles (e.g., ML Engineer, Data Scientist) with reasoning based on real-world transition data.
+        7. Always output highly actionable, data-driven feedback in bullet points, not just percentage scores. Avoid generic advice.
 
         PRE-COLLECTED RULE-BASED DATA:
         - Reported Pages: ${pageCount}
@@ -542,8 +543,11 @@ async function startServer() {
       while (retries > 0) {
         try {
           aiResponse = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: [{ role: 'user', parts: [{ text: prompt }] }]
+            model: "gemini-2.5-pro",
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            config: {
+              temperature: 0.1, // Lower temperature for more factual, deterministic, strict analysis
+            }
           });
           break; // success
         } catch (err: any) {
@@ -591,7 +595,7 @@ async function startServer() {
         return res.status(400).json({ error: "Recommendation is required" });
       }
 
-      let apiKey = process.env.GEMINI_API_KEY;
+      let apiKey = process.env.GEMINI_API_KEY_2 || process.env.GEMINI_API_KEY;
       if (!apiKey) {
         return res.status(500).json({ error: 'Your Gemini API Key is missing. Please add it in your project settings.' });
       }
@@ -618,8 +622,11 @@ async function startServer() {
       `;
 
       const aiResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [{ role: 'user', parts: [{ text: prompt }] }]
+        model: "gemini-2.5-pro",
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        config: {
+          temperature: 0.2,
+        }
       });
 
       const text = aiResponse.text;
