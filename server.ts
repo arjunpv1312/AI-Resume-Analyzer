@@ -543,7 +543,7 @@ async function startServer() {
       while (retries > 0) {
         try {
           aiResponse = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-3.5-flash",
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: {
               temperature: 0.1, // Lower temperature for more factual, deterministic, strict analysis
@@ -552,11 +552,12 @@ async function startServer() {
           break; // success
         } catch (err: any) {
           retries--;
-          if (retries === 0 || !(err.message && (err.message.includes('503') || err.message.includes('high demand') || err.message.includes('UNAVAILABLE')))) {
+          const isRetryable = err.message && (err.message.includes('503') || err.message.includes('high demand') || err.message.includes('UNAVAILABLE') || err.message.includes('429') || err.message.includes('Too Many Requests'));
+          if (retries === 0 || !isRetryable) {
             throw err;
           }
-          console.log("Retrying AI Generation due to high demand...");
-          await new Promise(resolve => setTimeout(resolve, 2000)); // wait 2s before retry
+          console.log("Retrying AI Generation due to limitation...");
+          await new Promise(resolve => setTimeout(resolve, 4000)); // wait 4s before retry
         }
       }
 
@@ -584,6 +585,8 @@ async function startServer() {
         errMsg = 'Your Gemini API Key is invalid or has been revoked. Please update it in the settings / environment variables.';
       } else if (error.message && (error.message.includes('Quota exceeded') || error.message.includes('429'))) {
         errMsg = 'You exceeded your current API quota. Please check your plan and billing details.';
+      } else if (error.message && (error.message.includes('high demand') || error.message.includes('503'))) {
+        errMsg = 'The AI model is currently experiencing high demand. Please try again later.';
       }
       res.status(500).json({ error: errMsg, details: error.message });
     }
@@ -623,13 +626,28 @@ async function startServer() {
         Do not include markdown or anything outside the JSON object. Just raw JSON.
       `;
 
-      const aiResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: {
-          temperature: 0.2,
+      let aiResponse;
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          aiResponse = await ai.models.generateContent({
+            model: "gemini-3.5-flash",
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            config: {
+              temperature: 0.2,
+            }
+          });
+          break;
+        } catch (err: any) {
+          retries--;
+          const isRetryable = err.message && (err.message.includes('503') || err.message.includes('high demand') || err.message.includes('UNAVAILABLE') || err.message.includes('429') || err.message.includes('Too Many Requests'));
+          if (retries === 0 || !isRetryable) {
+            throw err;
+          }
+          console.log("Retrying recommendation due to limitation...");
+          await new Promise(resolve => setTimeout(resolve, 4000));
         }
-      });
+      }
 
       const text = aiResponse.text;
       if (!text) {
@@ -659,6 +677,8 @@ async function startServer() {
         errMsg = "Your Gemini API Key is invalid or has been revoked. Please update it in the settings / environment variables.";
       } else if (error.message && (error.message.includes('Quota exceeded') || error.message.includes('429'))) {
         errMsg = 'You exceeded your current API quota. Please check your plan and billing details.';
+      } else if (error.message && (error.message.includes('high demand') || error.message.includes('503'))) {
+        errMsg = 'The AI model is currently experiencing high demand. Please try again later.';
       }
       res.status(500).json({ error: errMsg });
     }
