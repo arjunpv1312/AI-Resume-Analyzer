@@ -51,6 +51,8 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  AreaChart,
+  Area,
 } from "recharts";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -330,6 +332,115 @@ const SkillCloud = ({
     </div>
   );
 };
+
+function SkillDemandTrend({ role }: { role: string }) {
+  const [data, setData] = useState<{ month: string; demand: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    fetch(`/api/trend?role=${encodeURIComponent(role)}`)
+      .then((res) => res.json())
+      .then((d) => {
+        if (isMounted) {
+          setData(d);
+          setLoading(false);
+        }
+      })
+      .catch((e) => {
+        console.error(e);
+        if (isMounted) setLoading(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [role]);
+
+  return (
+    <GlassCard className="mt-8">
+      <div className="flex flex-col items-center justify-center space-y-2 mb-8">
+        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] text-center">
+          Market Demand Trend
+        </h3>
+        <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase text-center">
+          6-Month historical demand for {role}
+        </p>
+      </div>
+
+      <div className="h-64 w-full">
+        {loading ? (
+          <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs uppercase tracking-widest font-bold">
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Fetching Trend
+            Data...
+          </div>
+        ) : data.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={data}
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="colorDemand" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#14b8a6" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="rgba(255,255,255,0.05)"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="month"
+                stroke="rgba(255,255,255,0.3)"
+                tick={{
+                  fill: "rgba(255,255,255,0.5)",
+                  fontSize: 10,
+                  fontWeight: 700,
+                }}
+                tickMargin={10}
+              />
+              <YAxis
+                stroke="rgba(255,255,255,0.3)"
+                tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 10 }}
+              />
+              <RechartsTooltip
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-[#0A0A15]/90 border border-white/10 p-3 rounded-lg shadow-xl backdrop-blur-md">
+                        <p className="text-white text-xs font-bold uppercase">
+                          {label}
+                        </p>
+                        <p className="text-teal-400 text-[10px] font-black uppercase mt-1">
+                          Demand Index: {payload[0].value}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="demand"
+                stroke="#14b8a6"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#colorDemand)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs font-bold">
+            No data available
+          </div>
+        )}
+      </div>
+    </GlassCard>
+  );
+}
 
 export default function App() {
   const printRef = useRef<HTMLDivElement>(null);
@@ -2828,6 +2939,10 @@ export default function App() {
                   </div>
                 </GlassCard>
               </div>
+
+              <SkillDemandTrend
+                role={result.careerPath.topRole || "Target Role"}
+              />
 
               <div className="grid lg:grid-cols-12 gap-8 mt-8">
                 {/* Simplified Header with Core Strengths & Weaknesses */}

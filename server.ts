@@ -431,7 +431,7 @@ async function startServer() {
         return res.status(500).json({ error: 'Your Gemini API Key is missing. Please add it in your project settings.' });
       }
 
-      const { GoogleGenAI } = await import("@google/genai");
+      const { GoogleGenAI, ThinkingLevel } = await import("@google/genai");
       const ai = new GoogleGenAI({ apiKey });
 
       const prompt = `
@@ -547,6 +547,8 @@ async function startServer() {
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: {
               temperature: 0.1, // Lower temperature for more factual, deterministic, strict analysis
+              thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+              responseMimeType: "application/json",
             }
           });
           break; // success
@@ -605,7 +607,7 @@ async function startServer() {
         return res.status(500).json({ error: 'Your Gemini API Key is missing. Please add it in your project settings.' });
       }
 
-      const { GoogleGenAI } = await import("@google/genai");
+      const { GoogleGenAI, ThinkingLevel } = await import("@google/genai");
       const ai = new GoogleGenAI({ apiKey });
 
       const prompt = `
@@ -635,6 +637,8 @@ async function startServer() {
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: {
               temperature: 0.2,
+              thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+              responseMimeType: "application/json",
             }
           });
           break;
@@ -682,6 +686,24 @@ async function startServer() {
       }
       res.status(500).json({ error: errMsg });
     }
+  });
+
+  app.get('/api/trend', (req, res) => {
+    const role = req.query.role || 'Target Role';
+    
+    // Generate some mock historical data for the last 6 months
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    
+    const data = months.map((month, index) => {
+      // Generate a trend that generally goes up, but with some randomness
+      const baseDemand = 50 + (index * 5); 
+      return {
+        month,
+        demand: Math.floor(baseDemand + Math.random() * 15 - 5)
+      };
+    });
+
+    res.json(data);
   });
 
   // Global Error Handler for better debugging
