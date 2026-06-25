@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { GoogleGenAI } from "@google/genai";
 import { useDropzone } from "react-dropzone";
 import { useReactToPrint } from "react-to-print";
@@ -35,6 +35,8 @@ import {
   Printer,
   BarChart2,
   ArrowRight,
+  Eye,
+  Activity,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
@@ -154,13 +156,14 @@ const GlassCard = ({
   delay?: number;
 }) => (
   <motion.div
-    initial={{ opacity: 0, y: 30, scale: 0.95 }}
+    initial={{ opacity: 0, y: 40, scale: 0.98 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
-    transition={{ duration: 0.6, delay, type: "spring", stiffness: 100 }}
-    whileHover={{ y: -5, transition: { duration: 0.2 } }}
-    className={`glass-card p-6 relative overflow-hidden group ${className}`}
+    transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }}
+    whileHover={{ y: -4, transition: { duration: 0.4, ease: "easeOut" } }}
+    className={`glass-card p-8 relative overflow-hidden group ${className}`}
   >
-    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+    <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+    <div className="absolute inset-0 border border-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-[inherit]" />
     {children}
   </motion.div>
 );
@@ -211,7 +214,7 @@ const ScoringCircle = ({
   const data = [{ name: "Score", value: score, fill: color }];
   const level = getScoreLevel(score);
   return (
-    <div className="flex flex-col items-center justify-center relative w-full pt-4 pb-2">
+    <div className="flex flex-col items-center justify-center relative w-full pt-4 pb-2 group">
       <div className="h-40 w-full max-w-[220px] relative overflow-hidden -mb-10">
         <ResponsiveContainer width="100%" height="200%">
           <RadialBarChart
@@ -248,7 +251,7 @@ const ScoringCircle = ({
           <span>0</span>
           <span>100</span>
         </div>
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-32 h-32 bg-teal-500/20 rounded-full blur-3xl -z-10" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-32 h-32 bg-teal-500/20 rounded-full blur-3xl -z-10 transition-opacity duration-500 group-hover:opacity-100 opacity-60" />
       </div>
 
       <div className="mt-10 flex flex-col items-center justify-center gap-3">
@@ -256,7 +259,7 @@ const ScoringCircle = ({
           initial={{ y: 5, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: delay + 0.5 }}
-          className={`px-6 py-2 rounded-full border shadow-xl ${level.bg} ${level.border}`}
+          className={`px-6 py-2 rounded-full border shadow-xl ${level.bg} ${level.border} transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(var(--brand-glow),0.1)]`}
         >
           <span
             className={`text-xs font-black uppercase tracking-widest ${level.color}`}
@@ -264,20 +267,28 @@ const ScoringCircle = ({
             Level: {level.label}
           </span>
         </motion.div>
-        <div className="flex items-center gap-1.5 mt-2">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-            {label}
-          </p>
-          {tooltip && (
-            <div className="group relative cursor-pointer">
-              <Info className="h-3.5 w-3.5 text-slate-500 hover:text-white transition-colors" />
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-slate-800 text-white text-[10px] font-medium p-4 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-white/10 shadow-2xl leading-relaxed text-left">
-                {tooltip}
-                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 rotate-45 border-r border-b border-white/10"></div>
+        {label && (
+          <div className="flex items-center gap-1.5 mt-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              {label}
+            </p>
+            {tooltip && (
+              <div className="group/tooltip relative cursor-help">
+                <Info className="h-3.5 w-3.5 text-slate-500 hover:text-teal-400 transition-colors" />
+                <motion.div 
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  whileHover={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 bg-slate-800 text-white text-[11px] font-medium p-4 rounded-xl opacity-0 group-hover/tooltip:opacity-100 transition-all pointer-events-none z-50 border border-white/10 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] leading-relaxed text-center"
+                >
+                  <strong className="text-teal-400 block mb-1 uppercase tracking-widest text-[9px] font-black">What this means</strong>
+                  {tooltip}
+                  <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 rotate-45 border-r border-b border-white/10"></div>
+                </motion.div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -336,11 +347,12 @@ const SkillCloud = ({
 function SkillDemandTrend({ role }: { role: string }) {
   const [data, setData] = useState<{ month: string; demand: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState("6-month");
 
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
-    fetch(`/api/trend?role=${encodeURIComponent(role)}`)
+    fetch(`/api/trend?role=${encodeURIComponent(role)}&period=${period}`)
       .then((res) => res.json())
       .then((d) => {
         if (isMounted) {
@@ -355,17 +367,30 @@ function SkillDemandTrend({ role }: { role: string }) {
     return () => {
       isMounted = false;
     };
-  }, [role]);
+  }, [role, period]);
 
   return (
     <GlassCard className="mt-8">
-      <div className="flex flex-col items-center justify-center space-y-2 mb-8">
+      <div className="flex flex-col items-center justify-center space-y-2 mb-8 relative">
         <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] text-center">
           Market Demand Trend
         </h3>
         <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase text-center">
-          6-Month historical demand for {role}
+          Historical demand for {role}
         </p>
+        
+        <div className="absolute right-0 top-0">
+          <select 
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="bg-slate-800/50 border border-white/10 text-slate-300 text-[10px] font-bold uppercase tracking-widest py-1.5 px-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500/50 transition-all cursor-pointer"
+          >
+            <option value="1-month">1 Month</option>
+            <option value="3-month">3 Months</option>
+            <option value="6-month">6 Months</option>
+            <option value="12-month">12 Months</option>
+          </select>
+        </div>
       </div>
 
       <div className="h-64 w-full">
@@ -463,6 +488,41 @@ export default function App() {
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+
+  // Load session state
+  React.useEffect(() => {
+    const savedResult = sessionStorage.getItem("current_analysis_result");
+    const savedJobDescription = sessionStorage.getItem("current_job_description");
+    
+    if (savedResult) {
+      try {
+        setResult(JSON.parse(savedResult));
+      } catch (e) {
+        console.error("Failed to parse session result", e);
+      }
+    }
+    
+    if (savedJobDescription) {
+      setJobDescription(savedJobDescription);
+    }
+  }, []);
+
+  // Save session state
+  React.useEffect(() => {
+    if (result) {
+      sessionStorage.setItem("current_analysis_result", JSON.stringify(result));
+    } else {
+      sessionStorage.removeItem("current_analysis_result");
+    }
+  }, [result]);
+
+  React.useEffect(() => {
+    if (jobDescription) {
+      sessionStorage.setItem("current_job_description", jobDescription);
+    } else {
+      sessionStorage.removeItem("current_job_description");
+    }
+  }, [jobDescription]);
   const [isLinkedInModalOpen, setIsLinkedInModalOpen] = useState(false);
   const [isPurgePromptOpen, setIsPurgePromptOpen] = useState(false);
   const [selectedRecommendation, setSelectedRecommendation] = useState<
@@ -489,7 +549,7 @@ export default function App() {
     setPageNumber(1);
   }
 
-  const linkedinCopy = `🚀 Just analyzed my resume with AI Resume Pro! Accurate ATS scores, skill gap analysis, and tailored career roadmap insights. Check it out to level up your professional profile! 📄✨ 
+  const linkedinCopy = `🚀 Just analyzed my resume with Executive Career Intelligence! Accurate ATS scores, skill gap analysis, and tailored strategic career roadmap insights. Check it out to level up your professional profile! 📄✨ 
 
 #AI #CareerDevelopment #ResumeTips #FutureOfWork`;
 
@@ -506,9 +566,15 @@ export default function App() {
     const saved = localStorage.getItem("resume_analysis_history");
     if (saved) {
       try {
-        setHistory(JSON.parse(saved));
+        if (saved.startsWith("U2FsdGVkX1")) {
+           // Old encrypted data, clear it
+           localStorage.removeItem("resume_analysis_history");
+        } else {
+           setHistory(JSON.parse(saved));
+        }
       } catch (e) {
         console.error("Failed to load history", e);
+        localStorage.removeItem("resume_analysis_history");
       }
     }
     const existingTheme = document.documentElement.getAttribute("data-theme");
@@ -787,13 +853,11 @@ export default function App() {
 
       // Inject rule-based keyword data
       if (analysis.atsAnalysis) {
-        analysis.atsAnalysis.topResumeKeywords = atsMetadata.topResumeKeywords;
-        analysis.atsAnalysis.jobKeywordsFound = atsMetadata.jobKeywordsFound;
-        analysis.atsAnalysis.jobKeywordsMissing =
-          atsMetadata.jobKeywordsMissing;
-        analysis.atsAnalysis.jobKeywordDensity = atsMetadata.keywordDensity;
-        analysis.atsAnalysis.bulletPointQualityScore =
-          atsMetadata.bulletPointQualityScore;
+        analysis.atsAnalysis.topResumeKeywords = analysis.atsAnalysis.topResumeKeywords?.length ? analysis.atsAnalysis.topResumeKeywords : atsMetadata.topResumeKeywords;
+        analysis.atsAnalysis.jobKeywordsFound = analysis.atsAnalysis.jobKeywordsFound?.length ? analysis.atsAnalysis.jobKeywordsFound : atsMetadata.jobKeywordsFound;
+        analysis.atsAnalysis.jobKeywordsMissing = analysis.atsAnalysis.jobKeywordsMissing?.length ? analysis.atsAnalysis.jobKeywordsMissing : atsMetadata.jobKeywordsMissing;
+        analysis.atsAnalysis.jobKeywordDensity = analysis.atsAnalysis.jobKeywordDensity || atsMetadata.keywordDensity;
+        analysis.atsAnalysis.bulletPointQualityScore = analysis.atsAnalysis.bulletPointQualityScore || atsMetadata.bulletPointQualityScore;
       }
 
       setResult(analysis);
@@ -924,32 +988,32 @@ export default function App() {
       </div>
 
       {/* Modern Navigation */}
-      <nav className="sticky top-0 z-50 bg-brand-deep/60 backdrop-blur-[30px] border-b border-white/[0.08] shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <nav className="sticky top-0 z-50 bg-[#0A0A15]/60 backdrop-blur-[40px] border-b border-white/[0.05] shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+        <div className="max-w-7xl mx-auto px-6 h-[88px] flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <motion.div
-              whileHover={{ rotate: 180, scale: 1.1 }}
+              whileHover={{ rotate: 180, scale: 1.05 }}
               transition={{ type: "spring", stiffness: 200, damping: 10 }}
-              className="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-glow to-brand-accent flex items-center justify-center shadow-[0_0_24px_rgba(0,255,204,0.3)] border border-white/20 cursor-pointer"
+              className="h-12 w-12 rounded-2xl bg-gradient-to-br from-brand-glow to-brand-accent flex items-center justify-center shadow-[0_0_30px_rgba(var(--brand-glow),0.3)] border border-white/20 cursor-pointer"
             >
               <BrainCircuit className="text-white h-6 w-6" />
             </motion.div>
-            <div className="flex flex-col leading-none">
-              <span className="text-xl font-black font-display tracking-tight glow-text uppercase">
-                AI Resume Pro
+            <div className="flex flex-col justify-center">
+              <span className="text-[22px] font-black font-display tracking-tight text-white leading-none mb-1">
+                EXECUTIVE <span className="glow-text-accent">INTELLIGENCE</span>
               </span>
-              <span className="text-[10px] font-bold text-slate-500 tracking-[0.2em] mt-1">
-                ADVANCED VERSION
+              <span className="text-[10px] font-bold text-slate-500 tracking-[0.3em] uppercase">
+                Autonomous Analysis Engine
               </span>
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-4 text-[11px] font-black uppercase tracking-widest text-slate-400">
+          <div className="hidden md:flex items-center gap-5 text-[11px] font-black uppercase tracking-widest text-slate-400">
             <a
               href="https://interviewcoach-969933961049.asia-southeast1.run.app"
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-2 bg-brand-teal/10 border border-brand-teal/20 px-3 py-2 rounded-full text-brand-teal hover:bg-brand-teal/20 hover:text-white transition-colors shadow-[0_0_15px_rgba(20,184,166,0.15)]"
+              className="flex items-center gap-2 bg-brand-teal/5 border border-brand-teal/20 px-4 py-2.5 rounded-full text-brand-teal hover:bg-brand-teal/15 hover:text-white transition-all duration-300 shadow-[0_0_15px_rgba(20,184,166,0.1)] hover:shadow-[0_0_25px_rgba(20,184,166,0.25)]"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -1603,25 +1667,33 @@ export default function App() {
                   </div>
                 </motion.div>
                 <motion.h2
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
-                  className="text-6xl md:text-7xl font-black font-display text-white mb-6 tracking-tighter leading-tight"
+                  transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+                  className="text-6xl md:text-[5rem] lg:text-[6rem] font-black font-display text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 mb-8 tracking-tighter leading-[1.05]"
                 >
-                  Beat the ATS.
+                  Dominate the Executive Search.
                   <br />
-                  <span className="glow-text-accent">Land Your Dream Job.</span>
+                  <span className="glow-text-accent relative inline-block mt-2">
+                    Secure Your Next Leadership Role.
+                    <motion.div
+                      initial={{ scaleX: 0, opacity: 0 }}
+                      animate={{ scaleX: 1, opacity: 0.5 }}
+                      transition={{ duration: 1.2, delay: 0.8, ease: "easeOut" }}
+                      className="absolute -bottom-2 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-brand-glow to-transparent origin-left"
+                    />
+                  </span>
                 </motion.h2>
                 <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 1, delay: 0.5 }}
-                  className="text-slate-400 text-lg max-w-2xl mx-auto font-medium leading-relaxed"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
+                  className="text-slate-400 text-lg md:text-xl max-w-3xl mx-auto font-medium leading-relaxed tracking-wide"
                 >
-                  Upload your resume and target job description. Our AI
-                  evaluates your profile against Applicant Tracking Systems,
-                  identifies missing keywords, and provides actionable
-                  recommendations to get you hired.
+                  Upload your executive brief and target mandate. Our AI
+                  assesses your strategic positioning against top-tier search firm
+                  criteria, identifies critical capability gaps, and provides
+                  board-ready narrative recommendations to solidify your candidacy.
                 </motion.p>
               </div>
 
@@ -1692,7 +1764,7 @@ export default function App() {
                           >
                             {isDragReject
                               ? "Unsupported Format"
-                              : "Drag & Drop Resume Here"}
+                              : "Drag & Drop Executive Brief Here"}
                           </p>
                           <div className="flex items-center justify-center gap-4 text-slate-500">
                             <div className="flex flex-col items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
@@ -1792,6 +1864,32 @@ export default function App() {
                       <Target className="h-4 w-4 text-teal-400" />
                       Match Context
                     </h3>
+                    <button
+                      onClick={() => setJobDescription(`Chief Executive Officer (CEO) / Managing Director
+
+Company: Global Innovations Inc.
+Location: San Francisco, CA (Hybrid)
+
+About the Role:
+We are seeking a visionary Chief Executive Officer to lead our organization into its next phase of rapid growth and international expansion. The ideal candidate will have a proven track record of driving strategic initiatives, scaling operations, and fostering a high-performance culture.
+
+Key Responsibilities:
+- Lead the development and execution of the company's long-term strategy, aligning with the board's vision to drive revenue growth and market expansion.
+- Oversee all operations and business activities to ensure they produce the desired results and are consistent with the overall strategy.
+- Build, mentor, and inspire a world-class executive team, fostering a culture of innovation, accountability, and inclusivity.
+- Drive key strategic partnerships and represent the company to stakeholders, investors, and the public.
+- Manage financial performance, ensuring sustainable profitability and optimal capital allocation.
+
+Qualifications:
+- 15+ years of progressive leadership experience, with at least 5 years in a C-level or GM role within the technology or manufacturing sector.
+- Demonstrated success in scaling a business from $50M to $250M+ in revenue.
+- Exceptional strategic thinking, financial acumen, and operational expertise.
+- Strong communication and interpersonal skills, with the ability to influence and align diverse stakeholders.
+- MBA or equivalent advanced degree preferred.`)}
+                      className="text-[10px] font-black uppercase tracking-widest text-teal-400 hover:text-teal-300 transition-colors flex items-center gap-1 bg-teal-500/10 px-3 py-1.5 rounded-full hover:bg-teal-500/20"
+                    >
+                      <Zap className="h-3 w-3" /> Quick Fill
+                    </button>
                   </div>
                   <div className="relative group">
                     <div className="absolute inset-0 bg-gradient-to-r from-teal-500/20 to-sky-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 -z-10"></div>
@@ -2178,7 +2276,7 @@ export default function App() {
                   ) : (
                     <div className="flex items-center gap-4">
                       <Zap className="h-5 w-5 fill-current shadow-glow" />
-                      Analyze Resume
+                      Analyze Executive Profile
                     </div>
                   )}
                 </button>
@@ -2387,15 +2485,15 @@ export default function App() {
                 <div className="flex flex-wrap gap-4 no-print">
                   <button
                     onClick={() => setIsLinkedInModalOpen(true)}
-                    className="px-8 py-3 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-black text-[11px] uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all flex items-center gap-3 shadow-xl"
+                    className="px-8 py-3 rounded-full bg-[#0A66C2]/10 border border-[#0A66C2]/20 text-[#0A66C2] font-black text-[11px] uppercase tracking-widest hover:bg-[#0A66C2] hover:text-white transition-all flex items-center gap-3 shadow-xl"
                   >
-                    <Layers className="h-4 w-4" /> Share On LinkedIn
+                    <Layers className="h-4 w-4" /> Share Success
                   </button>
                   <button
                     onClick={handlePrint}
                     className="px-8 py-3 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 font-black text-[11px] uppercase tracking-widest hover:bg-teal-500 hover:text-white transition-all flex items-center gap-3 shadow-xl"
                   >
-                    <Printer className="h-4 w-4" /> Print to PDF
+                    <Printer className="h-4 w-4" /> Export Report
                   </button>
                   <button
                     onClick={() => {
@@ -2404,13 +2502,13 @@ export default function App() {
                     }}
                     className="px-8 py-3 rounded-full border border-white/10 text-slate-300 font-black text-[11px] uppercase tracking-widest hover:bg-white/5 transition-all flex items-center gap-3 shadow-xl"
                   >
-                    <RefreshCw className="h-4 w-4" /> Reset Stream
+                    <RefreshCw className="h-4 w-4" /> New Analysis
                   </button>
                   <button
                     onClick={exportToExcel}
                     className="btn-primary py-3 px-8 text-[11px] flex items-center gap-3"
                   >
-                    <Download className="h-4 w-4" /> Export Assets
+                    <Download className="h-4 w-4" /> Export Excel
                   </button>
                 </div>
               </div>
@@ -2429,7 +2527,7 @@ export default function App() {
                   </p>
                   <ScoringCircle
                     score={result.overallScore}
-                    label="Composite Fitness Score"
+                    label="Executive Leadership Score"
                     color="#14b8a6"
                     delay={0.1}
                   />
@@ -2441,8 +2539,9 @@ export default function App() {
                   </div>
                 </GlassCard>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <GlassCard className="flex flex-col items-center justify-center p-6 border-t-2 border-t-sky-500 relative overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                  <GlassCard className="flex flex-col items-center justify-center p-6 md:p-8 border-t-2 border-t-sky-500 relative overflow-hidden group/card hover:border-sky-400 transition-colors">
+                    <div className="absolute inset-0 bg-sky-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none"></div>
                     <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">
                       ATS Fit
                     </h3>
@@ -2451,10 +2550,12 @@ export default function App() {
                       label=""
                       color="#0ea5e9"
                       delay={0.2}
+                      tooltip="Measures how well your resume is formatted and structured to pass through an Applicant Tracking System (ATS) without losing critical data."
                     />
                   </GlassCard>
 
-                  <GlassCard className="flex flex-col items-center justify-center p-6 border-t-2 border-t-indigo-500 relative overflow-hidden">
+                  <GlassCard className="flex flex-col items-center justify-center p-6 md:p-8 border-t-2 border-t-indigo-500 relative overflow-hidden group/card hover:border-indigo-400 transition-colors">
+                    <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none"></div>
                     <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">
                       Skills Match
                     </h3>
@@ -2463,10 +2564,12 @@ export default function App() {
                       label=""
                       color="#6366f1"
                       delay={0.3}
+                      tooltip="Evaluates the density of relevant skills and keywords in your resume compared to the requirements of your target role."
                     />
                   </GlassCard>
 
-                  <GlassCard className="flex flex-col items-center justify-center p-6 border-t-2 border-t-emerald-500 relative overflow-hidden">
+                  <GlassCard className="flex flex-col items-center justify-center p-6 md:p-8 border-t-2 border-t-emerald-500 relative overflow-hidden group/card hover:border-emerald-400 transition-colors">
+                    <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none"></div>
                     <h3 className="text-[11px] font-black text-white uppercase tracking-widest mb-4 text-center">
                       Formatting Health
                     </h3>
@@ -2479,10 +2582,12 @@ export default function App() {
                       label=""
                       color="#10b981"
                       delay={0.4}
+                      tooltip="Assesses the visual structure, layout consistency, and readability of your document for human reviewers and parsers."
                     />
                   </GlassCard>
 
-                  <GlassCard className="flex flex-col items-center justify-center p-6 border-t-2 border-t-amber-500 relative overflow-hidden">
+                  <GlassCard className="flex flex-col items-center justify-center p-6 md:p-8 border-t-2 border-t-amber-500 relative overflow-hidden group/card hover:border-amber-400 transition-colors">
+                    <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none"></div>
                     <h3 className="text-[11px] font-black text-white uppercase tracking-widest mb-4 text-center">
                       Career Trajectory
                     </h3>
@@ -2491,6 +2596,7 @@ export default function App() {
                       label=""
                       color="#f59e0b"
                       delay={0.5}
+                      tooltip="Analyzes the progression of your roles and achievements to determine if you show the expected growth for this executive position."
                     />
                   </GlassCard>
                 </div>
@@ -2947,54 +3053,142 @@ export default function App() {
               <div className="grid lg:grid-cols-12 gap-8 mt-8">
                 {/* Simplified Header with Core Strengths & Weaknesses */}
                 <GlassCard className="lg:col-span-12 p-8">
-                  <div className="grid md:grid-cols-3 gap-8">
-                    <div className="p-6 rounded-2xl bg-teal-500/5 border border-teal-500/20 flex flex-col justify-between hover:bg-teal-500/10 transition-colors">
-                      <div>
-                        <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <motion.div 
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    variants={{
+                      hidden: {},
+                      visible: {
+                        transition: {
+                          staggerChildren: 0.1
+                        }
+                      }
+                    }}
+                    className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+                  >
+                    <motion.div 
+                      variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+                      className="p-6 rounded-2xl bg-[#0A0A15]/60 border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.05)] hover:bg-teal-500/5 transition-all group"
+                    >
+                      <div className="mb-4 flex items-center justify-between">
+                        <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-widest flex items-center gap-2">
                           <ShieldCheck className="h-4 w-4" /> Core Strength
                         </h4>
-                        <p className="text-sm text-white font-black uppercase mb-2">
-                          Excellent {result.foundSkills[0] || "Domain"} Exposure
-                        </p>
-                        <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                          Your experience in{" "}
-                          {result.foundSkills.slice(0, 3).join(", ")} provides a
-                          strong foundation for this role.
-                        </p>
+                        <div className="h-6 w-6 rounded-full bg-teal-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Activity className="h-3 w-3 text-teal-400" />
+                        </div>
                       </div>
-                    </div>
-                    <div className="p-6 rounded-2xl bg-rose-500/5 border border-rose-500/20 flex flex-col justify-between hover:bg-rose-500/10 transition-colors">
-                      <div>
-                        <h4 className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                          <Zap className="h-4 w-4" /> High Priority Fix
+                      <p className="text-sm text-white font-black uppercase mb-3 line-clamp-2">
+                        Excellent {result.foundSkills[0] || "Domain"} Exposure
+                      </p>
+                      <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                        Your experience in{" "}
+                        <span className="text-slate-300 font-bold">{result.foundSkills.slice(0, 3).join(", ")}</span> provides a strong foundation.
+                      </p>
+                    </motion.div>
+
+                    <motion.div 
+                      variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+                      className="p-6 rounded-2xl bg-[#0A0A15]/60 border border-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.05)] hover:bg-rose-500/5 transition-all group"
+                    >
+                      <div className="mb-4 flex items-center justify-between">
+                        <h4 className="text-[10px] font-black text-rose-400 uppercase tracking-widest flex items-center gap-2">
+                          <Zap className="h-4 w-4" /> Priority Fix
                         </h4>
-                        <p className="text-sm text-white font-black uppercase mb-2">
-                          Missing{" "}
-                          {result.skillGapReport[0]?.skill || "Core Keywords"}
-                        </p>
-                        <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                          The recruiter will look for{" "}
-                          {result.skillGapReport[0]?.skill}. Add this to your
-                          summary or experience.
-                        </p>
+                        <div className="h-6 w-6 rounded-full bg-rose-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <AlertCircle className="h-3 w-3 text-rose-400" />
+                        </div>
                       </div>
-                    </div>
-                    <div className="p-6 rounded-2xl bg-blue-500/5 border border-blue-500/20 flex flex-col justify-between hover:bg-blue-500/10 transition-colors">
-                      <div>
-                        <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                      <p className="text-sm text-white font-black uppercase mb-3 line-clamp-2">
+                        Missing {result.skillGapReport[0]?.skill || "Core Keywords"}
+                      </p>
+                      <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                        Recruiters scan for <span className="text-slate-300 font-bold">{result.skillGapReport[0]?.skill}</span>. Add this to your summary immediately.
+                      </p>
+                    </motion.div>
+
+                    <motion.div 
+                      variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+                      className="p-6 rounded-2xl bg-[#0A0A15]/60 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.05)] hover:bg-blue-500/5 transition-all group"
+                    >
+                      <div className="mb-4 flex items-center justify-between">
+                        <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">
                           <Target className="h-4 w-4" /> Target Role Fit
                         </h4>
-                        <p className="text-sm text-white font-black uppercase mb-2">
-                          {result.careerPath.topRole}
-                        </p>
-                        <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                          You are a{" "}
-                          {Math.round(result.careerPath.confidence * 100)}%
-                          match for this trajectory based on current assets.
-                        </p>
+                        <div className="h-6 w-6 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <TrendingUp className="h-3 w-3 text-blue-400" />
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                      <p className="text-sm text-white font-black uppercase mb-3 line-clamp-2">
+                        {result.careerPath.topRole}
+                      </p>
+                      <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                        You are a <span className="text-blue-300 font-bold">{Math.round(result.careerPath.confidence * 100)}%</span> match for this trajectory.
+                      </p>
+                    </motion.div>
+
+                    <motion.div 
+                      variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+                      className="p-6 rounded-2xl bg-[#0A0A15]/60 border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.05)] hover:bg-purple-500/5 transition-all group"
+                    >
+                      <div className="mb-4 flex items-center justify-between">
+                        <h4 className="text-[10px] font-black text-purple-400 uppercase tracking-widest flex items-center gap-2">
+                          <Layers className="h-4 w-4" /> Keyword Health
+                        </h4>
+                        <div className="h-6 w-6 rounded-full bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Search className="h-3 w-3 text-purple-400" />
+                        </div>
+                      </div>
+                      <p className="text-sm text-white font-black uppercase mb-3">
+                        {result.atsAnalysis.keywordDensity > 4 ? 'Well Optimized' : 'Under Optimized'}
+                      </p>
+                      <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                        Keyword density is <span className="text-purple-300 font-bold">{result.atsAnalysis.keywordDensity.toFixed(1)}%</span>.
+                        {result.atsAnalysis.jobKeywordsFound && result.atsAnalysis.jobKeywordsFound.length > 0 
+                          ? ` Found ${result.atsAnalysis.jobKeywordsFound.length} core terms.` 
+                          : ' Need more exact matches.'}
+                      </p>
+                    </motion.div>
+
+                    {result.globalBenchmarking && (
+                      <motion.div 
+                        variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+                        className="p-6 rounded-2xl bg-[#0A0A15]/60 border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.05)] hover:bg-amber-500/5 transition-all md:col-span-2 lg:col-span-1 group"
+                      >
+                        <div className="mb-4 flex items-center justify-between">
+                          <h4 className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
+                            <Briefcase className="h-4 w-4" /> Experience Benchmark
+                          </h4>
+                          <div className="h-6 w-6 rounded-full bg-amber-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <BarChart2 className="h-3 w-3 text-amber-400" />
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-slate-300 leading-relaxed font-medium line-clamp-3">
+                          {result.globalBenchmarking}
+                        </p>
+                      </motion.div>
+                    )}
+
+                    {result.recruiterSummary && (
+                      <motion.div 
+                        variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+                        className={`p-6 rounded-2xl bg-[#0A0A15]/60 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.05)] hover:bg-emerald-500/5 transition-all group ${!result.globalBenchmarking ? 'md:col-span-2 lg:col-span-2' : ''}`}
+                      >
+                        <div className="mb-4 flex items-center justify-between">
+                          <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                            <Eye className="h-4 w-4" /> Board & Stakeholder Impression
+                          </h4>
+                          <div className="h-6 w-6 rounded-full bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Info className="h-3 w-3 text-emerald-400" />
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-slate-300 leading-relaxed font-medium">
+                          {result.recruiterSummary}
+                        </p>
+                      </motion.div>
+                    )}
+                  </motion.div>
 
                   {/* Career Roles Expansion */}
                   <div className="mt-10 border-t border-white/5 pt-10">
@@ -3728,7 +3922,7 @@ export default function App() {
         <div className="flex items-center justify-center gap-3 mb-6 opacity-40">
           <BrainCircuit className="h-5 w-5 text-teal-400" />
           <span className="font-display font-black text-sm uppercase tracking-widest text-white">
-            AI Resume Pro
+            Executive Career Intelligence
           </span>
         </div>
         <div className="flex justify-center mb-8">
