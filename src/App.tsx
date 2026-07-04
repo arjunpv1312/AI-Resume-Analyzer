@@ -1,3 +1,4 @@
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { GoogleGenAI } from "@google/genai";
 import { useDropzone } from "react-dropzone";
@@ -37,6 +38,8 @@ import {
   ArrowRight,
   Eye,
   Activity,
+  Loader2,
+  Edit2
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
@@ -112,6 +115,13 @@ interface AnalysisResult {
     keywordOptimizations?: { keyword: string; suggestedPhrases: string[] }[];
   };
   skillGapReport: { skill: string; importance: string }[];
+  executiveSummary?: string;
+  careerTrajectories?: {
+    title: string;
+    timeline: string;
+    requiredSkills: string[];
+    requiredCertifications: string[];
+  }[];
   sectionsFound: string[];
   sectionsDetailed?: { sectionName: string; summary: string }[];
   summary: string;
@@ -143,6 +153,7 @@ interface AnalysisHistoryItem {
   id: string;
   date: string;
   fileName: string;
+  versionName?: string;
   jobDescription?: string;
   result: AnalysisResult;
 }
@@ -551,6 +562,24 @@ export default function App() {
     "rgba(56, 189, 248, 0.4)",
     "rgba(244, 114, 182, 0.4)",
   ]);
+  const [isExecutiveMode, setIsExecutiveMode] = useState(false);
+  const [sectionOrder, setSectionOrder] = useState([
+    'career-progress',
+    'scoring-infrastructure',
+    'career-progression',
+    'skill-vector-engine',
+    'optimization-plan',
+    'career-simulator'
+  ]);
+  
+  const handleDragEnd = (result: any) => {
+    if (!result.destination) return;
+    const items = Array.from(sectionOrder);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    setSectionOrder(items);
+  };
+  const [isQuickLinksOpen, setIsQuickLinksOpen] = useState(false);
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }): void {
     setNumPages(numPages);
@@ -562,6 +591,15 @@ export default function App() {
 #AI #CareerDevelopment #ResumeTips #FutureOfWork`;
 
   const [copiedText, setCopiedText] = useState(false);
+  const [editingVersionId, setEditingVersionId] = useState<string | null>(null);
+  const [editVersionName, setEditVersionName] = useState("");
+
+  const renameHistoryItem = (id: string, newName: string) => {
+    const updated = history.map(item => item.id === id ? { ...item, versionName: newName } : item);
+    setHistory(updated);
+    localStorage.setItem("resume_analysis_history", JSON.stringify(updated));
+    setEditingVersionId(null);
+  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -691,11 +729,35 @@ export default function App() {
         localStorage.removeItem("resume_analysis_history");
       }
     }
+  }, []);
+
+  React.useEffect(() => {
     const existingTheme = document.documentElement.getAttribute("data-theme");
     if (existingTheme) {
       setCurrentTheme(existingTheme);
     }
   }, []);
+
+  // Auto-save feature every 30 seconds
+  React.useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (result && file) {
+      interval = setInterval(() => {
+        const autoSaveData = {
+          result,
+          jobDescription,
+          stickyNotes,
+          highlights,
+          timestamp: new Date().toISOString()
+        };
+        localStorage.setItem("resume_analysis_autosave", JSON.stringify(autoSaveData));
+        console.log("Auto-saved analysis state");
+      }, 30000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [result, file, jobDescription, stickyNotes, highlights]);
 
   const saveToHistory = (
     newResult: AnalysisResult,
@@ -1060,6 +1122,29 @@ export default function App() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "AI_Report");
     XLSX.writeFile(wb, "Autonomous_Career_Report.xlsx");
+  };
+
+  const exportToCSV = () => {
+    if (!result) return;
+    const data = [
+      ["Category", "Value"],
+      ["Overall Intelligence Score", result.overallScore],
+      ["ATS Engine Compatibility", result.atsCompatibility],
+      ["Skill Vector Density", result.skillsMatch],
+      ["Formatting Health", result.atsAnalysis.formattingScore],
+      ["Primary Trajectory", result.careerPath.topRole],
+      ...result.skillGapReport.map((sg) => [`Gap: ${sg.skill}`, sg.importance])
+    ];
+
+    const csvContent = data.map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "Autonomous_Career_Report.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -1524,6 +1609,16 @@ export default function App() {
                         </span>
                         <div className="flex gap-2">
                           <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingVersionId(item.id);
+                              setEditVersionName(item.versionName || `Draft ${mapIdx + 1}`);
+                            }}
+                            className="h-6 w-6 rounded bg-white/5 text-slate-500 hover:text-white transition-colors flex items-center justify-center"
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </button>
+                          <button
                             onClick={(e) => toggleCompare(item.id, e)}
                             className={`h-6 w-6 rounded flex items-center justify-center transition-colors
                               ${compareIds.includes(item.id) ? "bg-teal-500 text-white" : "bg-white/5 text-slate-500 hover:text-white"}`}
@@ -1538,9 +1633,28 @@ export default function App() {
                           </button>
                         </div>
                       </div>
-                      <p className="text-sm font-black text-white truncate mb-2">
-                        {item.fileName}
-                      </p>
+                      {editingVersionId === item.id ? (
+                        <div className="mb-2 flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                          <input
+                            type="text"
+                            value={editVersionName}
+                            onChange={(e) => setEditVersionName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') renameHistoryItem(item.id, editVersionName);
+                              if (e.key === 'Escape') setEditingVersionId(null);
+                            }}
+                            className="bg-black/50 border border-teal-500/50 rounded px-2 py-1 text-xs text-white outline-none w-full"
+                            autoFocus
+                          />
+                          <button onClick={() => renameHistoryItem(item.id, editVersionName)} className="text-teal-400 p-1 hover:bg-white/10 rounded">
+                            <Check className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-sm font-black text-white truncate mb-2">
+                          {item.versionName ? `${item.versionName} (${item.fileName})` : item.fileName}
+                        </p>
+                      )}
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1.5">
                           <span className="text-[10px] font-bold text-teal-400">
@@ -1623,7 +1737,7 @@ export default function App() {
                         <div className="space-y-2">
                           <p className="text-[10px] font-black text-teal-400 uppercase tracking-widest flex items-center justify-between">
                             <span>
-                              Version {String.fromCharCode(65 + idx)} -{" "}
+                              {item.versionName || `Version ${String.fromCharCode(65 + idx)}`} -{" "}
                               {new Date(item.date).toLocaleDateString()}
                             </span>
                             {idx > 0 && scoreDiff !== 0 && (
@@ -2644,6 +2758,12 @@ Qualifications:
                     <Layers className="h-4 w-4" /> Share Success
                   </button>
                   <button
+                    onClick={() => setIsExecutiveMode(!isExecutiveMode)}
+                    className={`px-8 py-3 rounded-full border text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-3 shadow-xl ${isExecutiveMode ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 hover:bg-amber-500 hover:text-white' : 'border-white/10 text-slate-300 hover:bg-white/5'}`}
+                  >
+                    <Briefcase className="h-4 w-4" /> {isExecutiveMode ? 'Exit Exec Mode' : 'Executive Mode'}
+                  </button>
+                  <button
                     onClick={handlePrint}
                     className="px-8 py-3 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 font-black text-[11px] uppercase tracking-widest hover:bg-teal-500 hover:text-white transition-all flex items-center gap-3 shadow-xl"
                   >
@@ -2664,11 +2784,163 @@ Qualifications:
                   >
                     <Download className="h-4 w-4" /> Export Excel
                   </button>
+                  <button
+                    onClick={exportToCSV}
+                    className="btn-primary py-3 px-8 text-[11px] flex items-center gap-3"
+                  >
+                    <Download className="h-4 w-4" /> Export CSV
+                  </button>
                 </div>
               </div>
 
-              {/* Scoring Infrastructure */}
-              <div className="grid md:grid-cols-2 gap-8 mb-8">
+              
+              {isExecutiveMode && (
+                <div className="mb-8">
+                  <GlassCard className="p-8 md:p-12 border-t-4 border-t-amber-500 bg-gradient-to-b from-amber-500/5 to-transparent">
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="h-12 w-12 rounded-xl bg-amber-500/20 flex items-center justify-center border border-amber-500/30">
+                        <Briefcase className="h-6 w-6 text-amber-400" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-black text-white font-display uppercase tracking-widest">Executive Summary</h2>
+                        <p className="text-amber-400/80 text-xs font-bold uppercase tracking-[0.2em]">High-Level Narrative Analysis</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-8">
+                      <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
+                        <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-teal-400" /> Bottom Line Recommendation
+                        </h3>
+                        <p className="text-slate-300 leading-relaxed text-sm">
+                          {result.executiveSummary || `Based on an overall match of ${result.overallScore}%, this candidate shows strong potential for the ${result.careerPath.topRole} role. The resume demonstrates ${result.skillsMatch}% skill alignment with the job description.`}
+                        </p>
+                      </div>
+                      
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
+                          <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <TrendingUp className="h-4 w-4 text-emerald-400" /> Core Strengths
+                          </h3>
+                          <ul className="space-y-3">
+                            {result.foundSkills.slice(0, 3).map((skill, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <div className="h-4 w-4 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                                </div>
+                                <span className="text-xs text-slate-300">{skill}</span>
+                              </li>
+                            ))}
+                            {result.foundSkills.length === 0 && (
+                              <li className="text-xs text-slate-500 italic">No critical matching skills identified.</li>
+                            )}
+                          </ul>
+                        </div>
+                        
+                        <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
+                          <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <AlertCircle className="h-4 w-4 text-rose-400" /> Critical Gaps
+                          </h3>
+                          <ul className="space-y-3">
+                            {result.missingSkills.slice(0, 3).map((skill, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <div className="h-4 w-4 rounded-full bg-rose-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                                  <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+                                </div>
+                                <span className="text-xs text-slate-300">{skill}</span>
+                              </li>
+                            ))}
+                             {result.missingSkills.length === 0 && (
+                              <li className="text-xs text-slate-500 italic">No critical missing skills identified.</li>
+                            )}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </GlassCard>
+                </div>
+              )}
+
+              {!isExecutiveMode && (
+                <div className="flex flex-col">
+              {/* Career Progress Badges */}
+              <div className="mb-8" id="career-progress" style={{ order: sectionOrder.indexOf('career-progress') }}>
+                <GlassCard className="p-8 border-t-4 border-t-emerald-500 bg-gradient-to-b from-emerald-500/5 to-transparent">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                        <Award className="h-4 w-4 text-emerald-400" /> Career Progress
+                      </h3>
+                      <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">
+                        Executive Strengths Unlocked
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-black text-emerald-400">
+                        {
+                          [
+                            result.overallScore >= 85,
+                            result.skillsMatch >= 80,
+                            result.atsAnalysis.formattingScore >= 80,
+                            result.careerPath.confidence >= 80
+                          ].filter(Boolean).length
+                        } / 4
+                      </div>
+                      <div className="text-[9px] text-slate-500 uppercase font-black tracking-widest">
+                        Badges Earned
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden mb-8">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${([result.overallScore >= 85, result.skillsMatch >= 80, result.atsAnalysis.formattingScore >= 80, result.careerPath.confidence >= 80].filter(Boolean).length / 4) * 100}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className="h-full bg-emerald-500 rounded-full"
+                    />
+                  </div>
+
+                  {/* Badges Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.overallScore >= 85 ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-white/5 border-white/10 opacity-50 grayscale'}`}>
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.overallScore >= 85 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-slate-400'}`}>
+                        <Briefcase className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs font-black uppercase tracking-widest text-white mb-1">Executive Fit</span>
+                      <span className="text-[9px] text-slate-400">Score 85%+</span>
+                    </div>
+
+                    <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.skillsMatch >= 80 ? 'bg-blue-500/10 border-blue-500/30' : 'bg-white/5 border-white/10 opacity-50 grayscale'}`}>
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.skillsMatch >= 80 ? 'bg-blue-500/20 text-blue-400' : 'bg-white/10 text-slate-400'}`}>
+                        <Zap className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs font-black uppercase tracking-widest text-white mb-1">Keyword Master</span>
+                      <span className="text-[9px] text-slate-400">Skills 80%+</span>
+                    </div>
+
+                    <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.atsAnalysis.formattingScore >= 80 ? 'bg-purple-500/10 border-purple-500/30' : 'bg-white/5 border-white/10 opacity-50 grayscale'}`}>
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.atsAnalysis.formattingScore >= 80 ? 'bg-purple-500/20 text-purple-400' : 'bg-white/10 text-slate-400'}`}>
+                        <Layout className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs font-black uppercase tracking-widest text-white mb-1">ATS Specialist</span>
+                      <span className="text-[9px] text-slate-400">Format 80%+</span>
+                    </div>
+
+                    <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.careerPath.confidence >= 80 ? 'bg-amber-500/10 border-amber-500/30' : 'bg-white/5 border-white/10 opacity-50 grayscale'}`}>
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.careerPath.confidence >= 80 ? 'bg-amber-500/20 text-amber-400' : 'bg-white/10 text-slate-400'}`}>
+                        <Target className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs font-black uppercase tracking-widest text-white mb-1">Trajectory Pro</span>
+                      <span className="text-[9px] text-slate-400">Confidence 80%+</span>
+                    </div>
+                  </div>
+                </GlassCard>
+              </div>
+
+{/* Scoring Infrastructure */}
+              <div id="scoring-infrastructure" className="grid md:grid-cols-2 gap-8 mb-8" style={{ order: sectionOrder.indexOf('scoring-infrastructure') }}>
                 <GlassCard className="flex flex-col items-center justify-center py-8 border-t-4 border-t-teal-500 bg-gradient-to-b from-teal-500/5 to-transparent relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4 opacity-50">
                     <CheckCircle2 className="h-6 w-6 text-teal-500" />
@@ -2756,7 +3028,7 @@ Qualifications:
                 </div>
               </div>
 
-              <GlassCard className="mb-8">
+              <GlassCard className="mb-8" id="career-progression" style={{ order: sectionOrder.indexOf('career-progression') }}>
                 <div className="flex justify-between items-center mb-8">
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">
                     Detailed Sub-Metrics
@@ -3108,6 +3380,7 @@ Qualifications:
                 )}
 
               {/* Skill Cloud Visualizer & Gap Chart */}
+              <div id="skill-vector-engine" style={{ order: sectionOrder.indexOf('skill-vector-engine') }}>
               <div className="grid lg:grid-cols-2 gap-8">
                 <GlassCard>
                   <div className="flex flex-col items-center justify-center space-y-2 mb-4">
@@ -3449,7 +3722,7 @@ Qualifications:
                 </GlassCard>
 
                 {/* Main Improvement Checklist */}
-                <GlassCard className="lg:col-span-8 p-0 overflow-hidden">
+                <GlassCard className="lg:col-span-8 p-0 overflow-hidden" id="optimization-plan" style={{ order: sectionOrder.indexOf('optimization-plan') }}>
                   <div className="p-8 border-b border-white/5 bg-gradient-to-r from-teal-500/5 to-transparent">
                     <h3 className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-3">
                       <TrendingUp className="h-5 w-5 text-teal-400" />
@@ -4055,7 +4328,35 @@ Qualifications:
                 </div>
               </div>
 
-              {/* Floating Action Buttons */}
+{/* Disabled */}
+              </>
+              )}
+{/* Floating Action Buttons */}
+              {!isExecutiveMode && (
+                <div className={`fixed top-1/4 left-4 z-50 transition-all duration-300 ${isQuickLinksOpen ? 'w-64' : 'w-12'}`}>
+                  <div className="bg-brand-deep/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex">
+                    <div className="w-12 flex flex-col items-center py-4 border-r border-white/5 shrink-0">
+                      <button 
+                        onClick={() => setIsQuickLinksOpen(!isQuickLinksOpen)}
+                        className="text-slate-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/5"
+                        title="Quick Links"
+                      >
+                        <Layers className="h-5 w-5" />
+                      </button>
+                    </div>
+                    {isQuickLinksOpen && (
+                      <div className="p-4 w-52 flex flex-col gap-2">
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-2">Quick Links</h4>
+                        <button onClick={() => document.getElementById('scoring-infrastructure')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-slate-300 hover:text-teal-400 hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Overall Match</button>
+                        <button onClick={() => document.getElementById('skill-vector-engine')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-slate-300 hover:text-amber-400 hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Skill Landscape</button>
+                        <button onClick={() => document.getElementById('career-progression')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-slate-300 hover:text-blue-400 hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Career Timeline</button>
+                        <button onClick={() => document.getElementById('optimization-plan')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-slate-300 hover:text-emerald-400 hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Strategic Plan</button>
+                        <button onClick={() => document.getElementById('career-simulator')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-slate-300 hover:text-indigo-400 hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Career Simulator</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               <div className="fixed bottom-12 right-12 z-50 flex flex-col gap-4">
                 <motion.button
                   whileHover={{ scale: 1.1 }}

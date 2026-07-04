@@ -712,6 +712,15 @@ async function startServer() {
             "projectsToHighlight": string[],
             "formattingFixes": string[]
           },
+          "executiveSummary": string,
+          "careerTrajectories": [
+            {
+              "title": string,
+              "timeline": string,
+              "requiredSkills": string[],
+              "requiredCertifications": string[]
+            }
+          ],
           "careerPath": {
             "topRole": string,
             "confidence": number,
