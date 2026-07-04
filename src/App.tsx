@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import {
   PieChart,
   Pie,
@@ -543,6 +544,13 @@ export default function App() {
   const [highlightColor, setHighlightColor] = useState<string>(
     "rgba(250, 204, 21, 0.4)",
   ); // amber-400 transparent
+  const [visibleStickyNotes, setVisibleStickyNotes] = useState(true);
+  const [visibleHighlightColors, setVisibleHighlightColors] = useState<string[]>([
+    "rgba(250, 204, 21, 0.4)",
+    "rgba(52, 211, 153, 0.4)",
+    "rgba(56, 189, 248, 0.4)",
+    "rgba(244, 114, 182, 0.4)",
+  ]);
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }): void {
     setNumPages(numPages);
@@ -559,6 +567,112 @@ export default function App() {
     navigator.clipboard.writeText(text);
     setCopiedText(true);
     setTimeout(() => setCopiedText(false), 2000);
+  };
+
+  const exportAnnotatedPdf = async () => {
+    if (!file) return;
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdfDoc = await PDFDocument.load(arrayBuffer);
+      const pages = pdfDoc.getPages();
+      
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+      // Base width for the react-pdf render is 1000 * 0.8 = 800
+      const renderWidth = 800;
+
+      // Add Highlights
+      highlights.forEach(h => {
+        if (!visibleHighlightColors.includes(h.color)) return;
+        const pageIndex = h.pageNumber - 1;
+        if (pageIndex < 0 || pageIndex >= pages.length) return;
+        
+        const page = pages[pageIndex];
+        const { width: pdfWidth, height: pdfHeight } = page.getSize();
+        
+        const scale = pdfWidth / renderWidth;
+        
+        const match = h.color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+        let colorObj = rgb(1, 1, 0);
+        let opacity = 0.4;
+        
+        if (match) {
+          colorObj = rgb(parseInt(match[1])/255, parseInt(match[2])/255, parseInt(match[3])/255);
+          if (match[4]) opacity = parseFloat(match[4]);
+        }
+
+        h.rects.forEach(rect => {
+          // pdf-lib y axis is from bottom to top
+          const pdfX = rect.left * scale;
+          const pdfY = pdfHeight - ((rect.top + rect.height) * scale);
+          const pdfW = rect.width * scale;
+          const pdfH = rect.height * scale;
+          
+          page.drawRectangle({
+            x: pdfX,
+            y: pdfY,
+            width: pdfW,
+            height: pdfH,
+            color: colorObj,
+            opacity: opacity,
+          });
+        });
+      });
+
+      // Add Sticky Notes
+      if (visibleStickyNotes) {
+        stickyNotes.forEach(note => {
+          const pageIndex = note.pageNumber - 1;
+          if (pageIndex < 0 || pageIndex >= pages.length) return;
+          
+          const page = pages[pageIndex];
+          const { width: pdfWidth, height: pdfHeight } = page.getSize();
+          const scale = pdfWidth / renderWidth;
+          
+          const pdfX = note.x * scale;
+          const pdfY = pdfHeight - (note.y * scale) - 30; // approx height offset
+          
+          // Draw a small yellow rectangle as the background of the sticky note
+          page.drawRectangle({
+            x: pdfX,
+            y: pdfY,
+            width: 120,
+            height: 40 + (note.text.length > 20 ? 40 : 0),
+            color: rgb(1, 0.9, 0.4),
+            opacity: 0.9,
+          });
+          
+          page.drawText("Sticky Note:", {
+            x: pdfX + 5,
+            y: pdfY + 25 + (note.text.length > 20 ? 40 : 0),
+            size: 10,
+            font,
+            color: rgb(0, 0, 0),
+          });
+          
+          page.drawText(note.text.substring(0, 50) + (note.text.length > 50 ? '...' : ''), {
+            x: pdfX + 5,
+            y: pdfY + 10 + (note.text.length > 20 ? 40 : 0),
+            size: 8,
+            font,
+            color: rgb(0, 0, 0),
+          });
+        });
+      }
+
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `annotated_${file.name}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to export annotated PDF", error);
+    }
   };
 
   // Load history from localStorage
@@ -1977,6 +2091,46 @@ Qualifications:
                               ))}
                             </div>
                           )}
+                          <div className="flex items-center gap-2 ml-4 pl-4 border-l border-white/10">
+                            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest hidden sm:inline">View Filters:</span>
+                            <button
+                              onClick={() => setVisibleStickyNotes(prev => !prev)}
+                              className={`p-1.5 rounded-md transition-colors ${visibleStickyNotes ? "bg-amber-400/20 text-amber-400" : "text-slate-500 hover:text-slate-300"}`}
+                              title="Toggle Sticky Notes"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z" /><path d="M15 3v6h6" /></svg>
+                            </button>
+                            <div className="flex items-center gap-1 ml-1 bg-white/5 rounded-md p-1">
+                              {[
+                                "rgba(250, 204, 21, 0.4)",
+                                "rgba(52, 211, 153, 0.4)",
+                                "rgba(56, 189, 248, 0.4)",
+                                "rgba(244, 114, 182, 0.4)",
+                              ].map((color) => {
+                                const isVisible = visibleHighlightColors.includes(color);
+                                return (
+                                  <button
+                                    key={`filter-${color}`}
+                                    onClick={() => setVisibleHighlightColors(prev => 
+                                      prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color]
+                                    )}
+                                    className={`w-3.5 h-3.5 rounded-full border transition-all ${isVisible ? "border-white/50 scale-110 shadow-[0_0_8px_currentColor]" : "border-transparent opacity-30 hover:opacity-100"}`}
+                                    style={{ backgroundColor: color, color: color.replace('0.4)', '1)') }}
+                                    title="Toggle Highlight Category"
+                                  />
+                                );
+                              })}
+                            </div>
+                          </div>
+                          
+                          <div className="ml-4 pl-4 border-l border-white/10 hidden md:block">
+                            <button
+                              onClick={exportAnnotatedPdf}
+                              className="px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all shadow-sm"
+                            >
+                              <Download className="h-3.5 w-3.5" /> Export PDF
+                            </button>
+                          </div>
                         </div>
                       </h3>
                       {numPages && numPages > 1 && (
@@ -2099,7 +2253,7 @@ Qualifications:
                             />
                           </Document>
                           {highlights
-                            .filter((h) => h.pageNumber === pageNumber)
+                            .filter((h) => h.pageNumber === pageNumber && visibleHighlightColors.includes(h.color))
                             .map((hl) => (
                               <div
                                 key={hl.id}
@@ -2127,7 +2281,7 @@ Qualifications:
                                 ))}
                               </div>
                             ))}
-                          {stickyNotes
+                          {visibleStickyNotes && stickyNotes
                             .filter((n) => n.pageNumber === pageNumber)
                             .map((note) => (
                               <div
