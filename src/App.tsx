@@ -3476,6 +3476,7 @@ Qualifications:
               <SkillDemandTrend
                 role={result.careerPath.topRole || "Target Role"}
               />
+            </div>
 
               <div className="grid lg:grid-cols-12 gap-8 mt-8">
                 {/* Simplified Header with Core Strengths & Weaknesses */}
@@ -4210,6 +4211,9 @@ Qualifications:
                       </GlassCard>
                     )}
 
+                </div>
+              </div>
+
                   {/* New Recruiter & Insights Sections */}
                   <div className="grid lg:grid-cols-2 gap-8">
                     {/* Interview Readiness */}
@@ -4326,10 +4330,6 @@ Qualifications:
                     </GlassCard>
                   )}
                 </div>
-              </div>
-
-{/* Disabled */}
-              </>
               )}
 {/* Floating Action Buttons */}
               {!isExecutiveMode && (
