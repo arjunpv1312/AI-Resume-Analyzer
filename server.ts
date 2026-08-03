@@ -780,7 +780,7 @@ async function startServer() {
         while (retries > 0) {
           try {
             aiResponse = await ai.models.generateContent({
-              model: "gemini-3.1-flash-lite",
+              model: "gemini-2.5-flash",
               contents: [{ role: "user", parts: [{ text: prompt }] }],
               config: {
                 temperature: 0.1, // Lower temperature for more factual, deterministic, strict analysis
@@ -902,7 +902,7 @@ async function startServer() {
         while (retries > 0) {
           try {
             aiResponse = await ai.models.generateContent({
-              model: "gemini-3.1-flash-lite",
+              model: "gemini-2.5-flash",
               contents: [{ role: "user", parts: [{ text: prompt }] }],
               config: {
                 temperature: 0.2,
@@ -980,37 +980,44 @@ async function startServer() {
     });
 
     app.get("/api/trend", (req, res) => {
-      const role = req.query.role || "Target Role";
-      const period = req.query.period || "6-month";
+      const role = String(req.query.role || "Target Role");
+      const period = String(req.query.period || "6-month");
 
-      let monthsCount = 6;
-      if (period === "1-month") monthsCount = 1;
-      else if (period === "3-month") monthsCount = 3;
-      else if (period === "12-month") monthsCount = 12;
+      let pointsCount = 6;
+      if (period === "1-month") pointsCount = 4;
+      else if (period === "3-month") pointsCount = 3;
+      else if (period === "12-month") pointsCount = 12;
+
+      // Deterministic hash seed based on role name
+      let hash = 0;
+      for (let i = 0; i < role.length; i++) {
+        hash = (hash << 5) - hash + role.charCodeAt(i);
+        hash |= 0;
+      }
+      const baseScore = 65 + (Math.abs(hash) % 25);
 
       const allMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       const currentMonthIndex = new Date().getMonth();
       
       const data = [];
-      for (let i = 0; i < monthsCount; i++) {
-        const monthIndex = (currentMonthIndex - (monthsCount - 1) + i + 1200) % 12; // Add 1200 to ensure positive before modulo
-        const month = allMonths[monthIndex];
-        const baseDemand = 50 + i * (60 / monthsCount); 
-        data.push({
-          month: monthsCount === 1 ? `Week ${i+1}` : month, // For 1-month maybe use weeks? But let's stick to month array logic if 1-month means 1 point, or maybe 1 month should have weekly data
-          demand: Math.floor(baseDemand + Math.random() * 15 - 5),
-        });
-      }
-      
-      // If 1-month, let's make it 4 weeks instead
       if (period === "1-month") {
-         data.length = 0;
-         for (let i=0; i<4; i++) {
-           data.push({
-             month: `Week ${i+1}`,
-             demand: Math.floor(50 + i * 5 + Math.random() * 15 - 5)
-           });
-         }
+        for (let i = 0; i < 4; i++) {
+          const delta = Math.sin((hash + i) * 1.5) * 6 + (i * 2);
+          data.push({
+            month: `Week ${i + 1}`,
+            demand: Math.min(99, Math.max(30, Math.round(baseScore + delta))),
+          });
+        }
+      } else {
+        for (let i = 0; i < pointsCount; i++) {
+          const monthIndex = (currentMonthIndex - (pointsCount - 1) + i + 1200) % 12;
+          const month = allMonths[monthIndex];
+          const delta = Math.sin((hash + i) * 0.8) * 8 + (i * 1.5);
+          data.push({
+            month,
+            demand: Math.min(99, Math.max(30, Math.round(baseScore + delta))),
+          });
+        }
       }
 
       res.json(data);

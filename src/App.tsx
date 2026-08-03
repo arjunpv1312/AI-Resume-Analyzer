@@ -39,7 +39,10 @@ import {
   Eye,
   Activity,
   Loader2,
-  Edit2
+  Edit2,
+  X,
+  Highlighter,
+  Tag
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
@@ -147,6 +150,7 @@ interface HighlightData {
   rects: { top: number; left: number; width: number; height: number }[];
   color: string;
   pageNumber: number;
+  keyword?: string;
 }
 
 interface AnalysisHistoryItem {
@@ -549,7 +553,7 @@ export default function App() {
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [stickyNotes, setStickyNotes] = useState<StickyNoteData[]>([]);
   const [highlights, setHighlights] = useState<HighlightData[]>([]);
-  const [annotationMode, setAnnotationMode] = useState<"sticky" | "highlight">(
+  const [annotationMode, setAnnotationMode] = useState<"sticky" | "highlight" | "batch">(
     "sticky",
   );
   const [highlightColor, setHighlightColor] = useState<string>(
@@ -562,6 +566,244 @@ export default function App() {
     "rgba(56, 189, 248, 0.4)",
     "rgba(244, 114, 182, 0.4)",
   ]);
+  const [batchInput, setBatchInput] = useState("");
+  const [batchFeedback, setBatchFeedback] = useState<string | null>(null);
+  const [activeBatchKeywords, setActiveBatchKeywords] = useState<{ keyword: string; color: string }[]>([]);
+
+  const findKeywordRectsInContainer = useCallback((
+    containerEl: HTMLElement,
+    keyword: string
+  ): { top: number; left: number; width: number; height: number }[] => {
+    if (!keyword || !keyword.trim() || !containerEl) return [];
+
+    const containerRect = containerEl.getBoundingClientRect();
+    const rects: { top: number; left: number; width: number; height: number }[] = [];
+    const lowerKeyword = keyword.toLowerCase().trim();
+
+    const treeWalker = document.createTreeWalker(
+      containerEl,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+
+    const textNodes: Text[] = [];
+    let currentNode = treeWalker.nextNode();
+    while (currentNode) {
+      if (
+        currentNode.parentElement &&
+        !currentNode.parentElement.closest(".sticky-note") &&
+        !currentNode.parentElement.closest(".pdf-highlight") &&
+        !currentNode.parentElement.closest(".no-pdf-scan")
+      ) {
+        textNodes.push(currentNode as Text);
+      }
+      currentNode = treeWalker.nextNode();
+    }
+
+    for (const node of textNodes) {
+      const text = node.nodeValue || "";
+      const lowerText = text.toLowerCase();
+      let index = lowerText.indexOf(lowerKeyword);
+
+      while (index !== -1) {
+        try {
+          const range = document.createRange();
+          range.setStart(node, index);
+          range.setEnd(node, index + lowerKeyword.length);
+
+          const clientRects = Array.from(range.getClientRects());
+          for (const r of clientRects) {
+            if (r.width > 0 && r.height > 0) {
+              rects.push({
+                top: r.top - containerRect.top,
+                left: r.left - containerRect.left,
+                width: r.width,
+                height: r.height,
+              });
+            }
+          }
+        } catch (err) {
+          console.warn("Batch highlight range error:", err);
+        }
+        index = lowerText.indexOf(lowerKeyword, index + lowerKeyword.length);
+      }
+    }
+
+    if (rects.length === 0 && textNodes.length > 0) {
+      let fullText = "";
+      const map: { node: Text; startInFull: number; endInFull: number }[] = [];
+
+      for (const node of textNodes) {
+        const val = node.nodeValue || "";
+        map.push({
+          node,
+          startInFull: fullText.length,
+          endInFull: fullText.length + val.length,
+        });
+        fullText += val;
+      }
+
+      const lowerFull = fullText.toLowerCase();
+      let index = lowerFull.indexOf(lowerKeyword);
+
+      while (index !== -1) {
+        const matchEnd = index + lowerKeyword.length;
+        const startEntry = map.find(
+          (m) => index >= m.startInFull && index < m.endInFull
+        );
+        const endEntry = map.find(
+          (m) => matchEnd > m.startInFull && matchEnd <= m.endInFull
+        );
+
+        if (startEntry && endEntry) {
+          try {
+            const range = document.createRange();
+            range.setStart(startEntry.node, index - startEntry.startInFull);
+            range.setEnd(endEntry.node, matchEnd - endEntry.startInFull);
+
+            const clientRects = Array.from(range.getClientRects());
+            for (const r of clientRects) {
+              if (r.width > 0 && r.height > 0) {
+                rects.push({
+                  top: r.top - containerRect.top,
+                  left: r.left - containerRect.left,
+                  width: r.width,
+                  height: r.height,
+                });
+              }
+            }
+          } catch (err) {
+            console.warn("Cross-node range error:", err);
+          }
+        }
+        index = lowerFull.indexOf(lowerKeyword, matchEnd);
+      }
+    }
+
+    return rects;
+  }, []);
+
+  const colorPalette = [
+    "rgba(250, 204, 21, 0.4)",
+    "rgba(52, 211, 153, 0.4)",
+    "rgba(56, 189, 248, 0.4)",
+    "rgba(244, 114, 182, 0.4)",
+  ];
+
+  const handleBatchHighlight = (targetKeyword: string, customColor?: string) => {
+    const trimmed = targetKeyword.trim();
+    if (!trimmed) return;
+
+    const colorToUse =
+      customColor ||
+      highlightColor ||
+      colorPalette[activeBatchKeywords.length % colorPalette.length];
+
+    const containerEl = document.getElementById("pdf-page-container");
+    if (!containerEl) {
+      setBatchFeedback(`Open Document Preview to highlight "${trimmed}"`);
+      setTimeout(() => setBatchFeedback(null), 3000);
+      return;
+    }
+
+    const rects = findKeywordRectsInContainer(containerEl, trimmed);
+
+    if (rects.length > 0) {
+      const newHighlight: HighlightData = {
+        id: `batch_${trimmed.toLowerCase()}_p${pageNumber}_${Date.now()}`,
+        rects,
+        color: colorToUse,
+        pageNumber,
+        keyword: trimmed,
+      };
+
+      setHighlights((prev) => [
+        ...prev.filter(
+          (h) =>
+            !(
+              h.pageNumber === pageNumber &&
+              h.keyword?.toLowerCase() === trimmed.toLowerCase()
+            )
+        ),
+        newHighlight,
+      ]);
+
+      setBatchFeedback(
+        `Highlighted ${rects.length} instance(s) of "${trimmed}" on Page ${pageNumber}`
+      );
+    } else {
+      setBatchFeedback(
+        `0 instances of "${trimmed}" found on Page ${pageNumber}. Registered for page navigation.`
+      );
+    }
+
+    setActiveBatchKeywords((prev) => {
+      if (prev.some((k) => k.keyword.toLowerCase() === trimmed.toLowerCase())) {
+        return prev.map((k) =>
+          k.keyword.toLowerCase() === trimmed.toLowerCase()
+            ? { ...k, color: colorToUse }
+            : k
+        );
+      }
+      return [...prev, { keyword: trimmed, color: colorToUse }];
+    });
+
+    setAnnotationMode("batch");
+    setTimeout(() => setBatchFeedback(null), 4000);
+  };
+
+  const clearBatchHighlight = (targetKeyword: string) => {
+    const lower = targetKeyword.toLowerCase();
+    setHighlights((prev) =>
+      prev.filter((h) => !h.keyword || h.keyword.toLowerCase() !== lower)
+    );
+    setActiveBatchKeywords((prev) =>
+      prev.filter((k) => k.keyword.toLowerCase() !== lower)
+    );
+    setBatchFeedback(`Removed batch highlights for "${targetKeyword}"`);
+    setTimeout(() => setBatchFeedback(null), 3000);
+  };
+
+  const clearAllBatchHighlights = () => {
+    setHighlights((prev) => prev.filter((h) => !h.keyword));
+    setActiveBatchKeywords([]);
+    setBatchFeedback("Cleared all batch highlights");
+    setTimeout(() => setBatchFeedback(null), 3000);
+  };
+
+  useEffect(() => {
+    if (activeBatchKeywords.length === 0) return;
+    const timer = setTimeout(() => {
+      const containerEl = document.getElementById("pdf-page-container");
+      if (!containerEl) return;
+
+      activeBatchKeywords.forEach(({ keyword, color }) => {
+        const rects = findKeywordRectsInContainer(containerEl, keyword);
+        if (rects.length > 0) {
+          const newHl: HighlightData = {
+            id: `batch_${keyword.toLowerCase()}_p${pageNumber}_${Date.now()}`,
+            rects,
+            color,
+            pageNumber,
+            keyword,
+          };
+
+          setHighlights((prev) => [
+            ...prev.filter(
+              (h) =>
+                !(
+                  h.pageNumber === pageNumber &&
+                  h.keyword?.toLowerCase() === keyword.toLowerCase()
+                )
+            ),
+            newHl,
+          ]);
+        }
+      });
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [pageNumber, activeBatchKeywords, findKeywordRectsInContainer]);
   const [isExecutiveMode, setIsExecutiveMode] = useState(false);
   const [sectionOrder, setSectionOrder] = useState([
     'career-progress',
@@ -2024,16 +2266,41 @@ export default function App() {
                       onClick={(e) => {
                         e.stopPropagation();
                         // Creating a mock sample file
-                        const sampleContent =
-                          "John Doe\nSoftware Engineer\nExperience: 5 years at TechCorp using React, Node.js.\nSkills: JavaScript, HTML, CSS.";
+                        const sampleContent = `Alex Mercer
+Senior Staff Software Engineer & Cloud Architect
+Email: alex.mercer@techlead.dev | Phone: +1 (555) 234-5678 | LinkedIn: linkedin.com/in/alexmercer-tech
+
+PROFESSIONAL SUMMARY
+Senior Staff Engineer with 8+ years of experience architecting distributed cloud systems, modern web applications, and high-throughput microservices. Proven track record leading engineering teams of 12+ developers, scaling infrastructure to 5M+ daily active users, and reducing AWS latency by 42%.
+
+TECHNICAL SKILLS
+Languages & Frameworks: TypeScript, JavaScript (ES6+), React 18, Next.js, Node.js, Express, Python, GraphQL, REST APIs
+Cloud & DevOps: AWS (EC2, Lambda, S3, ECS, CloudFront), Docker, Kubernetes, Terraform, CI/CD (GitHub Actions)
+Databases & Storage: PostgreSQL, Redis, MongoDB, DynamoDB
+Architecture: Microservices, Event-Driven Architecture, System Design, High Availability, Web Security
+
+WORK EXPERIENCE
+Lead Systems Architect | CloudScale Tech (2021 - Present)
+• Spearheaded redesign of core transaction processing engine using Node.js and Redis, reducing p99 latency from 450ms to 85ms across 10M daily transactions.
+• Directed team of 10 engineers in migrating legacy monolith to AWS containerized microservices (ECS/Docker), cutting infrastructure cloud expenditure by $180,000 annually.
+• Implemented automated CI/CD deployment pipelines with GitHub Actions and Terraform, accelerating release velocity from bi-weekly to 5+ daily deployments with zero downtime.
+
+Senior Full Stack Engineer | Apex Financial Software (2018 - 2021)
+• Engineered real-time financial analytics dashboard in React, TypeScript, and WebSockets, handling live data streams for 200,000+ active enterprise users.
+• Designed OAuth2 authentication framework and role-based access controls (RBAC) ensuring SOC2 Type II compliance.
+• Mentored 6 junior/mid-level developers, establishing engineering best practices, unit testing coverage standards (Jest 90%+), and code review guidelines.
+
+EDUCATION & CERTIFICATIONS
+B.S. in Computer Science | University of California, Berkeley (2018)
+AWS Certified Solutions Architect – Associate (2022)`;
                         const sample = new File(
                           [sampleContent],
-                          "sample_resume.txt",
+                          "Alex_Mercer_Senior_Software_Engineer_Resume.txt",
                           { type: "text/plain" },
                         );
                         setFile(sample);
                         setJobDescription(
-                          "Looking for a Senior Frontend Developer with strong React and TypeScript background. Must know Node.js.",
+                          "We are seeking a Lead / Senior Staff Software Engineer to lead the architecture of our cloud-native web platform. Requirements: 7+ years of experience with React, TypeScript, Node.js, distributed microservices, AWS cloud architecture, and PostgreSQL. Must have experience mentoring developers, driving CI/CD automation, and improving system scalability and latency.",
                         );
                       }}
                       className="text-[10px] font-black text-teal-400 hover:text-teal-300 uppercase tracking-widest bg-teal-500/10 hover:bg-teal-500/20 px-4 py-2 rounded-lg transition-all border border-teal-500/20 hover:border-teal-500/40"
@@ -2141,141 +2408,347 @@ Qualifications:
               </div>
 
               {file && file.type === "application/pdf" && (
-                <div className="mt-8 flex justify-center">
+                <div className="mt-8 flex justify-center" id="pdf-viewer-container">
                   <GlassCard className="w-full relative flex flex-col items-center">
-                    <div className="flex items-center justify-between w-full mb-6">
-                      <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-teal-400" />
-                        Document Preview
-                        <div className="ml-4 flex items-center bg-white/5 p-1 rounded-lg border border-white/10 gap-1">
-                          <button
-                            onClick={() => setAnnotationMode("sticky")}
-                            className={`px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${annotationMode === "sticky" ? "bg-amber-400/20 text-amber-400 border border-amber-400/30" : "text-slate-400 hover:bg-white/5 hover:text-slate-300"}`}
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="12"
-                              height="12"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
+                    <div className="flex flex-col w-full mb-6">
+                      <div className="flex items-center justify-between w-full">
+                        <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-teal-400" />
+                          Document Preview
+                          <div className="ml-4 flex items-center bg-white/5 p-1 rounded-lg border border-white/10 gap-1 flex-wrap">
+                            <button
+                              onClick={() => setAnnotationMode("sticky")}
+                              className={`px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${annotationMode === "sticky" ? "bg-amber-400/20 text-amber-400 border border-amber-400/30" : "text-slate-400 hover:bg-white/5 hover:text-slate-300"}`}
                             >
-                              <path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z" />
-                              <path d="M15 3v6h6" />
-                            </svg>
-                            Sticky Notes
-                          </button>
-                          <button
-                            onClick={() => setAnnotationMode("highlight")}
-                            className={`px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${annotationMode === "highlight" ? "bg-teal-400/20 text-teal-400 border border-teal-400/30" : "text-slate-400 hover:bg-white/5 hover:text-slate-300"}`}
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="12"
-                              height="12"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z" />
+                                <path d="M15 3v6h6" />
+                              </svg>
+                              Sticky Notes
+                            </button>
+                            <button
+                              onClick={() => setAnnotationMode("highlight")}
+                              className={`px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${annotationMode === "highlight" ? "bg-teal-400/20 text-teal-400 border border-teal-400/30" : "text-slate-400 hover:bg-white/5 hover:text-slate-300"}`}
                             >
-                              <path d="m9 11-6 6v3h9l3-3" />
-                              <path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" />
-                            </svg>
-                            Highlight Tool
-                          </button>
-                          {annotationMode === "highlight" && (
-                            <div className="flex items-center gap-1 ml-2 pl-2 border-l border-white/10">
-                              {[
-                                "rgba(250, 204, 21, 0.4)",
-                                "rgba(52, 211, 153, 0.4)",
-                                "rgba(56, 189, 248, 0.4)",
-                                "rgba(244, 114, 182, 0.4)",
-                              ].map((color) => (
-                                <button
-                                  key={color}
-                                  onClick={() => setHighlightColor(color)}
-                                  className={`w-4 h-4 rounded-full border border-white/20 transition-transform ${highlightColor === color ? "scale-125 ring-1 ring-white/50" : "hover:scale-110"}`}
-                                  style={{ backgroundColor: color }}
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="m9 11-6 6v3h9l3-3" />
+                                <path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" />
+                              </svg>
+                              Highlight Tool
+                            </button>
+                            <button
+                              onClick={() => setAnnotationMode("batch")}
+                              className={`px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${annotationMode === "batch" ? "bg-purple-400/20 text-purple-400 border border-purple-400/30" : "text-slate-400 hover:bg-white/5 hover:text-slate-300"}`}
+                            >
+                              <Sparkles className="w-3 h-3 text-purple-400" />
+                              Batch Highlight
+                            </button>
+                            {annotationMode === "highlight" && (
+                              <div className="flex items-center gap-1 ml-2 pl-2 border-l border-white/10">
+                                {[
+                                  "rgba(250, 204, 21, 0.4)",
+                                  "rgba(52, 211, 153, 0.4)",
+                                  "rgba(56, 189, 248, 0.4)",
+                                  "rgba(244, 114, 182, 0.4)",
+                                ].map((color) => (
+                                  <button
+                                    key={color}
+                                    onClick={() => setHighlightColor(color)}
+                                    className={`w-4 h-4 rounded-full border border-white/20 transition-transform ${highlightColor === color ? "scale-125 ring-1 ring-white/50" : "hover:scale-110"}`}
+                                    style={{ backgroundColor: color }}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 ml-4 pl-4 border-l border-white/10">
+                              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest hidden sm:inline">View Filters:</span>
+                              <button
+                                onClick={() => setVisibleStickyNotes(prev => !prev)}
+                                className={`p-1.5 rounded-md transition-colors ${visibleStickyNotes ? "bg-amber-400/20 text-amber-400" : "text-slate-500 hover:text-slate-300"}`}
+                                title="Toggle Sticky Notes"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z" /><path d="M15 3v6h6" /></svg>
+                              </button>
+                              <div className="flex items-center gap-1 ml-1 bg-white/5 rounded-md p-1">
+                                {[
+                                  "rgba(250, 204, 21, 0.4)",
+                                  "rgba(52, 211, 153, 0.4)",
+                                  "rgba(56, 189, 248, 0.4)",
+                                  "rgba(244, 114, 182, 0.4)",
+                                ].map((color) => {
+                                  const isVisible = visibleHighlightColors.includes(color);
+                                  return (
+                                    <button
+                                      key={`filter-${color}`}
+                                      onClick={() => setVisibleHighlightColors(prev => 
+                                        prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color]
+                                      )}
+                                      className={`w-3.5 h-3.5 rounded-full border transition-all ${isVisible ? "border-white/50 scale-110 shadow-[0_0_8px_currentColor]" : "border-transparent opacity-30 hover:opacity-100"}`}
+                                      style={{ backgroundColor: color, color: color.replace('0.4)', '1)') }}
+                                      title="Toggle Highlight Category"
+                                    />
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            
+                            <div className="ml-4 pl-4 border-l border-white/10 hidden md:block">
+                              <button
+                                onClick={exportAnnotatedPdf}
+                                className="px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all shadow-sm"
+                              >
+                                <Download className="h-3.5 w-3.5" /> Export PDF
+                              </button>
+                            </div>
+                          </div>
+                        </h3>
+                        {numPages && numPages > 1 && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() =>
+                                setPageNumber((p) => Math.max(1, p - 1))
+                              }
+                              disabled={pageNumber <= 1}
+                              className="w-8 h-8 flex items-center justify-center bg-white/5 disabled:opacity-50 text-slate-300 rounded-lg hover:bg-white/10 transition-colors"
+                            >
+                              <ChevronUp className="h-4 w-4" />
+                            </button>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest w-16 text-center">
+                              {pageNumber} / {numPages}
+                            </span>
+                            <button
+                              onClick={() =>
+                                setPageNumber((p) => Math.min(numPages, p + 1))
+                              }
+                              disabled={pageNumber >= numPages}
+                              className="w-8 h-8 flex items-center justify-center bg-white/5 disabled:opacity-50 text-slate-300 rounded-lg hover:bg-white/10 transition-colors"
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Batch Keyword Highlighter Toolbar */}
+                      {(annotationMode === "batch" || activeBatchKeywords.length > 0) && (
+                        <div className="mt-4 p-4 rounded-xl bg-[#0B0C1E]/90 border border-purple-500/30 shadow-xl backdrop-blur-md text-left no-pdf-scan animate-fadeIn">
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
+                              <span className="text-xs font-black text-white uppercase tracking-wider">
+                                Batch Keyword Highlighter
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
+                                — Highlight all occurrences of any skill or keyword across the document
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <div className="relative flex-1 sm:w-64">
+                                <input
+                                  type="text"
+                                  placeholder="Type skill or keyword to highlight..."
+                                  value={batchInput}
+                                  onChange={(e) => setBatchInput(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && batchInput.trim()) {
+                                      handleBatchHighlight(batchInput.trim());
+                                      setBatchInput("");
+                                    }
+                                  }}
+                                  className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
                                 />
-                              ))}
+                                {batchInput && (
+                                  <button
+                                    onClick={() => setBatchInput("")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => {
+                                  if (batchInput.trim()) {
+                                    handleBatchHighlight(batchInput.trim());
+                                    setBatchInput("");
+                                  }
+                                }}
+                                disabled={!batchInput.trim()}
+                                className="px-3 py-1.5 bg-purple-500 hover:bg-purple-400 text-slate-950 text-xs font-bold rounded-lg transition-all disabled:opacity-40 flex items-center gap-1.5 shrink-0 shadow-md"
+                              >
+                                <Search className="w-3.5 h-3.5" /> Highlight All
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Preset Skill Chips from Analysis */}
+                          {result && (
+                            <div className="space-y-2 pt-2 border-t border-white/10">
+                              <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mr-1 flex items-center gap-1">
+                                  <Tag className="w-3 h-3 text-purple-400" /> Presets:
+                                </span>
+                                
+                                {/* Missing Skills */}
+                                {result.skillGapReport?.slice(0, 5).map((gap) => {
+                                  const isHighlighted = activeBatchKeywords.some(
+                                    (k) => k.keyword.toLowerCase() === gap.skill.toLowerCase()
+                                  );
+                                  return (
+                                    <button
+                                      key={`gap-${gap.skill}`}
+                                      onClick={() => {
+                                        if (isHighlighted) {
+                                          clearBatchHighlight(gap.skill);
+                                        } else {
+                                          handleBatchHighlight(gap.skill, "rgba(244, 114, 182, 0.4)");
+                                        }
+                                      }}
+                                      className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-all flex items-center gap-1.5 ${
+                                        isHighlighted
+                                          ? "bg-rose-500/20 text-rose-300 border-rose-400/50 shadow-[0_0_10px_rgba(244,114,182,0.3)]"
+                                          : "bg-white/5 text-slate-300 border-white/10 hover:bg-rose-500/10 hover:text-rose-300 hover:border-rose-500/30"
+                                      }`}
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                                      {gap.skill}
+                                      {isHighlighted && <X className="w-3 h-3 ml-0.5 opacity-70" />}
+                                    </button>
+                                  );
+                                })}
+
+                                {/* Keywords Found */}
+                                {result.atsAnalysis?.jobKeywordsFound?.slice(0, 5).map((kw) => {
+                                  const isHighlighted = activeBatchKeywords.some(
+                                    (k) => k.keyword.toLowerCase() === kw.toLowerCase()
+                                  );
+                                  return (
+                                    <button
+                                      key={`found-${kw}`}
+                                      onClick={() => {
+                                        if (isHighlighted) {
+                                          clearBatchHighlight(kw);
+                                        } else {
+                                          handleBatchHighlight(kw, "rgba(52, 211, 153, 0.4)");
+                                        }
+                                      }}
+                                      className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-all flex items-center gap-1.5 ${
+                                        isHighlighted
+                                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/50 shadow-[0_0_10px_rgba(52,211,153,0.3)]"
+                                          : "bg-white/5 text-slate-300 border-white/10 hover:bg-emerald-500/10 hover:text-emerald-300 hover:border-emerald-500/30"
+                                      }`}
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                      {kw}
+                                      {isHighlighted && <X className="w-3 h-3 ml-0.5 opacity-70" />}
+                                    </button>
+                                  );
+                                })}
+
+                                {/* Top Resume Keywords */}
+                                {result.atsAnalysis?.topResumeKeywords?.slice(0, 5).map((kw) => {
+                                  const isHighlighted = activeBatchKeywords.some(
+                                    (k) => k.keyword.toLowerCase() === kw.toLowerCase()
+                                  );
+                                  return (
+                                    <button
+                                      key={`top-${kw}`}
+                                      onClick={() => {
+                                        if (isHighlighted) {
+                                          clearBatchHighlight(kw);
+                                        } else {
+                                          handleBatchHighlight(kw, "rgba(56, 189, 248, 0.4)");
+                                        }
+                                      }}
+                                      className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-all flex items-center gap-1.5 ${
+                                        isHighlighted
+                                          ? "bg-sky-500/20 text-sky-300 border-sky-400/50 shadow-[0_0_10px_rgba(56,189,248,0.3)]"
+                                          : "bg-white/5 text-slate-300 border-white/10 hover:bg-sky-500/10 hover:text-sky-300 hover:border-sky-500/30"
+                                      }`}
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                                      {kw}
+                                      {isHighlighted && <X className="w-3 h-3 ml-0.5 opacity-70" />}
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             </div>
                           )}
-                          <div className="flex items-center gap-2 ml-4 pl-4 border-l border-white/10">
-                            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest hidden sm:inline">View Filters:</span>
-                            <button
-                              onClick={() => setVisibleStickyNotes(prev => !prev)}
-                              className={`p-1.5 rounded-md transition-colors ${visibleStickyNotes ? "bg-amber-400/20 text-amber-400" : "text-slate-500 hover:text-slate-300"}`}
-                              title="Toggle Sticky Notes"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z" /><path d="M15 3v6h6" /></svg>
-                            </button>
-                            <div className="flex items-center gap-1 ml-1 bg-white/5 rounded-md p-1">
-                              {[
-                                "rgba(250, 204, 21, 0.4)",
-                                "rgba(52, 211, 153, 0.4)",
-                                "rgba(56, 189, 248, 0.4)",
-                                "rgba(244, 114, 182, 0.4)",
-                              ].map((color) => {
-                                const isVisible = visibleHighlightColors.includes(color);
-                                return (
-                                  <button
-                                    key={`filter-${color}`}
-                                    onClick={() => setVisibleHighlightColors(prev => 
-                                      prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color]
-                                    )}
-                                    className={`w-3.5 h-3.5 rounded-full border transition-all ${isVisible ? "border-white/50 scale-110 shadow-[0_0_8px_currentColor]" : "border-transparent opacity-30 hover:opacity-100"}`}
-                                    style={{ backgroundColor: color, color: color.replace('0.4)', '1)') }}
-                                    title="Toggle Highlight Category"
-                                  />
-                                );
-                              })}
+
+                          {/* Active Batch Terms Summary & Clear All */}
+                          {activeBatchKeywords.length > 0 && (
+                            <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-2 border-t border-white/5 text-[10px]">
+                              <div className="flex items-center gap-2 text-slate-400">
+                                <Layers className="w-3.5 h-3.5 text-purple-400" />
+                                <span>Active Batch Terms ({activeBatchKeywords.length}):</span>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {activeBatchKeywords.map((b) => (
+                                    <span
+                                      key={b.keyword}
+                                      className="px-2 py-0.5 rounded bg-white/10 text-white font-semibold flex items-center gap-1 border border-white/10"
+                                    >
+                                      <span
+                                        className="w-2 h-2 rounded-full"
+                                        style={{ backgroundColor: b.color.replace('0.4', '1') }}
+                                      />
+                                      {b.keyword}
+                                      <button
+                                        onClick={() => clearBatchHighlight(b.keyword)}
+                                        className="hover:text-rose-400 ml-0.5"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                              <button
+                                onClick={clearAllBatchHighlights}
+                                className="text-rose-400 hover:text-rose-300 font-bold uppercase tracking-wider flex items-center gap-1 transition-colors"
+                              >
+                                <Trash2 className="w-3 h-3" /> Clear All Batch
+                              </button>
                             </div>
-                          </div>
-                          
-                          <div className="ml-4 pl-4 border-l border-white/10 hidden md:block">
-                            <button
-                              onClick={exportAnnotatedPdf}
-                              className="px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all shadow-sm"
-                            >
-                              <Download className="h-3.5 w-3.5" /> Export PDF
-                            </button>
-                          </div>
-                        </div>
-                      </h3>
-                      {numPages && numPages > 1 && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() =>
-                              setPageNumber((p) => Math.max(1, p - 1))
-                            }
-                            disabled={pageNumber <= 1}
-                            className="w-8 h-8 flex items-center justify-center bg-white/5 disabled:opacity-50 text-slate-300 rounded-lg hover:bg-white/10 transition-colors"
-                          >
-                            <ChevronUp className="h-4 w-4" />
-                          </button>
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest w-16 text-center">
-                            {pageNumber} / {numPages}
-                          </span>
-                          <button
-                            onClick={() =>
-                              setPageNumber((p) => Math.min(numPages, p + 1))
-                            }
-                            disabled={pageNumber >= numPages}
-                            className="w-8 h-8 flex items-center justify-center bg-white/5 disabled:opacity-50 text-slate-300 rounded-lg hover:bg-white/10 transition-colors"
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </button>
+                          )}
+
+                          {/* Batch Feedback Banner */}
+                          {batchFeedback && (
+                            <div className="mt-2 text-[11px] font-bold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-3 py-1.5 rounded-md flex items-center justify-between animate-fadeIn">
+                              <span>{batchFeedback}</span>
+                              <button onClick={() => setBatchFeedback(null)} className="text-purple-400 hover:text-white">
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
                     <div className="flex flex-col xl:flex-row w-full gap-4 items-start">
                       <div className="bg-white/5 p-4 rounded-2xl border border-white/5 flex-grow w-full overflow-auto flex justify-center document-preview-container max-h-[600px] scrollbar-thin scrollbar-thumb-white/10 relative">
                         <div
+                          id="pdf-page-container"
                           className={`relative ${annotationMode === "sticky" ? "cursor-crosshair" : "cursor-text"}`}
                           onMouseUp={(e) => {
                             if (annotationMode !== "highlight") return;
@@ -2488,9 +2961,9 @@ Qualifications:
                                 className="flex items-center justify-between bg-[#0A0A15]/50 p-3 rounded-lg border border-white/5 hover:border-white/10 transition-colors cursor-pointer"
                                 onClick={() => setPageNumber(hl.pageNumber)}
                               >
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2 overflow-hidden">
                                   <div
-                                    className="w-3 h-3 rounded-full border border-white/20"
+                                    className="w-3 h-3 rounded-full border border-white/20 shrink-0"
                                     style={{
                                       backgroundColor: hl.color.replace(
                                         "0.4",
@@ -2498,9 +2971,16 @@ Qualifications:
                                       ),
                                     }}
                                   />
-                                  <span className="text-[11px] font-bold text-white">
-                                    Page {hl.pageNumber}
-                                  </span>
+                                  <div className="flex flex-col text-left overflow-hidden">
+                                    <span className="text-[11px] font-bold text-white leading-tight">
+                                      Page {hl.pageNumber}
+                                    </span>
+                                    {hl.keyword && (
+                                      <span className="text-[9px] font-bold text-purple-300 truncate max-w-[120px]" title={hl.keyword}>
+                                        "{hl.keyword}"
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                                 <button
                                   onClick={(e) => {
@@ -2704,18 +3184,43 @@ Qualifications:
                       whileTap={{ scale: 0.95 }}
                       onClick={() => {
                         window.scrollTo({ top: 0, behavior: "smooth" });
-                        const sampleContent =
-                          "John Doe\nSoftware Engineer\nExperience: 5 years at TechCorp using React, Node.js, and TypeScript.\nSkills: JavaScript, HTML, CSS, React, AWS, Docker.\nEducation: B.S. Computer Science.";
+                        const sampleContent = `Alex Mercer
+Senior Staff Software Engineer & Cloud Architect
+Email: alex.mercer@techlead.dev | Phone: +1 (555) 234-5678 | LinkedIn: linkedin.com/in/alexmercer-tech
+
+PROFESSIONAL SUMMARY
+Senior Staff Engineer with 8+ years of experience architecting distributed cloud systems, modern web applications, and high-throughput microservices. Proven track record leading engineering teams of 12+ developers, scaling infrastructure to 5M+ daily active users, and reducing AWS latency by 42%.
+
+TECHNICAL SKILLS
+Languages & Frameworks: TypeScript, JavaScript (ES6+), React 18, Next.js, Node.js, Express, Python, GraphQL, REST APIs
+Cloud & DevOps: AWS (EC2, Lambda, S3, ECS, CloudFront), Docker, Kubernetes, Terraform, CI/CD (GitHub Actions)
+Databases & Storage: PostgreSQL, Redis, MongoDB, DynamoDB
+Architecture: Microservices, Event-Driven Architecture, System Design, High Availability, Web Security
+
+WORK EXPERIENCE
+Lead Systems Architect | CloudScale Tech (2021 - Present)
+• Spearheaded redesign of core transaction processing engine using Node.js and Redis, reducing p99 latency from 450ms to 85ms across 10M daily transactions.
+• Directed team of 10 engineers in migrating legacy monolith to AWS containerized microservices (ECS/Docker), cutting infrastructure cloud expenditure by $180,000 annually.
+• Implemented automated CI/CD deployment pipelines with GitHub Actions and Terraform, accelerating release velocity from bi-weekly to 5+ daily deployments with zero downtime.
+
+Senior Full Stack Engineer | Apex Financial Software (2018 - 2021)
+• Engineered real-time financial analytics dashboard in React, TypeScript, and WebSockets, handling live data streams for 200,000+ active enterprise users.
+• Designed OAuth2 authentication framework and role-based access controls (RBAC) ensuring SOC2 Type II compliance.
+• Mentored 6 junior/mid-level developers, establishing engineering best practices, unit testing coverage standards (Jest 90%+), and code review guidelines.
+
+EDUCATION & CERTIFICATIONS
+B.S. in Computer Science | University of California, Berkeley (2018)
+AWS Certified Solutions Architect – Associate (2022)`;
                         const sample = new File(
                           [sampleContent],
-                          "sample_resume.txt",
+                          "Alex_Mercer_Senior_Software_Engineer_Resume.txt",
                           { type: "text/plain" },
                         );
                         setFile(sample);
                         setJobDescription(
-                          "Looking for a Senior Frontend Developer with strong React and TypeScript background. Must know Node.js. Experience with cloud platforms like AWS is a plus.",
+                          "We are seeking a Lead / Senior Staff Software Engineer to lead the architecture of our cloud-native web platform. Requirements: 7+ years of experience with React, TypeScript, Node.js, distributed microservices, AWS cloud architecture, and PostgreSQL. Must have experience mentoring developers, driving CI/CD automation, and improving system scalability and latency.",
                         );
-                        setLinkedinUrl("https://linkedin.com/in/johndoe");
+                        setLinkedinUrl("https://linkedin.com/in/alexmercer-tech");
                       }}
                       className="btn-primary py-4 px-12 text-sm uppercase flex items-center justify-center gap-3 mx-auto"
                     >
