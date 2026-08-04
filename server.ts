@@ -154,10 +154,28 @@ async function startServer() {
             resumeText: string,
             pages: number,
             jobDesc?: string,
+            fileName?: string,
           ) => {
             let rulesScore = 100;
             let formattingScore = 100;
             const flags: string[] = [];
+
+            // 0. File Naming Convention Check
+            if (fileName) {
+              const cleanName = fileName.toLowerCase().trim();
+              if (
+                /^(resume|cv|my_resume|mycv|document|untitled|new_resume|draft|final|updated|profile)\.(pdf|docx|doc)$/i.test(
+                  cleanName,
+                ) ||
+                cleanName.length < 7
+              ) {
+                rulesScore -= 10;
+                formattingScore -= 5;
+                flags.push(
+                  `File Naming Convention: Currently named '${fileName}'. Generic file names hinder automated candidate indexing in ATS databases. Rename to 'FirstName_LastName_TargetRole.pdf'.`,
+                );
+              }
+            }
 
             // Keyword analysis and density
             const stopWords = new Set([
@@ -592,6 +610,138 @@ async function startServer() {
               );
             }
 
+            // E. Generic Objective Statement Detection
+            const genericObjRegex =
+              /to obtain a challenging position|challenges of a working engineer|extract the best out of me|asset to the organization|seeking an entry level position|growth oriented organization|utilize my skills in a dynamic|looking for an opportunity/i;
+            if (genericObjRegex.test(resumeText)) {
+              rulesScore -= 12;
+              flags.push(
+                "Career Objective Flaw: Generic or copy-pasted objective statement detected. Modern ATS and enterprise recruiters penalize vague objective statements. Replace with a sharp, 2-line targeted Professional Summary highlighting core expertise.",
+              );
+            }
+
+            // F. Unverifiable Buzzwords & Soft Skill Platitudes
+            const buzzwordsList = [
+              "hardworking",
+              "hard working",
+              "sincere",
+              "diligent",
+              "team player",
+              "go getter",
+              "go-getter",
+              "think outside the box",
+              "results driven",
+              "results-driven",
+              "self motivated",
+              "self-motivated",
+              "detail oriented",
+              "passionate individual",
+              "dynamic professional",
+              "thought leader",
+              "guru",
+              "ninja",
+              "wizard",
+            ];
+            const lowerResume = resumeText.toLowerCase();
+            const foundBuzzwords = buzzwordsList.filter((b) =>
+              lowerResume.includes(b),
+            );
+            if (foundBuzzwords.length > 0) {
+              rulesScore -= Math.min(15, foundBuzzwords.length * 4);
+              flags.push(
+                `Unverifiable Platitudes (${foundBuzzwords.length} detected): Found generic buzzwords like '${foundBuzzwords.slice(0, 3).join("', '")}'. Replace subjective self-praise with quantifiable achievements and verified business metrics.`,
+              );
+            }
+
+            // G. Graphics / Photo / Emblem References
+            const graphicKeywords = [
+              "photograph",
+              "headshot",
+              "profile picture",
+              "college logo",
+              "company logo",
+              "emblem",
+              "avatar",
+              "photo included",
+            ];
+            const foundGraphics = graphicKeywords.filter((g) =>
+              lowerResume.includes(g),
+            );
+            if (foundGraphics.length > 0) {
+              formattingScore -= 15;
+              flags.push(
+                "Graphics & Image Warning: Text references to photos, logos, or emblems detected. Headshots and logos cannot be indexed by ATS parsers and can introduce unconscious bias.",
+              );
+            }
+
+            // H. Low-Value / Redundant Details
+            const redundantTerms = [
+              "10th",
+              "12th",
+              "class 10",
+              "class 12",
+              "sslc",
+              "cbse 10th",
+              "semester 1",
+              "semester 2",
+              "windows os",
+              "windows 10",
+              "windows 11",
+              "ms office",
+              "ms word",
+              "internet surfing",
+              "marital status",
+              "father's name",
+              "date of birth",
+              "dob:",
+            ];
+            const foundRedundant = redundantTerms.filter((rt) =>
+              new RegExp(
+                `\\b${rt.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+                "i",
+              ).test(resumeText),
+            );
+            if (foundRedundant.length > 0) {
+              rulesScore -= Math.min(15, foundRedundant.length * 4);
+              formattingScore -= 10;
+              flags.push(
+                `Redundant Content: Found basic entries like '${foundRedundant.slice(0, 3).join("', '")}'. Remove high-school scores, semester-by-semester GPAs, basic OS tools, or personal demographics to keep focus on high-impact professional skills.`,
+              );
+            }
+
+            // I. Localization & Regional Currency Formatting
+            if (/\b(lakh|lakhs|crore|crores|lpa)\b/i.test(resumeText)) {
+              formattingScore -= 5;
+              flags.push(
+                "Regional Formatting Notice: Detected localized currency/terms ('Lakhs/Crores/LPA'). For international ATS compliance, convert metrics to standard global formats (e.g., '$100K', '€50K', '1.5M').",
+              );
+            }
+
+            // J. Multi-Column Layout Fragment Indicator
+            const nonBlankLines = lines.filter(Boolean);
+            let shortLineChain = 0;
+            let maxShortLineChain = 0;
+            nonBlankLines.forEach((l) => {
+              if (
+                l.length < 28 &&
+                !/^(experience|education|skills|projects|summary|certifications|awards)$/i.test(
+                  l,
+                )
+              ) {
+                shortLineChain++;
+                if (shortLineChain > maxShortLineChain)
+                  maxShortLineChain = shortLineChain;
+              } else {
+                shortLineChain = 0;
+              }
+            });
+            if (maxShortLineChain >= 8) {
+              formattingScore -= 15;
+              flags.push(
+                "Multi-Column Layout Warning: High frequency of narrow text fragments detected. 2-Column or multi-column layouts frequently cause ATS engines to parse text out-of-order.",
+              );
+            }
+
             return {
               rulesScore: Math.max(0, Math.min(100, rulesScore)),
               formattingScore: Math.max(0, Math.min(100, formattingScore)),
@@ -612,6 +762,7 @@ async function startServer() {
             text,
             pageCount,
             req.body.jobDescription,
+            file.originalname,
           );
 
           res.json({
@@ -674,15 +825,27 @@ async function startServer() {
         LINKEDIN PROFILE URL (if provided, incorporate this into analysis for richer recommendations):
         ${linkedinUrl || "Not provided."}
 
-        INSTRUCTIONS FOR HIGH-LEVEL ACCURACY:
+        INSTRUCTIONS FOR HIGH-LEVEL ACCURACY & ULTRA-DEEP ATS IDENTIFICATION:
         1. Parse LinkedIn profile links to extract headline, experience, skills, and education. Treat this data as part of the candidate profile.
-        2. BE CRITICAL: Compare the resume and LinkedIn data with the job description using semantic similarity mapping against our 20M+ dataset of successful vs rejected candidates.
-        3. DO NOT BE LENIENT: If a resume lacks deep technical depth, measurable impact metrics, or domain expertise, the ATS score and Skills Match score MUST BE severely penalized.
-        4. Break down the overall score into sub-scores: atsCompatibility, skillsMatch, formattingHealthScore, careerTrajectoryFitScore. Ensure these reflect enterprise-grade filtering strictness.
-        5. Provide a brutally honest, pointwise improvement plan alongside the score in the improvementPlan object. Tell the user exactly why they would be auto-rejected in the current state.
-        6. Suggest both primary role fit and adjacent strategic/leadership roles (e.g., VP of Engineering, Chief Data Officer, CTO, Director of Product) with reasoning based on real-world executive transition data.
-        7. Always output highly actionable, data-driven feedback in bullet points, not just percentage scores. Avoid generic advice.
-        8. Extract high-quality keywords from the job description (technical skills, methodologies, soft skills) and do a smart, contextual match against the resume. Don't just do literal string matching. Populate 'jobKeywordsFound' and 'jobKeywordsMissing' thoroughly.
+        2. BE RUTHLESS & CRITICAL: Compare the resume and LinkedIn data with the job description using semantic similarity mapping against enterprise ATS standards.
+        3. DO NOT BE LENIENT: Evaluate against these 12 core ATS & Resume Layout Standards:
+           - Standard 1: Contact Header (Name, Phone, Professional Email, City/State, LinkedIn URL present at top).
+           - Standard 2: File Naming & Format (Specific candidate name and target role in filename).
+           - Standard 3: Single-Column Layout (Zero tables, graphics, floating text boxes, or 2-column sidebar splits that scramble ATS parsers).
+           - Standard 4: Standardized Section Headers (Use 'Work Experience', 'Education', 'Technical Skills', 'Projects', 'Certifications').
+           - Standard 5: Reverse Chronological Order (Most recent role/degree first, strict date consistency e.g. 'MMM YYYY - Present').
+           - Standard 6: Impact Bullet Points & Metrics (Every bullet starts with a strong action verb and contains quantified metrics %, $, multipliers, scale).
+           - Standard 7: Professional Summary vs Generic Objective (Replace vague copy-pasted objective statements with a 2-3 line value proposition).
+           - Standard 8: Elimination of Buzzwords & Fluff (Remove 'hardworking', 'team player', 'sincere', 'go-getter', 'thought leader' without proof).
+           - Standard 9: Removal of Redundant / Low-Value Data (Eliminate 10th/12th high school marks, semester GPAs, basic OS knowledge like Windows/Word, marital status, or DOB).
+           - Standard 10: Global Metrics & Formatting (Convert regional currency like Lakhs/Crores to international $ / K / M / B standards for global ATS).
+           - Standard 11: Keyword Density & Semantic Skill Matching (Extract technical, functional, and domain keywords from JD and verify density without keyword stuffing).
+           - Standard 12: ATS Auto-Rejection Triggers (Identify all dealbreakers like missing key skills, unformatted dates, or unrecognized section titles).
+        4. Break down the overall score into sub-scores: atsCompatibility, skillsMatch, formattingHealthScore, careerTrajectoryFitScore. Ensure these reflect strict enterprise-grade filtering.
+        5. Provide a brutally honest, pointwise improvement plan alongside the score in the improvementPlan object. Tell the user explicitly why they would be auto-rejected in the current state and how to fix it step-by-step.
+        6. In 'atsAnalysis.recommendations' and 'suggestions', provide 7-10 concrete, actionable improvements addressing visual layout, bullet point rewrites, missing keywords, and section restructuring.
+        7. Extract high-quality keywords from the job description (technical skills, methodologies, soft skills) and do a smart, contextual match against the resume. Populate 'jobKeywordsFound' and 'jobKeywordsMissing' thoroughly.
+        8. For 'keywordOptimizations', provide 3-5 specific keyword optimization recommendations, including exact suggested bullet point phrases incorporating missing keywords.
 
         PRE-COLLECTED RULE-BASED DATA:
         - Reported Pages: ${pageCount}
