@@ -42,7 +42,10 @@ import {
   Edit2,
   X,
   Highlighter,
-  Tag
+  Tag,
+  BookmarkPlus,
+  Camera,
+  StickyNote
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
@@ -143,7 +146,73 @@ interface StickyNoteData {
   text: string;
   isOpen: boolean;
   pageNumber: number;
+  color?: string; // "yellow" | "green" | "red" | "blue" | "purple"
 }
+
+const STICKY_COLOR_CONFIG: Record<
+  string,
+  {
+    label: string;
+    dotColor: string;
+    headerBg: string;
+    bodyBg: string;
+    borderColor: string;
+    textColor: string;
+    placeholderColor: string;
+    badgeBg: string;
+  }
+> = {
+  yellow: {
+    label: "Edit",
+    dotColor: "#f59e0b",
+    headerBg: "bg-amber-400/90 text-amber-950 hover:bg-amber-400",
+    bodyBg: "bg-amber-100/95 text-slate-900 border-amber-400",
+    borderColor: "border-amber-400",
+    textColor: "text-amber-950",
+    placeholderColor: "placeholder:text-amber-800/50",
+    badgeBg: "bg-amber-400/30 text-amber-900 border-amber-500/40",
+  },
+  green: {
+    label: "Keep",
+    dotColor: "#10b981",
+    headerBg: "bg-emerald-400/90 text-emerald-950 hover:bg-emerald-400",
+    bodyBg: "bg-emerald-100/95 text-slate-900 border-emerald-400",
+    borderColor: "border-emerald-400",
+    textColor: "text-emerald-950",
+    placeholderColor: "placeholder:text-emerald-800/50",
+    badgeBg: "bg-emerald-400/30 text-emerald-900 border-emerald-500/40",
+  },
+  red: {
+    label: "Remove",
+    dotColor: "#f43f5e",
+    headerBg: "bg-rose-400/90 text-rose-950 hover:bg-rose-400",
+    bodyBg: "bg-rose-100/95 text-slate-900 border-rose-400",
+    borderColor: "border-rose-400",
+    textColor: "text-rose-950",
+    placeholderColor: "placeholder:text-rose-800/50",
+    badgeBg: "bg-rose-400/30 text-rose-900 border-rose-500/40",
+  },
+  blue: {
+    label: "Idea",
+    dotColor: "#0284c7",
+    headerBg: "bg-sky-400/90 text-sky-950 hover:bg-sky-400",
+    bodyBg: "bg-sky-100/95 text-slate-900 border-sky-400",
+    borderColor: "border-sky-400",
+    textColor: "text-sky-950",
+    placeholderColor: "placeholder:text-sky-800/50",
+    badgeBg: "bg-sky-400/30 text-sky-900 border-sky-500/40",
+  },
+  purple: {
+    label: "Question",
+    dotColor: "#9333ea",
+    headerBg: "bg-purple-400/90 text-purple-950 hover:bg-purple-400",
+    bodyBg: "bg-purple-100/95 text-slate-900 border-purple-400",
+    borderColor: "border-purple-400",
+    textColor: "text-purple-950",
+    placeholderColor: "placeholder:text-purple-800/50",
+    badgeBg: "bg-purple-400/30 text-purple-900 border-purple-500/40",
+  },
+};
 
 interface HighlightData {
   id: string;
@@ -160,18 +229,26 @@ interface AnalysisHistoryItem {
   versionName?: string;
   jobDescription?: string;
   result: AnalysisResult;
+  stickyNotes?: StickyNoteData[];
+  highlights?: HighlightData[];
 }
 
 const GlassCard = ({
   children,
   className = "",
   delay = 0,
+  id,
+  style,
 }: {
   children: React.ReactNode;
   className?: string;
   delay?: number;
+  id?: string;
+  style?: React.CSSProperties;
 }) => (
   <motion.div
+    id={id}
+    style={style}
     initial={{ opacity: 0, y: 40, scale: 0.98 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
     transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }}
@@ -552,6 +629,7 @@ export default function App() {
   const [numPages, setNumPages] = useState<number>();
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [stickyNotes, setStickyNotes] = useState<StickyNoteData[]>([]);
+  const [defaultStickyColor, setDefaultStickyColor] = useState<string>("yellow");
   const [highlights, setHighlights] = useState<HighlightData[]>([]);
   const [annotationMode, setAnnotationMode] = useState<"sticky" | "highlight" | "batch">(
     "sticky",
@@ -560,6 +638,7 @@ export default function App() {
     "rgba(250, 204, 21, 0.4)",
   ); // amber-400 transparent
   const [visibleStickyNotes, setVisibleStickyNotes] = useState(true);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [visibleHighlightColors, setVisibleHighlightColors] = useState<string[]>([
     "rgba(250, 204, 21, 0.4)",
     "rgba(52, 211, 153, 0.4)",
@@ -851,6 +930,7 @@ export default function App() {
 
   const exportAnnotatedPdf = async () => {
     if (!file) return;
+    setIsExportingPdf(true);
     try {
       const arrayBuffer = await file.arrayBuffer();
       const pdfDoc = await PDFDocument.load(arrayBuffer);
@@ -909,33 +989,65 @@ export default function App() {
           const { width: pdfWidth, height: pdfHeight } = page.getSize();
           const scale = pdfWidth / renderWidth;
           
-          const pdfX = note.x * scale;
-          const pdfY = pdfHeight - (note.y * scale) - 30; // approx height offset
+          const colorKey = note.color && STICKY_COLOR_CONFIG[note.color] ? note.color : "yellow";
+          const catLabel = STICKY_COLOR_CONFIG[colorKey].label;
+          let fillRgb = rgb(1, 0.9, 0.4);
+          if (colorKey === "green") fillRgb = rgb(0.55, 0.95, 0.7);
+          else if (colorKey === "red") fillRgb = rgb(0.98, 0.6, 0.65);
+          else if (colorKey === "blue") fillRgb = rgb(0.55, 0.85, 0.98);
+          else if (colorKey === "purple") fillRgb = rgb(0.85, 0.65, 0.98);
+
+          const textContent = note.text ? note.text.trim() : "";
+          const rawLines = textContent ? textContent.split(/\r?\n/) : ["(Empty Note)"];
+          const lines: string[] = [];
+          rawLines.forEach(l => {
+            if (l.length <= 26) lines.push(l);
+            else {
+              const chunks = l.match(/.{1,26}(\s+|$)/g) || [l];
+              lines.push(...chunks.map(c => c.trim()));
+            }
+          });
+
+          const boxWidth = 145;
+          const headerHeight = 16;
+          const lineHeight = 11;
+          const padding = 6;
+          const boxHeight = headerHeight + padding + Math.max(1, lines.length) * lineHeight + padding;
+
+          const pdfX = Math.min(Math.max(0, note.x * scale), pdfWidth - boxWidth);
+          const pdfY = Math.max(0, pdfHeight - (note.y * scale) - boxHeight);
           
-          // Draw a small yellow rectangle as the background of the sticky note
+          // Draw rectangle background for sticky note
           page.drawRectangle({
             x: pdfX,
             y: pdfY,
-            width: 120,
-            height: 40 + (note.text.length > 20 ? 40 : 0),
-            color: rgb(1, 0.9, 0.4),
-            opacity: 0.9,
+            width: boxWidth,
+            height: boxHeight,
+            color: fillRgb,
+            opacity: 0.95,
+            borderColor: rgb(0.3, 0.3, 0.3),
+            borderWidth: 0.5,
           });
           
-          page.drawText("Sticky Note:", {
-            x: pdfX + 5,
-            y: pdfY + 25 + (note.text.length > 20 ? 40 : 0),
-            size: 10,
+          page.drawText(`Note [${catLabel}]:`, {
+            x: pdfX + padding,
+            y: pdfY + boxHeight - 14,
+            size: 8.5,
             font,
-            color: rgb(0, 0, 0),
+            color: rgb(0.1, 0.1, 0.1),
           });
-          
-          page.drawText(note.text.substring(0, 50) + (note.text.length > 50 ? '...' : ''), {
-            x: pdfX + 5,
-            y: pdfY + 10 + (note.text.length > 20 ? 40 : 0),
-            size: 8,
-            font,
-            color: rgb(0, 0, 0),
+
+          lines.forEach((lineText, idx) => {
+            const lineY = pdfY + boxHeight - 14 - headerHeight - (idx * lineHeight);
+            if (lineY > pdfY + 2) {
+              page.drawText(lineText, {
+                x: pdfX + padding,
+                y: lineY,
+                size: 8,
+                font,
+                color: rgb(0.15, 0.15, 0.15),
+              });
+            }
           });
         });
       }
@@ -945,14 +1057,61 @@ export default function App() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `annotated_${file.name}`;
+      const cleanName = file.name.replace(/\.[^/.]+$/, "");
+      link.download = `Annotated_${cleanName}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Failed to export annotated PDF", error);
+      alert("Could not export annotated PDF. Please check console for details.");
+    } finally {
+      setIsExportingPdf(false);
     }
+  };
+
+  const exportStickyNotesSummary = () => {
+    if (stickyNotes.length === 0) return;
+
+    const fileName = file ? file.name : "Document";
+    const dateStr = new Date().toLocaleString();
+
+    let content = `==================================================\n`;
+    content += `DOCUMENT ANNOTATION SUMMARY - STICKY NOTES\n`;
+    content += `Document: ${fileName}\n`;
+    content += `Total Notes: ${stickyNotes.length}\n`;
+    content += `Export Date: ${dateStr}\n`;
+    content += `==================================================\n\n`;
+
+    const pageNumbers = Array.from(
+      new Set(stickyNotes.map((n) => n.pageNumber))
+    ).sort((a, b) => a - b);
+
+    pageNumbers.forEach((pNum) => {
+      content += `PAGE ${pNum}\n`;
+      content += `--------------------------------------------------\n`;
+      const notesOnPage = stickyNotes.filter((n) => n.pageNumber === pNum);
+      notesOnPage.forEach((note, idx) => {
+        const colorKey =
+          note.color && STICKY_COLOR_CONFIG[note.color] ? note.color : "yellow";
+        const cat = STICKY_COLOR_CONFIG[colorKey].label.toUpperCase();
+        content += `[${cat}] Note #${idx + 1}:\n`;
+        content += `${note.text ? note.text.trim() : "(Empty Note)"}\n\n`;
+      });
+      content += `\n`;
+    });
+
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const cleanName = fileName.replace(/\.[^/.]+$/, "");
+    link.download = `Sticky_Notes_Summary_${cleanName}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // Load history from localStorage
@@ -1001,17 +1160,23 @@ export default function App() {
     };
   }, [result, file, jobDescription, stickyNotes, highlights]);
 
+  const [snapshotToast, setSnapshotToast] = useState<string | null>(null);
+
   const saveToHistory = (
     newResult: AnalysisResult,
     currentFile: File,
     jd: string,
   ) => {
+    const versionNum = history.length + 1;
     const newItem: AnalysisHistoryItem = {
       id: `v_${Date.now()}_${Math.random().toString(36).substring(7)}`,
       date: new Date().toISOString(),
-      fileName: currentFile.name,
+      fileName: currentFile ? currentFile.name : "Resume",
+      versionName: `Analysis v${versionNum}`,
       jobDescription: jd,
       result: newResult,
+      stickyNotes: JSON.parse(JSON.stringify(stickyNotes)),
+      highlights: JSON.parse(JSON.stringify(highlights)),
     };
 
     setHistory((prev) => {
@@ -1019,6 +1184,34 @@ export default function App() {
       localStorage.setItem("resume_analysis_history", JSON.stringify(updated));
       return updated;
     });
+  };
+
+  const takeSnapshot = (customName?: string) => {
+    if (!result) return;
+    const versionNum = history.length + 1;
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const defaultName = customName || `Snapshot v${versionNum} (${timeStr})`;
+    const currentFileName = file ? file.name : "Resume";
+
+    const newItem: AnalysisHistoryItem = {
+      id: `v_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      date: new Date().toISOString(),
+      fileName: currentFileName,
+      versionName: defaultName,
+      jobDescription: jobDescription,
+      result: result,
+      stickyNotes: JSON.parse(JSON.stringify(stickyNotes)),
+      highlights: JSON.parse(JSON.stringify(highlights)),
+    };
+
+    setHistory((prev) => {
+      const updated = [newItem, ...prev].slice(0, 50);
+      localStorage.setItem("resume_analysis_history", JSON.stringify(updated));
+      return updated;
+    });
+
+    setSnapshotToast(`Snapshot "${defaultName}" saved to archive!`);
+    setTimeout(() => setSnapshotToast(null), 3500);
   };
 
   const deleteFromHistory = (id: string, e: React.MouseEvent) => {
@@ -1804,7 +1997,7 @@ export default function App() {
               exit={{ opacity: 0, x: 100 }}
               className="fixed inset-y-0 right-0 w-96 bg-brand-deep/95 backdrop-blur-3xl border-l border-white/5 z-[60] shadow-2xl p-6 overflow-y-auto"
             >
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center justify-between mb-6">
                 <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
                   <Layers className="h-4 w-4 text-teal-400" />
                   Analysis Archive
@@ -1816,6 +2009,16 @@ export default function App() {
                   <RefreshCw className="h-4 w-4" />
                 </button>
               </div>
+
+              {result && (
+                <button
+                  onClick={() => takeSnapshot()}
+                  className="w-full mb-6 py-2.5 px-3 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/30 hover:text-white font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/10 active:scale-95"
+                >
+                  <BookmarkPlus className="w-4 h-4 text-cyan-400" />
+                  Snapshot Current State
+                </button>
+              )}
 
               {history.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center text-slate-600">
@@ -1834,7 +2037,12 @@ export default function App() {
                       key={item.id + "-" + mapIdx}
                       onClick={() => {
                         setResult(item.result);
+                        setStickyNotes(item.stickyNotes ? JSON.parse(JSON.stringify(item.stickyNotes)) : []);
+                        setHighlights(item.highlights ? JSON.parse(JSON.stringify(item.highlights)) : []);
+                        if (item.jobDescription) setJobDescription(item.jobDescription);
                         setIsHistoryOpen(false);
+                        setSnapshotToast(`Loaded version "${item.versionName || item.fileName}"`);
+                        setTimeout(() => setSnapshotToast(null), 3000);
                       }}
                       className={`p-5 rounded-2xl border transition-all cursor-pointer group relative
                         ${
@@ -1914,6 +2122,15 @@ export default function App() {
                             Skills
                           </span>
                         </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-white/5">
+                        <span className="text-[9px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded flex items-center gap-1">
+                          <StickyNote className="w-2.5 h-2.5" /> {item.stickyNotes?.length || 0} Notes
+                        </span>
+                        <span className="text-[9px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded flex items-center gap-1">
+                          <Highlighter className="w-2.5 h-2.5" /> {item.highlights?.length || 0} Highlights
+                        </span>
                       </div>
                     </motion.div>
                   ))}
@@ -2088,6 +2305,34 @@ export default function App() {
                               ))}
                           </div>
                         </div>
+
+                        <div className="pt-4 border-t border-white/10 space-y-3">
+                          <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                            Snapshot Annotations
+                          </p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-bold flex items-center gap-1">
+                              <StickyNote className="w-3 h-3" /> {item.stickyNotes?.length || 0} Sticky Notes
+                            </span>
+                            <span className="px-2.5 py-1 rounded bg-teal-500/10 border border-teal-500/30 text-teal-300 text-[10px] font-bold flex items-center gap-1">
+                              <Highlighter className="w-3 h-3" /> {item.highlights?.length || 0} Highlights
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setResult(item.result);
+                              setStickyNotes(item.stickyNotes ? JSON.parse(JSON.stringify(item.stickyNotes)) : []);
+                              setHighlights(item.highlights ? JSON.parse(JSON.stringify(item.highlights)) : []);
+                              if (item.jobDescription) setJobDescription(item.jobDescription);
+                              setCompareIds([]);
+                              setSnapshotToast(`Activated version "${item.versionName || item.fileName}"`);
+                              setTimeout(() => setSnapshotToast(null), 3000);
+                            }}
+                            className="w-full mt-2 py-2.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 border border-teal-500/40 text-teal-300 text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                          >
+                            <Check className="w-3.5 h-3.5" /> Load & View Version
+                          </button>
+                        </div>
                       </GlassCard>
                     );
                   })}
@@ -2104,6 +2349,18 @@ export default function App() {
             >
               <ShieldCheck className="h-5 w-5" />
               Memory Purged Successfully
+            </motion.div>
+          )}
+
+          {snapshotToast && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 50, scale: 0.9 }}
+              className="fixed bottom-8 right-8 z-[100] bg-cyan-950/95 text-cyan-200 border border-cyan-400/50 px-6 py-4 rounded-2xl shadow-[0_10px_30px_rgba(6,182,212,0.3)] backdrop-blur-2xl flex items-center gap-3 font-bold text-xs uppercase tracking-wide"
+            >
+              <BookmarkPlus className="w-5 h-5 text-cyan-400 shrink-0 animate-bounce" />
+              <span>{snapshotToast}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -2463,6 +2720,24 @@ Qualifications:
                               <Sparkles className="w-3 h-3 text-purple-400" />
                               Batch Highlight
                             </button>
+                            {annotationMode === "sticky" && (
+                              <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-white/10">
+                                <span className="text-[9px] text-amber-300 font-extrabold uppercase tracking-wider hidden sm:inline">Default Note Color:</span>
+                                {Object.entries(STICKY_COLOR_CONFIG).map(([ckey, cval]) => (
+                                  <button
+                                    key={`sticky-color-${ckey}`}
+                                    onClick={() => setDefaultStickyColor(ckey)}
+                                    className={`w-4 h-4 rounded-full border border-white/30 transition-all ${
+                                      defaultStickyColor === ckey
+                                        ? "scale-125 ring-2 ring-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.6)]"
+                                        : "opacity-60 hover:opacity-100 hover:scale-110"
+                                    }`}
+                                    style={{ backgroundColor: cval.dotColor }}
+                                    title={`New Sticky Note: ${cval.label}`}
+                                  />
+                                ))}
+                              </div>
+                            )}
                             {annotationMode === "highlight" && (
                               <div className="flex items-center gap-1 ml-2 pl-2 border-l border-white/10">
                                 {[
@@ -2512,13 +2787,74 @@ Qualifications:
                               </div>
                             </div>
                             
-                            <div className="ml-4 pl-4 border-l border-white/10 hidden md:block">
+                            <div className="ml-auto flex items-center gap-2 flex-wrap">
+                              <button
+                                onClick={() => takeSnapshot()}
+                                disabled={!result}
+                                className="px-3.5 py-1.5 flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-wider rounded-md text-cyan-300 bg-cyan-500/20 border border-cyan-500/40 hover:bg-cyan-500/30 hover:text-white transition-all shadow-md hover:shadow-cyan-500/20 active:scale-95 disabled:opacity-40"
+                                title="Snapshot current analysis, sticky notes, and highlights into sidebar archive"
+                              >
+                                <BookmarkPlus className="h-3.5 w-3.5 text-cyan-400" />
+                                <span>Snapshot Version</span>
+                              </button>
+
                               <button
                                 onClick={exportAnnotatedPdf}
-                                className="px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all shadow-sm"
+                                disabled={isExportingPdf || !file}
+                                className="px-3.5 py-1.5 flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-wider rounded-md text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 hover:bg-emerald-500/30 hover:text-white transition-all shadow-md hover:shadow-emerald-500/20 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+                                title="Export PDF with sticky notes and highlights burnt into document"
                               >
-                                <Download className="h-3.5 w-3.5" /> Export PDF
+                                {isExportingPdf ? (
+                                  <>
+                                    <div className="w-3.5 h-3.5 border-2 border-emerald-300 border-t-transparent rounded-full animate-spin" />
+                                    <span>Exporting...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Download className="h-3.5 w-3.5 text-emerald-400" />
+                                    <span>Export Annotated PDF</span>
+                                  </>
+                                )}
                               </button>
+
+                              <button
+                                onClick={exportStickyNotesSummary}
+                                disabled={stickyNotes.length === 0}
+                                className="px-3 py-1.5 hidden sm:flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md text-amber-300 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 hover:text-amber-200 transition-all shadow-sm disabled:opacity-30 disabled:pointer-events-none"
+                                title="Export summary text file of all sticky notes"
+                              >
+                                <FileText className="h-3.5 w-3.5" /> Notes Summary ({stickyNotes.length})
+                              </button>
+
+                              {stickyNotes.length > 0 && (
+                                <div className="hidden lg:flex items-center gap-1">
+                                  <button
+                                    onClick={() => {
+                                      const count = stickyNotes.filter(n => n.pageNumber === pageNumber).length;
+                                      if (count === 0) return;
+                                      if (window.confirm(`Clear ${count} sticky note(s) on Page ${pageNumber}?`)) {
+                                        setStickyNotes(prev => prev.filter(n => n.pageNumber !== pageNumber));
+                                      }
+                                    }}
+                                    disabled={stickyNotes.filter(n => n.pageNumber === pageNumber).length === 0}
+                                    className="px-2.5 py-1.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded-md text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 hover:text-rose-300 transition-all disabled:opacity-30 disabled:pointer-events-none"
+                                    title={`Clear ${stickyNotes.filter(n => n.pageNumber === pageNumber).length} sticky note(s) on Page ${pageNumber}`}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" /> Clear Page ({stickyNotes.filter(n => n.pageNumber === pageNumber).length})
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      if (window.confirm(`Clear ALL ${stickyNotes.length} sticky notes across the document?`)) {
+                                        setStickyNotes([]);
+                                      }
+                                    }}
+                                    className="px-2.5 py-1.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded-md text-rose-300 bg-rose-500/20 border border-rose-500/30 hover:bg-rose-500/30 hover:text-white transition-all"
+                                    title="Clear all sticky notes in current document"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" /> Clear All ({stickyNotes.length})
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </h3>
@@ -2808,6 +3144,7 @@ Qualifications:
                               text: "",
                               isOpen: true,
                               pageNumber,
+                              color: defaultStickyColor,
                             };
                             setStickyNotes((prev) => [...prev, newNote]);
                           }}
@@ -2868,134 +3205,240 @@ Qualifications:
                                 ))}
                               </div>
                             ))}
-                          {visibleStickyNotes && stickyNotes
-                            .filter((n) => n.pageNumber === pageNumber)
-                            .map((note) => (
-                              <div
-                                key={note.id}
-                                className="sticky-note absolute z-50 rounded-xl bg-amber-200/90 backdrop-blur-md shadow-2xl border border-amber-400 overflow-hidden transform transition-all hover:scale-105"
-                                style={{
-                                  left: note.x,
-                                  top: note.y,
-                                  width: 220,
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <div
-                                  className="flex justify-between items-center bg-amber-400/80 p-2 cursor-pointer hover:bg-amber-400 text-amber-900 transition-colors"
-                                  onClick={() => {
-                                    setStickyNotes((notes) =>
-                                      notes.map((n) =>
-                                        n.id === note.id
-                                          ? { ...n, isOpen: !n.isOpen }
-                                          : n,
-                                      ),
-                                    );
-                                  }}
-                                >
-                                  <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                                    <svg
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      width="12"
-                                      height="12"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      className="lucide lucide-sticky-note"
-                                    >
-                                      <path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z" />
-                                      <path d="M15 3v6h6" />
-                                    </svg>
-                                    Sticky Note
-                                  </span>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setStickyNotes((notes) =>
-                                        notes.filter((n) => n.id !== note.id),
-                                      );
+                          <AnimatePresence>
+                            {visibleStickyNotes && stickyNotes
+                              .filter((n) => n.pageNumber === pageNumber)
+                              .map((note) => {
+                                const colorKey = note.color && STICKY_COLOR_CONFIG[note.color] ? note.color : "yellow";
+                                const conf = STICKY_COLOR_CONFIG[colorKey];
+                                return (
+                                  <motion.div
+                                    key={note.id}
+                                    initial={{ scale: 0.3, opacity: 0, y: -15 }}
+                                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                                    exit={{ scale: 0.2, opacity: 0, transition: { duration: 0.15 } }}
+                                    transition={{ type: "spring", stiffness: 450, damping: 25 }}
+                                    className={`sticky-note absolute z-50 rounded-xl ${conf.bodyBg} backdrop-blur-md shadow-2xl border ${conf.borderColor} overflow-hidden transform transition-all hover:scale-[1.02]`}
+                                    style={{
+                                      left: note.x,
+                                      top: note.y,
+                                      width: 230,
                                     }}
-                                    className="hover:text-rose-600 transition-colors"
+                                    onClick={(e) => e.stopPropagation()}
                                   >
-                                    <XCircle className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                                {note.isOpen && (
-                                  <div className="p-2 border-t border-amber-400/30">
-                                    <textarea
-                                      autoFocus
-                                      className="w-full h-24 bg-transparent resize-none outline-none text-slate-800 text-xs font-medium placeholder:text-amber-800/40"
-                                      placeholder="Type note... (click header to collapse)"
-                                      value={note.text}
-                                      onChange={(e) =>
+                                    <div
+                                      className={`flex justify-between items-center ${conf.headerBg} p-2 cursor-pointer transition-colors`}
+                                      onClick={() => {
                                         setStickyNotes((notes) =>
                                           notes.map((n) =>
                                             n.id === note.id
-                                              ? { ...n, text: e.target.value }
+                                              ? { ...n, isOpen: !n.isOpen }
                                               : n,
                                           ),
-                                        )
-                                      }
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            ))}
+                                        );
+                                      }}
+                                    >
+                                      <div className="flex items-center gap-1.5 overflow-hidden">
+                                        <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                                          <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="12"
+                                            height="12"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            className="lucide lucide-sticky-note"
+                                          >
+                                            <path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z" />
+                                            <path d="M15 3v6h6" />
+                                          </svg>
+                                          {conf.label}
+                                        </span>
+                                      </div>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setStickyNotes((notes) =>
+                                            notes.filter((n) => n.id !== note.id),
+                                          );
+                                        }}
+                                        className="hover:text-rose-700 transition-colors p-0.5 rounded hover:bg-black/10"
+                                        title="Delete Sticky Note"
+                                      >
+                                        <XCircle className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                    {note.isOpen && (
+                                      <div className="p-2.5 space-y-2.5 border-t border-black/10">
+                                        <textarea
+                                          autoFocus
+                                          className={`w-full h-24 bg-transparent resize-none outline-none ${conf.textColor} text-xs font-medium ${conf.placeholderColor}`}
+                                          placeholder={`Type ${conf.label.toLowerCase()} note...`}
+                                          value={note.text}
+                                          onChange={(e) =>
+                                            setStickyNotes((notes) =>
+                                              notes.map((n) =>
+                                                n.id === note.id
+                                                  ? { ...n, text: e.target.value }
+                                                  : n,
+                                              ),
+                                            )
+                                          }
+                                        />
+                                        <div className="pt-2 border-t border-black/10 flex items-center justify-between">
+                                          <span className="text-[9px] font-extrabold uppercase tracking-wider opacity-75">
+                                            Category Color:
+                                          </span>
+                                          <div className="flex items-center gap-1">
+                                            {Object.entries(STICKY_COLOR_CONFIG).map(
+                                              ([ckey, cval]) => (
+                                                <button
+                                                  key={ckey}
+                                                  onClick={() =>
+                                                    setStickyNotes((notes) =>
+                                                      notes.map((n) =>
+                                                        n.id === note.id
+                                                          ? { ...n, color: ckey }
+                                                          : n,
+                                                      ),
+                                                    )
+                                                  }
+                                                  className={`w-4 h-4 rounded-full border border-black/20 transition-all ${
+                                                    colorKey === ckey
+                                                      ? "scale-125 ring-2 ring-black/40 shadow-sm"
+                                                      : "opacity-60 hover:opacity-100 hover:scale-110"
+                                                  }`}
+                                                  style={{ backgroundColor: cval.dotColor }}
+                                                  title={`Category: ${cval.label}`}
+                                                />
+                                              ),
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </motion.div>
+                                );
+                              })}
+                          </AnimatePresence>
                         </div>
                       </div>
-                      {highlights.length > 0 && (
-                        <div className="w-full xl:w-64 shrink-0 bg-white/5 p-4 rounded-2xl border border-white/5 max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
-                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <FileText className="w-3 h-3" /> Active Highlights
-                            <span className="ml-auto bg-white/10 text-white px-2 py-0.5 rounded-full">
-                              {highlights.length}
-                            </span>
-                          </h4>
-                          <div className="space-y-2">
-                            {highlights.map((hl) => (
-                              <div
-                                key={hl.id}
-                                className="flex items-center justify-between bg-[#0A0A15]/50 p-3 rounded-lg border border-white/5 hover:border-white/10 transition-colors cursor-pointer"
-                                onClick={() => setPageNumber(hl.pageNumber)}
-                              >
-                                <div className="flex items-center gap-2 overflow-hidden">
-                                  <div
-                                    className="w-3 h-3 rounded-full border border-white/20 shrink-0"
-                                    style={{
-                                      backgroundColor: hl.color.replace(
-                                        "0.4",
-                                        "1",
-                                      ),
-                                    }}
-                                  />
-                                  <div className="flex flex-col text-left overflow-hidden">
-                                    <span className="text-[11px] font-bold text-white leading-tight">
-                                      Page {hl.pageNumber}
-                                    </span>
-                                    {hl.keyword && (
-                                      <span className="text-[9px] font-bold text-purple-300 truncate max-w-[120px]" title={hl.keyword}>
-                                        "{hl.keyword}"
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
+                      
+                      {/* Sidebar Annotations Panel */}
+                      {(stickyNotes.length > 0 || highlights.length > 0) && (
+                        <div className="w-full xl:w-72 shrink-0 space-y-4">
+                          {/* Sticky Notes Summary Sidebar Panel */}
+                          {stickyNotes.length > 0 && (
+                            <div className="bg-white/5 p-4 rounded-2xl border border-white/5 max-h-[380px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
+                                  <FileText className="w-3.5 h-3.5" /> Sticky Notes ({stickyNotes.length})
+                                </h4>
                                 <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setHighlights((prev) =>
-                                      prev.filter((h) => h.id !== hl.id),
-                                    );
-                                  }}
-                                  className="text-slate-500 hover:text-rose-400 transition-colors"
+                                  onClick={exportStickyNotesSummary}
+                                  className="text-[9px] font-bold text-amber-300 hover:text-white uppercase tracking-wider flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-md transition-all"
+                                  title="Export notes text file"
                                 >
-                                  <Trash2 className="w-3 h-3" />
+                                  <Download className="w-2.5 h-2.5" /> Export
                                 </button>
                               </div>
-                            ))}
-                          </div>
+                              <div className="space-y-2">
+                                {stickyNotes.map((note) => {
+                                  const colorKey = note.color && STICKY_COLOR_CONFIG[note.color] ? note.color : "yellow";
+                                  const conf = STICKY_COLOR_CONFIG[colorKey];
+                                  return (
+                                    <div
+                                      key={`sidebar-note-${note.id}`}
+                                      className="flex flex-col bg-[#0A0A15]/60 p-2.5 rounded-xl border border-white/5 hover:border-amber-500/40 transition-all cursor-pointer group"
+                                      onClick={() => {
+                                        setPageNumber(note.pageNumber);
+                                        setStickyNotes(notes => notes.map(n => n.id === note.id ? { ...n, isOpen: true } : n));
+                                      }}
+                                    >
+                                      <div className="flex items-center justify-between mb-1">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: conf.dotColor }} />
+                                          <span className="text-[10px] font-black uppercase text-slate-200">
+                                            {conf.label}
+                                          </span>
+                                          <span className="text-[9px] font-bold text-slate-400 bg-white/5 px-1.5 py-0.5 rounded">
+                                            Page {note.pageNumber}
+                                          </span>
+                                        </div>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setStickyNotes(prev => prev.filter(n => n.id !== note.id));
+                                          }}
+                                          className="text-slate-500 hover:text-rose-400 transition-colors p-0.5"
+                                          title="Delete note"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                      <p className="text-[11px] text-slate-300 line-clamp-2 italic font-sans pl-3 border-l-2 border-white/10 group-hover:border-amber-400/60">
+                                        {note.text ? note.text : <span className="text-slate-600 font-normal">Empty note...</span>}
+                                      </p>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Active Highlights Sidebar Panel */}
+                          {highlights.length > 0 && (
+                            <div className="bg-white/5 p-4 rounded-2xl border border-white/5 max-h-[350px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
+                              <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <FileText className="w-3.5 h-3.5" /> Highlights ({highlights.length})
+                              </h4>
+                              <div className="space-y-2">
+                                {highlights.map((hl) => (
+                                  <div
+                                    key={hl.id}
+                                    className="flex items-center justify-between bg-[#0A0A15]/50 p-2.5 rounded-lg border border-white/5 hover:border-white/10 transition-colors cursor-pointer"
+                                    onClick={() => setPageNumber(hl.pageNumber)}
+                                  >
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                      <div
+                                        className="w-3 h-3 rounded-full border border-white/20 shrink-0"
+                                        style={{
+                                          backgroundColor: hl.color.replace(
+                                            "0.4",
+                                            "1",
+                                          ),
+                                        }}
+                                      />
+                                      <div className="flex flex-col text-left overflow-hidden">
+                                        <span className="text-[11px] font-bold text-white leading-tight">
+                                          Page {hl.pageNumber}
+                                        </span>
+                                        {hl.keyword && (
+                                          <span className="text-[9px] font-bold text-purple-300 truncate max-w-[120px]" title={hl.keyword}>
+                                            "{hl.keyword}"
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setHighlights((prev) =>
+                                          prev.filter((h) => h.id !== hl.id),
+                                        );
+                                      }}
+                                      className="text-slate-500 hover:text-rose-400 transition-colors"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
