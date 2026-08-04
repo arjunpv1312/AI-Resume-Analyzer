@@ -45,7 +45,11 @@ import {
   Tag,
   BookmarkPlus,
   Camera,
-  StickyNote
+  StickyNote,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Notebook
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
@@ -231,6 +235,7 @@ interface AnalysisHistoryItem {
   result: AnalysisResult;
   stickyNotes?: StickyNoteData[];
   highlights?: HighlightData[];
+  pageSummaries?: Record<number, string>;
 }
 
 const GlassCard = ({
@@ -628,6 +633,9 @@ export default function App() {
   const [isGeneratingRecDetail, setIsGeneratingRecDetail] = useState(false);
   const [numPages, setNumPages] = useState<number>();
   const [pageNumber, setPageNumber] = useState<number>(1);
+  const [pdfScale, setPdfScale] = useState<number>(0.8);
+  const [sidebarSearch, setSidebarSearch] = useState<string>("");
+  const [pageSummaries, setPageSummaries] = useState<Record<number, string>>({});
   const [stickyNotes, setStickyNotes] = useState<StickyNoteData[]>([]);
   const [defaultStickyColor, setDefaultStickyColor] = useState<string>("yellow");
   const [highlights, setHighlights] = useState<HighlightData[]>([]);
@@ -1072,42 +1080,56 @@ export default function App() {
   };
 
   const exportStickyNotesSummary = () => {
-    if (stickyNotes.length === 0) return;
+    const hasPageSummaries = Object.values(pageSummaries).some((s) => s && s.trim());
+    if (stickyNotes.length === 0 && !hasPageSummaries) return;
 
     const fileName = file ? file.name : "Document";
     const dateStr = new Date().toLocaleString();
 
     let content = `==================================================\n`;
-    content += `DOCUMENT ANNOTATION SUMMARY - STICKY NOTES\n`;
+    content += `DOCUMENT ANNOTATION & NOTES SUMMARY\n`;
     content += `Document: ${fileName}\n`;
-    content += `Total Notes: ${stickyNotes.length}\n`;
+    content += `Total Sticky Notes: ${stickyNotes.length}\n`;
     content += `Export Date: ${dateStr}\n`;
     content += `==================================================\n\n`;
 
-    const pageNumbers = Array.from(
-      new Set(stickyNotes.map((n) => n.pageNumber))
-    ).sort((a, b) => a - b);
-
-    pageNumbers.forEach((pNum) => {
-      content += `PAGE ${pNum}\n`;
-      content += `--------------------------------------------------\n`;
-      const notesOnPage = stickyNotes.filter((n) => n.pageNumber === pNum);
-      notesOnPage.forEach((note, idx) => {
-        const colorKey =
-          note.color && STICKY_COLOR_CONFIG[note.color] ? note.color : "yellow";
-        const cat = STICKY_COLOR_CONFIG[colorKey].label.toUpperCase();
-        content += `[${cat}] Note #${idx + 1}:\n`;
-        content += `${note.text ? note.text.trim() : "(Empty Note)"}\n\n`;
+    if (hasPageSummaries) {
+      content += `=== PAGE EXECUTIVE SUMMARIES & NOTES ===\n`;
+      Object.entries(pageSummaries).sort(([a], [b]) => Number(a) - Number(b)).forEach(([pNum, text]) => {
+        if (text && text.trim()) {
+          content += `PAGE ${pNum}:\n${text.trim()}\n\n`;
+        }
       });
-      content += `\n`;
-    });
+      content += `==================================================\n\n`;
+    }
+
+    if (stickyNotes.length > 0) {
+      content += `=== STICKY NOTES ===\n`;
+      const pageNumbers = Array.from(
+        new Set(stickyNotes.map((n) => n.pageNumber))
+      ).sort((a, b) => a - b);
+
+      pageNumbers.forEach((pNum) => {
+        content += `PAGE ${pNum}\n`;
+        content += `--------------------------------------------------\n`;
+        const notesOnPage = stickyNotes.filter((n) => n.pageNumber === pNum);
+        notesOnPage.forEach((note, idx) => {
+          const colorKey =
+            note.color && STICKY_COLOR_CONFIG[note.color] ? note.color : "yellow";
+          const cat = STICKY_COLOR_CONFIG[colorKey].label.toUpperCase();
+          content += `[${cat}] Note #${idx + 1}:\n`;
+          content += `${note.text ? note.text.trim() : "(Empty Note)"}\n\n`;
+        });
+        content += `\n`;
+      });
+    }
 
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     const cleanName = fileName.replace(/\.[^/.]+$/, "");
-    link.download = `Sticky_Notes_Summary_${cleanName}.txt`;
+    link.download = `Notes_Summary_${cleanName}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1149,6 +1171,7 @@ export default function App() {
           jobDescription,
           stickyNotes,
           highlights,
+          pageSummaries,
           timestamp: new Date().toISOString()
         };
         localStorage.setItem("resume_analysis_autosave", JSON.stringify(autoSaveData));
@@ -1158,7 +1181,7 @@ export default function App() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [result, file, jobDescription, stickyNotes, highlights]);
+  }, [result, file, jobDescription, stickyNotes, highlights, pageSummaries]);
 
   const [snapshotToast, setSnapshotToast] = useState<string | null>(null);
 
@@ -1177,6 +1200,7 @@ export default function App() {
       result: newResult,
       stickyNotes: JSON.parse(JSON.stringify(stickyNotes)),
       highlights: JSON.parse(JSON.stringify(highlights)),
+      pageSummaries: JSON.parse(JSON.stringify(pageSummaries)),
     };
 
     setHistory((prev) => {
@@ -1202,6 +1226,7 @@ export default function App() {
       result: result,
       stickyNotes: JSON.parse(JSON.stringify(stickyNotes)),
       highlights: JSON.parse(JSON.stringify(highlights)),
+      pageSummaries: JSON.parse(JSON.stringify(pageSummaries)),
     };
 
     setHistory((prev) => {
@@ -2039,6 +2064,7 @@ export default function App() {
                         setResult(item.result);
                         setStickyNotes(item.stickyNotes ? JSON.parse(JSON.stringify(item.stickyNotes)) : []);
                         setHighlights(item.highlights ? JSON.parse(JSON.stringify(item.highlights)) : []);
+                        setPageSummaries(item.pageSummaries ? JSON.parse(JSON.stringify(item.pageSummaries)) : {});
                         if (item.jobDescription) setJobDescription(item.jobDescription);
                         setIsHistoryOpen(false);
                         setSnapshotToast(`Loaded version "${item.versionName || item.fileName}"`);
@@ -2323,6 +2349,7 @@ export default function App() {
                               setResult(item.result);
                               setStickyNotes(item.stickyNotes ? JSON.parse(JSON.stringify(item.stickyNotes)) : []);
                               setHighlights(item.highlights ? JSON.parse(JSON.stringify(item.highlights)) : []);
+                              setPageSummaries(item.pageSummaries ? JSON.parse(JSON.stringify(item.pageSummaries)) : {});
                               if (item.jobDescription) setJobDescription(item.jobDescription);
                               setCompareIds([]);
                               setSnapshotToast(`Activated version "${item.versionName || item.fileName}"`);
@@ -2786,6 +2813,29 @@ Qualifications:
                                 })}
                               </div>
                             </div>
+
+                            {/* Search Bar in Document Viewer Toolbar */}
+                            <div className="flex items-center gap-2 ml-4 pl-4 border-l border-white/10">
+                              <div className="relative flex items-center">
+                                <Search className="w-3.5 h-3.5 text-teal-400 absolute left-2.5 pointer-events-none" />
+                                <input
+                                  type="text"
+                                  placeholder="Search notes & summaries..."
+                                  value={sidebarSearch}
+                                  onChange={(e) => setSidebarSearch(e.target.value)}
+                                  className="bg-black/50 border border-white/10 rounded-lg pl-8 pr-7 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-400 w-36 sm:w-52 transition-all shadow-inner"
+                                />
+                                {sidebarSearch && (
+                                  <button
+                                    onClick={() => setSidebarSearch("")}
+                                    className="absolute right-2 text-slate-400 hover:text-white"
+                                    title="Clear Search"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
                             
                             <div className="ml-auto flex items-center gap-2 flex-wrap">
                               <button
@@ -2819,11 +2869,11 @@ Qualifications:
 
                               <button
                                 onClick={exportStickyNotesSummary}
-                                disabled={stickyNotes.length === 0}
+                                disabled={stickyNotes.length === 0 && !Object.values(pageSummaries).some(s => s?.trim())}
                                 className="px-3 py-1.5 hidden sm:flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md text-amber-300 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 hover:text-amber-200 transition-all shadow-sm disabled:opacity-30 disabled:pointer-events-none"
-                                title="Export summary text file of all sticky notes"
+                                title="Export summary text file of all notes and page summaries"
                               >
-                                <FileText className="h-3.5 w-3.5" /> Notes Summary ({stickyNotes.length})
+                                <FileText className="h-3.5 w-3.5" /> Notes Summary ({stickyNotes.length + Object.values(pageSummaries).filter(s => s?.trim()).length})
                               </button>
 
                               {stickyNotes.length > 0 && (
@@ -2858,31 +2908,66 @@ Qualifications:
                             </div>
                           </div>
                         </h3>
-                        {numPages && numPages > 1 && (
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
+                          {/* Zoom Controls */}
+                          <div className="flex items-center gap-1 bg-white/5 border border-white/10 p-1 rounded-lg shadow-sm">
                             <button
-                              onClick={() =>
-                                setPageNumber((p) => Math.max(1, p - 1))
-                              }
-                              disabled={pageNumber <= 1}
-                              className="w-8 h-8 flex items-center justify-center bg-white/5 disabled:opacity-50 text-slate-300 rounded-lg hover:bg-white/10 transition-colors"
+                              onClick={() => setPdfScale((prev) => Math.max(0.4, Math.round((prev - 0.1) * 10) / 10))}
+                              disabled={pdfScale <= 0.4}
+                              className="p-1 hover:bg-white/10 rounded-md text-slate-300 hover:text-white transition-colors disabled:opacity-30"
+                              title="Zoom Out (-10%)"
                             >
-                              <ChevronUp className="h-4 w-4" />
+                              <ZoomOut className="w-3.5 h-3.5" />
                             </button>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest w-16 text-center">
-                              {pageNumber} / {numPages}
+                            <span className="text-[10px] font-mono font-extrabold text-teal-300 px-1 min-w-[38px] text-center">
+                              {Math.round(pdfScale * 100)}%
                             </span>
                             <button
-                              onClick={() =>
-                                setPageNumber((p) => Math.min(numPages, p + 1))
-                              }
-                              disabled={pageNumber >= numPages}
-                              className="w-8 h-8 flex items-center justify-center bg-white/5 disabled:opacity-50 text-slate-300 rounded-lg hover:bg-white/10 transition-colors"
+                              onClick={() => setPdfScale((prev) => Math.min(2.0, Math.round((prev + 0.1) * 10) / 10))}
+                              disabled={pdfScale >= 2.0}
+                              className="p-1 hover:bg-white/10 rounded-md text-slate-300 hover:text-white transition-colors disabled:opacity-30"
+                              title="Zoom In (+10%)"
                             >
-                              <ChevronDown className="h-4 w-4" />
+                              <ZoomIn className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setPdfScale(0.8)}
+                              className="p-1 hover:bg-white/10 rounded-md text-slate-400 hover:text-teal-300 transition-colors"
+                              title="Reset Zoom (80%)"
+                            >
+                              <RotateCcw className="w-3 h-3" />
                             </button>
                           </div>
-                        )}
+
+                          {/* Page Nav */}
+                          {numPages && numPages > 1 && (
+                            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 p-1 rounded-lg">
+                              <button
+                                onClick={() =>
+                                  setPageNumber((p) => Math.max(1, p - 1))
+                                }
+                                disabled={pageNumber <= 1}
+                                className="w-6 h-6 flex items-center justify-center bg-white/5 disabled:opacity-40 text-slate-300 rounded hover:bg-white/10 transition-colors"
+                                title="Previous Page"
+                              >
+                                <ChevronUp className="h-3.5 w-3.5" />
+                              </button>
+                              <span className="text-[10px] text-slate-300 font-bold tracking-wider px-1">
+                                {pageNumber} / {numPages}
+                              </span>
+                              <button
+                                onClick={() =>
+                                  setPageNumber((p) => Math.min(numPages, p + 1))
+                                }
+                                disabled={pageNumber >= numPages}
+                                className="w-6 h-6 flex items-center justify-center bg-white/5 disabled:opacity-40 text-slate-300 rounded hover:bg-white/10 transition-colors"
+                                title="Next Page"
+                              >
+                                <ChevronDown className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* Batch Keyword Highlighter Toolbar */}
@@ -3170,7 +3255,7 @@ Qualifications:
                             <Page
                               pageNumber={pageNumber}
                               width={1000}
-                              scale={0.8}
+                              scale={pdfScale}
                               renderTextLayer={true}
                               renderAnnotationLayer={true}
                               className="shadow-2xl !bg-transparent mx-auto"
@@ -3325,122 +3410,281 @@ Qualifications:
                               })}
                           </AnimatePresence>
                         </div>
+
+                        {/* Page Summary & Notes Input Field */}
+                        <div className="mt-3 p-4 rounded-2xl bg-[#0B0C1E]/90 border border-teal-500/30 shadow-xl backdrop-blur-md text-left w-full space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Notebook className="w-4 h-4 text-teal-400" />
+                              <span className="text-xs font-black text-white uppercase tracking-wider">
+                                Page {pageNumber} Executive Notes & Summary
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
+                                — Add page takeaways or specific feedback
+                              </span>
+                            </div>
+                            {pageSummaries[pageNumber] && pageSummaries[pageNumber].trim().length > 0 && (
+                              <span className="text-[9px] font-bold text-teal-300 bg-teal-500/10 border border-teal-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <Check className="w-2.5 h-2.5" /> Note Saved
+                              </span>
+                            )}
+                          </div>
+                          <textarea
+                            value={pageSummaries[pageNumber] || ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setPageSummaries((prev) => ({
+                                ...prev,
+                                [pageNumber]: val,
+                              }));
+                            }}
+                            placeholder={`Type notes or a key summary for Page ${pageNumber}... (Saved automatically and indexed in sidebar search)`}
+                            className="w-full h-20 bg-black/50 border border-white/10 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-teal-400/60 focus:ring-1 focus:ring-teal-400/50 resize-y transition-all leading-relaxed"
+                          />
+                        </div>
                       </div>
                       
                       {/* Sidebar Annotations Panel */}
-                      {(stickyNotes.length > 0 || highlights.length > 0) && (
-                        <div className="w-full xl:w-72 shrink-0 space-y-4">
-                          {/* Sticky Notes Summary Sidebar Panel */}
-                          {stickyNotes.length > 0 && (
-                            <div className="bg-white/5 p-4 rounded-2xl border border-white/5 max-h-[380px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 space-y-3">
+                      {(() => {
+                        const query = sidebarSearch.toLowerCase().trim();
+
+                        const filteredStickyNotes = stickyNotes.filter((n) => {
+                          if (!query) return true;
+                          const colorKey = n.color && STICKY_COLOR_CONFIG[n.color] ? n.color : "yellow";
+                          const conf = STICKY_COLOR_CONFIG[colorKey];
+                          return (
+                            (n.text && n.text.toLowerCase().includes(query)) ||
+                            conf.label.toLowerCase().includes(query) ||
+                            `page ${n.pageNumber}`.includes(query)
+                          );
+                        });
+
+                        const filteredHighlights = highlights.filter((hl) => {
+                          if (!query) return true;
+                          return (
+                            (hl.keyword && hl.keyword.toLowerCase().includes(query)) ||
+                            `page ${hl.pageNumber}`.includes(query)
+                          );
+                        });
+
+                        const filteredPageSummaries = Object.entries(pageSummaries).filter(([pNumStr, text]) => {
+                          if (!text || !text.trim()) return false;
+                          if (!query) return true;
+                          return (
+                            text.toLowerCase().includes(query) ||
+                            `page ${pNumStr}`.includes(query)
+                          );
+                        });
+
+                        const hasAnyAnnotations = stickyNotes.length > 0 || highlights.length > 0 || Object.values(pageSummaries).some(s => s && s.trim().length > 0);
+
+                        if (!hasAnyAnnotations && !query) return null;
+
+                        return (
+                          <div className="w-full xl:w-80 shrink-0 space-y-4">
+                            {/* Sidebar Filter Bar */}
+                            <div className="bg-white/5 p-3 rounded-2xl border border-white/5 space-y-2">
                               <div className="flex items-center justify-between">
-                                <h4 className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
-                                  <FileText className="w-3.5 h-3.5" /> Sticky Notes ({stickyNotes.length})
-                                </h4>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                  <Search className="w-3 h-3 text-teal-400" /> Filter Annotations
+                                </span>
+                                {query && (
+                                  <span className="text-[9px] font-bold text-teal-300 bg-teal-500/10 px-2 py-0.5 rounded-full border border-teal-500/20">
+                                    {filteredStickyNotes.length + filteredHighlights.length + filteredPageSummaries.length} matches
+                                  </span>
+                                )}
+                              </div>
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  placeholder="Search notes, highlights & summaries..."
+                                  value={sidebarSearch}
+                                  onChange={(e) => setSidebarSearch(e.target.value)}
+                                  className="w-full bg-[#0A0A15]/80 border border-white/10 rounded-xl pl-3 pr-7 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-400/60 focus:ring-1 focus:ring-teal-400/50 transition-all"
+                                />
+                                {sidebarSearch && (
+                                  <button
+                                    onClick={() => setSidebarSearch("")}
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* No results message */}
+                            {query && filteredStickyNotes.length === 0 && filteredHighlights.length === 0 && filteredPageSummaries.length === 0 && (
+                              <div className="bg-white/5 p-6 rounded-2xl border border-white/5 text-center space-y-2">
+                                <Info className="w-8 h-8 mx-auto text-slate-500 opacity-40" />
+                                <p className="text-xs font-bold text-slate-400">No annotations match "{sidebarSearch}"</p>
                                 <button
-                                  onClick={exportStickyNotesSummary}
-                                  className="text-[9px] font-bold text-amber-300 hover:text-white uppercase tracking-wider flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-md transition-all"
-                                  title="Export notes text file"
+                                  onClick={() => setSidebarSearch("")}
+                                  className="text-[10px] font-bold text-teal-400 hover:text-teal-300 uppercase tracking-wider bg-teal-500/10 px-3 py-1 rounded-lg border border-teal-500/20"
                                 >
-                                  <Download className="w-2.5 h-2.5" /> Export
+                                  Clear Search Filter
                                 </button>
                               </div>
-                              <div className="space-y-2">
-                                {stickyNotes.map((note) => {
-                                  const colorKey = note.color && STICKY_COLOR_CONFIG[note.color] ? note.color : "yellow";
-                                  const conf = STICKY_COLOR_CONFIG[colorKey];
-                                  return (
-                                    <div
-                                      key={`sidebar-note-${note.id}`}
-                                      className="flex flex-col bg-[#0A0A15]/60 p-2.5 rounded-xl border border-white/5 hover:border-amber-500/40 transition-all cursor-pointer group"
-                                      onClick={() => {
-                                        setPageNumber(note.pageNumber);
-                                        setStickyNotes(notes => notes.map(n => n.id === note.id ? { ...n, isOpen: true } : n));
-                                      }}
-                                    >
-                                      <div className="flex items-center justify-between mb-1">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: conf.dotColor }} />
-                                          <span className="text-[10px] font-black uppercase text-slate-200">
-                                            {conf.label}
-                                          </span>
-                                          <span className="text-[9px] font-bold text-slate-400 bg-white/5 px-1.5 py-0.5 rounded">
-                                            Page {note.pageNumber}
-                                          </span>
-                                        </div>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setStickyNotes(prev => prev.filter(n => n.id !== note.id));
-                                          }}
-                                          className="text-slate-500 hover:text-rose-400 transition-colors p-0.5"
-                                          title="Delete note"
-                                        >
-                                          <Trash2 className="w-3 h-3" />
-                                        </button>
-                                      </div>
-                                      <p className="text-[11px] text-slate-300 line-clamp-2 italic font-sans pl-3 border-l-2 border-white/10 group-hover:border-amber-400/60">
-                                        {note.text ? note.text : <span className="text-slate-600 font-normal">Empty note...</span>}
-                                      </p>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
+                            )}
 
-                          {/* Active Highlights Sidebar Panel */}
-                          {highlights.length > 0 && (
-                            <div className="bg-white/5 p-4 rounded-2xl border border-white/5 max-h-[350px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
-                              <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <FileText className="w-3.5 h-3.5" /> Highlights ({highlights.length})
-                              </h4>
-                              <div className="space-y-2">
-                                {highlights.map((hl) => (
-                                  <div
-                                    key={hl.id}
-                                    className="flex items-center justify-between bg-[#0A0A15]/50 p-2.5 rounded-lg border border-white/5 hover:border-white/10 transition-colors cursor-pointer"
-                                    onClick={() => setPageNumber(hl.pageNumber)}
-                                  >
-                                    <div className="flex items-center gap-2 overflow-hidden">
+                            {/* Page Summaries Sidebar Panel */}
+                            {filteredPageSummaries.length > 0 && (
+                              <div className="bg-white/5 p-4 rounded-2xl border border-white/5 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <h4 className="text-[10px] font-black text-teal-300 uppercase tracking-widest flex items-center gap-1.5">
+                                    <Notebook className="w-3.5 h-3.5 text-teal-400" /> Page Summaries ({filteredPageSummaries.length})
+                                  </h4>
+                                </div>
+                                <div className="space-y-2">
+                                  {filteredPageSummaries.map(([pNumStr, text]) => {
+                                    const pNum = Number(pNumStr);
+                                    return (
                                       <div
-                                        className="w-3 h-3 rounded-full border border-white/20 shrink-0"
-                                        style={{
-                                          backgroundColor: hl.color.replace(
-                                            "0.4",
-                                            "1",
-                                          ),
-                                        }}
-                                      />
-                                      <div className="flex flex-col text-left overflow-hidden">
-                                        <span className="text-[11px] font-bold text-white leading-tight">
-                                          Page {hl.pageNumber}
-                                        </span>
-                                        {hl.keyword && (
-                                          <span className="text-[9px] font-bold text-purple-300 truncate max-w-[120px]" title={hl.keyword}>
-                                            "{hl.keyword}"
+                                        key={`sidebar-summary-${pNum}`}
+                                        className="flex flex-col bg-[#0A0A15]/60 p-2.5 rounded-xl border border-white/5 hover:border-teal-500/40 transition-all cursor-pointer group"
+                                        onClick={() => setPageNumber(pNum)}
+                                      >
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="text-[9px] font-black uppercase text-teal-300 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded">
+                                            Page {pNum}
                                           </span>
-                                        )}
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setPageSummaries(prev => {
+                                                const next = { ...prev };
+                                                delete next[pNum];
+                                                return next;
+                                              });
+                                            }}
+                                            className="text-slate-500 hover:text-rose-400 transition-colors p-0.5"
+                                            title="Clear Page Summary"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </button>
+                                        </div>
+                                        <p className="text-[11px] text-slate-200 line-clamp-3 font-sans pl-2 border-l-2 border-teal-500/30 group-hover:border-teal-400">
+                                          {text}
+                                        </p>
                                       </div>
-                                    </div>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setHighlights((prev) =>
-                                          prev.filter((h) => h.id !== hl.id),
-                                        );
-                                      }}
-                                      className="text-slate-500 hover:text-rose-400 transition-colors"
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                ))}
+                                    );
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                            )}
+
+                            {/* Sticky Notes Summary Sidebar Panel */}
+                            {filteredStickyNotes.length > 0 && (
+                              <div className="bg-white/5 p-4 rounded-2xl border border-white/5 max-h-[350px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <h4 className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
+                                    <FileText className="w-3.5 h-3.5" /> Sticky Notes ({filteredStickyNotes.length})
+                                  </h4>
+                                  <button
+                                    onClick={exportStickyNotesSummary}
+                                    className="text-[9px] font-bold text-amber-300 hover:text-white uppercase tracking-wider flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-md transition-all"
+                                    title="Export notes text file"
+                                  >
+                                    <Download className="w-2.5 h-2.5" /> Export
+                                  </button>
+                                </div>
+                                <div className="space-y-2">
+                                  {filteredStickyNotes.map((note) => {
+                                    const colorKey = note.color && STICKY_COLOR_CONFIG[note.color] ? note.color : "yellow";
+                                    const conf = STICKY_COLOR_CONFIG[colorKey];
+                                    return (
+                                      <div
+                                        key={`sidebar-note-${note.id}`}
+                                        className="flex flex-col bg-[#0A0A15]/60 p-2.5 rounded-xl border border-white/5 hover:border-amber-500/40 transition-all cursor-pointer group"
+                                        onClick={() => {
+                                          setPageNumber(note.pageNumber);
+                                          setStickyNotes(notes => notes.map(n => n.id === note.id ? { ...n, isOpen: true } : n));
+                                        }}
+                                      >
+                                        <div className="flex items-center justify-between mb-1">
+                                          <div className="flex items-center gap-1.5">
+                                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: conf.dotColor }} />
+                                            <span className="text-[10px] font-black uppercase text-slate-200">
+                                              {conf.label}
+                                            </span>
+                                            <span className="text-[9px] font-bold text-slate-400 bg-white/5 px-1.5 py-0.5 rounded">
+                                              Page {note.pageNumber}
+                                            </span>
+                                          </div>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setStickyNotes(prev => prev.filter(n => n.id !== note.id));
+                                            }}
+                                            className="text-slate-500 hover:text-rose-400 transition-colors p-0.5"
+                                            title="Delete note"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </button>
+                                        </div>
+                                        <p className="text-[11px] text-slate-300 line-clamp-2 italic font-sans pl-3 border-l-2 border-white/10 group-hover:border-amber-400/60">
+                                          {note.text ? note.text : <span className="text-slate-600 font-normal">Empty note...</span>}
+                                        </p>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Active Highlights Sidebar Panel */}
+                            {filteredHighlights.length > 0 && (
+                              <div className="bg-white/5 p-4 rounded-2xl border border-white/5 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
+                                <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                  <FileText className="w-3.5 h-3.5" /> Highlights ({filteredHighlights.length})
+                                </h4>
+                                <div className="space-y-2">
+                                  {filteredHighlights.map((hl) => (
+                                    <div
+                                      key={hl.id}
+                                      className="flex items-center justify-between bg-[#0A0A15]/50 p-2.5 rounded-lg border border-white/5 hover:border-white/10 transition-colors cursor-pointer"
+                                      onClick={() => setPageNumber(hl.pageNumber)}
+                                    >
+                                      <div className="flex items-center gap-2 overflow-hidden">
+                                        <div
+                                          className="w-3 h-3 rounded-full border border-white/20 shrink-0"
+                                          style={{
+                                            backgroundColor: hl.color.replace(
+                                              "0.4",
+                                              "1",
+                                            ),
+                                          }}
+                                        />
+                                        <div className="flex flex-col text-left overflow-hidden">
+                                          <span className="text-[11px] font-bold text-white leading-tight">
+                                            Page {hl.pageNumber}
+                                          </span>
+                                          {hl.keyword && (
+                                            <span className="text-[9px] font-bold text-purple-300 truncate max-w-[120px]" title={hl.keyword}>
+                                              "{hl.keyword}"
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setHighlights((prev) =>
+                                            prev.filter((h) => h.id !== hl.id),
+                                          );
+                                        }}
+                                        className="text-slate-500 hover:text-rose-400 transition-colors"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </GlassCard>
                 </div>
