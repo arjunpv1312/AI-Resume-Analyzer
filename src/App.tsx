@@ -49,9 +49,11 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
-  Notebook
+  Notebook,
+  Plus
 } from "lucide-react";
 import confetti from "canvas-confetti";
+import { ResumeBuilderModal } from "./components/ResumeBuilderModal";
 import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import {
@@ -141,6 +143,15 @@ interface AnalysisResult {
   coverLetterDraft?: string;
   globalBenchmarking?: string;
   recruiterSummary?: string;
+  targetRole?: string;
+  atsMetadata?: {
+    ocrUsed?: boolean;
+    isScannedPdf?: boolean;
+    rulesScore?: number;
+    formattingScore?: number;
+    parsedLength?: number;
+    [key: string]: any;
+  };
 }
 
 interface StickyNoteData {
@@ -237,6 +248,41 @@ interface AnalysisHistoryItem {
   highlights?: HighlightData[];
   pageSummaries?: Record<number, string>;
 }
+
+const INDUSTRY_SKILL_DATABASE: Record<string, { category: string; skills: string[] }[]> = {
+  software: [
+    { category: "Frontend & Web", skills: ["TypeScript", "React", "Next.js", "Vue.js", "Tailwind CSS", "GraphQL", "WebAssembly", "Redux"] },
+    { category: "Backend & APIs", skills: ["Node.js", "Python", "Go", "Java", "Spring Boot", "REST APIs", "gRPC", "Microservices"] },
+    { category: "Cloud & Infrastructure", skills: ["AWS", "Kubernetes", "Docker", "Terraform", "CI/CD", "PostgreSQL", "Redis", "Kafka"] },
+    { category: "Architecture & Testing", skills: ["System Design", "Unit Testing", "TDD", "Clean Code", "Performance Optimization"] },
+  ],
+  data: [
+    { category: "AI & ML Engine", skills: ["PyTorch", "TensorFlow", "Scikit-Learn", "LLMs", "NLP", "Computer Vision", "LangChain"] },
+    { category: "Data Engineering", skills: ["Python", "SQL", "Apache Spark", "Airflow", "ETL Pipelines", "Snowflake", "BigQuery"] },
+    { category: "Analytics & BI", skills: ["Pandas", "Power BI", "Tableau", "Data Modeling", "A/B Testing", "Statistical Modeling"] },
+  ],
+  product: [
+    { category: "Product Delivery", skills: ["Product Roadmap", "User Research", "Agile / Scrum", "OKRs", "PRDs", "Competitive Analysis"] },
+    { category: "Growth & Analytics", skills: ["KPI Tracking", "A/B Testing", "Funnel Optimization", "Google Analytics", "SQL Data Analysis"] },
+    { category: "Leadership & Stakeholders", skills: ["Stakeholder Alignment", "Cross-Functional Leadership", "Feature Prioritization"] },
+  ],
+  finance: [
+    { category: "Financial Analysis", skills: ["Financial Modeling", "Valuation", "EBITDA", "DCF Modeling", "Variance Analysis", "LBO"] },
+    { category: "Risk & Operations", skills: ["Portfolio Management", "Risk Management", "Budgeting", "Forecasting", "SAP", "Excel VBA"] },
+  ],
+  leadership: [
+    { category: "Executive Management", skills: ["P&L Management", "Strategic Planning", "Change Management", "Team Mentorship", "Vendor Relations"] },
+    { category: "Organizational Strategy", skills: ["Process Optimization", "Resource Allocation", "Governance", "Cross-Functional Alignment"] },
+  ],
+  cybersecurity: [
+    { category: "Security & Operations", skills: ["SIEM", "Penetration Testing", "Threat Intelligence", "Zero Trust", "ISO 27001", "SOC 2 Compliance"] },
+    { category: "Cloud & IAM", skills: ["Identity & Access Management (IAM)", "Cloud Security", "Cryptography", "Incident Response"] },
+  ],
+  marketing: [
+    { category: "Growth & Acquisition", skills: ["SEO Optimization", "Content Marketing", "HubSpot", "CAC / LTV Analysis", "Conversion Rate Optimization"] },
+    { category: "Brand Strategy", skills: ["Paid Search / PPC", "Google Ads", "Email Marketing Automation", "Brand Positioning"] },
+  ]
+};
 
 const GlassCard = ({
   children,
@@ -656,6 +702,85 @@ export default function App() {
   const [batchInput, setBatchInput] = useState("");
   const [batchFeedback, setBatchFeedback] = useState<string | null>(null);
   const [activeBatchKeywords, setActiveBatchKeywords] = useState<{ keyword: string; color: string }[]>([]);
+  const [isPrintFriendly, setIsPrintFriendly] = useState(false);
+  const [isBatchSuggestOpen, setIsBatchSuggestOpen] = useState(false);
+  const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
+  const [isResumeBuilderOpen, setIsResumeBuilderOpen] = useState(false);
+
+  const togglePrintFriendlyTheme = () => {
+    setIsPrintFriendly((prev) => {
+      const next = !prev;
+      if (next) {
+        document.documentElement.classList.add("print-friendly-mode");
+      } else {
+        document.documentElement.classList.remove("print-friendly-mode");
+      }
+      return next;
+    });
+  };
+
+  const getMatchedIndustrySkills = useCallback(
+    (targetRole?: string, inputQuery?: string) => {
+      const roleLower = (targetRole || "").toLowerCase();
+      let key = "software";
+      if (
+        roleLower.includes("data") ||
+        roleLower.includes("machine") ||
+        roleLower.includes("ai") ||
+        roleLower.includes("analyst")
+      ) {
+        key = "data";
+      } else if (
+        roleLower.includes("product") ||
+        roleLower.includes("program") ||
+        roleLower.includes("project")
+      ) {
+        key = "product";
+      } else if (
+        roleLower.includes("finan") ||
+        roleLower.includes("account") ||
+        roleLower.includes("bank")
+      ) {
+        key = "finance";
+      } else if (
+        roleLower.includes("director") ||
+        roleLower.includes("vp") ||
+        roleLower.includes("executive") ||
+        roleLower.includes("chief") ||
+        roleLower.includes("head")
+      ) {
+        key = "leadership";
+      } else if (
+        roleLower.includes("sec") ||
+        roleLower.includes("cyber") ||
+        roleLower.includes("audit")
+      ) {
+        key = "cybersecurity";
+      } else if (
+        roleLower.includes("mark") ||
+        roleLower.includes("growth") ||
+        roleLower.includes("sale")
+      ) {
+        key = "marketing";
+      }
+
+      const db = INDUSTRY_SKILL_DATABASE[key] || INDUSTRY_SKILL_DATABASE.software;
+      const matchedMap: Record<string, string[]> = {};
+      const query = (inputQuery || "").toLowerCase().trim();
+
+      db.forEach((cat) => {
+        const filtered = cat.skills.filter(
+          (sk) => !query || sk.toLowerCase().includes(query),
+        );
+        if (filtered.length > 0) {
+          matchedMap[cat.category] = filtered;
+        }
+      });
+
+      return { industryName: key, skillsByCategory: matchedMap };
+    },
+    [],
+  );
 
   const findKeywordRectsInContainer = useCallback((
     containerEl: HTMLElement,
@@ -1208,6 +1333,25 @@ export default function App() {
       localStorage.setItem("resume_analysis_history", JSON.stringify(updated));
       return updated;
     });
+    setActiveVersionId(newItem.id);
+  };
+
+  const switchActiveVersion = (id: string) => {
+    if (id === "__new__") {
+      takeSnapshot();
+      return;
+    }
+    const target = history.find((h) => h.id === id);
+    if (target) {
+      setActiveVersionId(id);
+      setResult(target.result);
+      setJobDescription(target.jobDescription || "");
+      setStickyNotes(target.stickyNotes || []);
+      setHighlights(target.highlights || []);
+      setPageSummaries(target.pageSummaries || {});
+      setSnapshotToast(`Switched active resume session to "${target.versionName}"`);
+      setTimeout(() => setSnapshotToast(null), 3000);
+    }
   };
 
   const takeSnapshot = (customName?: string) => {
@@ -1234,8 +1378,9 @@ export default function App() {
       localStorage.setItem("resume_analysis_history", JSON.stringify(updated));
       return updated;
     });
+    setActiveVersionId(newItem.id);
 
-    setSnapshotToast(`Snapshot "${defaultName}" saved to archive!`);
+    setSnapshotToast(`Snapshot "${defaultName}" saved to active session!`);
     setTimeout(() => setSnapshotToast(null), 3500);
   };
 
@@ -1711,6 +1856,55 @@ export default function App() {
                 />
               ))}
             </div>
+            {/* ATS Resume Generator & AI Coach Modal Trigger */}
+            {result && (
+              <button
+                onClick={() => setIsResumeBuilderOpen(true)}
+                className="px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black text-xs transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-105 active:scale-95"
+              >
+                <Sparkles className="h-4 w-4 text-purple-200 animate-pulse" />
+                <span>ATS Builder & Coach</span>
+              </button>
+            )}
+
+            {/* High-Contrast Print-Friendly Theme Toggle */}
+            <button
+              onClick={togglePrintFriendlyTheme}
+              title="Toggle High-Contrast Print-Friendly Theme for clean PDF exports"
+              className={`px-5 py-2.5 rounded-full border text-xs font-bold transition-all flex items-center gap-2 shadow-sm ${
+                isPrintFriendly
+                  ? "bg-amber-400 text-slate-950 border-amber-300 font-extrabold shadow-[0_0_15px_rgba(251,191,36,0.5)] scale-105"
+                  : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"
+              }`}
+            >
+              <Printer className="h-4 w-4" />
+              {isPrintFriendly ? "Print Theme: ON" : "Print-Friendly"}
+            </button>
+
+            {/* Session Resume Version Dropdown Selector */}
+            {history.length > 0 && (
+              <div className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 px-3.5 py-2 rounded-full no-print">
+                <Layers className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest hidden lg:inline">
+                  Version:
+                </span>
+                <select
+                  value={activeVersionId || (history[0]?.id ?? "")}
+                  onChange={(e) => switchActiveVersion(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-purple-200 focus:outline-none cursor-pointer max-w-[160px] truncate"
+                >
+                  {history.map((ver, idx) => (
+                    <option key={ver.id} value={ver.id} className="bg-slate-900 text-white">
+                      {ver.versionName || `Version ${history.length - idx}`} ({ver.result?.overallScore || 0}% ATS)
+                    </option>
+                  ))}
+                  <option value="__new__" className="bg-purple-900 text-purple-200 font-bold">
+                    + Save Snapshot Version
+                  </option>
+                </select>
+              </div>
+            )}
+
             <button
               onClick={() => setIsGuideOpen(true)}
               className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition-all flex items-center gap-2"
@@ -2985,27 +3179,119 @@ Qualifications:
                             </div>
 
                             <div className="flex items-center gap-2">
-                              <div className="relative flex-1 sm:w-64">
+                              <div className="relative flex-1 sm:w-72">
                                 <input
                                   type="text"
-                                  placeholder="Type skill or keyword to highlight..."
+                                  placeholder="Type skill to search & auto-suggest..."
                                   value={batchInput}
-                                  onChange={(e) => setBatchInput(e.target.value)}
+                                  onFocus={() => setIsBatchSuggestOpen(true)}
+                                  onChange={(e) => {
+                                    setBatchInput(e.target.value);
+                                    setIsBatchSuggestOpen(true);
+                                  }}
                                   onKeyDown={(e) => {
                                     if (e.key === "Enter" && batchInput.trim()) {
                                       handleBatchHighlight(batchInput.trim());
                                       setBatchInput("");
+                                      setIsBatchSuggestOpen(false);
                                     }
                                   }}
-                                  className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+                                  className="w-full bg-black/60 border border-purple-500/30 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400"
                                 />
                                 {batchInput && (
                                   <button
-                                    onClick={() => setBatchInput("")}
+                                    onClick={() => {
+                                      setBatchInput("");
+                                      setIsBatchSuggestOpen(false);
+                                    }}
                                     className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                                   >
                                     <X className="w-3 h-3" />
                                   </button>
+                                )}
+
+                                {/* Auto-Suggestion Dropdown Menu */}
+                                {isBatchSuggestOpen && (
+                                  <div className="absolute z-50 left-0 right-0 top-full mt-2 p-3 bg-slate-900/95 border border-purple-500/40 rounded-xl shadow-2xl backdrop-blur-xl max-h-72 overflow-y-auto space-y-3">
+                                    <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+                                      <span className="text-[10px] font-black text-purple-300 uppercase tracking-widest flex items-center gap-1">
+                                        <Sparkles className="w-3 h-3 text-purple-400" /> Auto-Suggest ({result?.targetRole || "Active Industry"})
+                                      </span>
+                                      <button
+                                        onClick={() => setIsBatchSuggestOpen(false)}
+                                        className="text-slate-400 hover:text-white text-[10px]"
+                                      >
+                                        Close
+                                      </button>
+                                    </div>
+
+                                    {/* Missing JD Keywords */}
+                                    {result?.atsAnalysis?.jobKeywordsMissing &&
+                                      result.atsAnalysis.jobKeywordsMissing.length > 0 && (
+                                        <div>
+                                          <div className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                            <Target className="w-3 h-3" /> Target Job Missing Keywords:
+                                          </div>
+                                          <div className="flex flex-wrap gap-1">
+                                            {result.atsAnalysis.jobKeywordsMissing
+                                              .filter(
+                                                (kw) =>
+                                                  !batchInput ||
+                                                  kw.toLowerCase().includes(batchInput.toLowerCase()),
+                                              )
+                                              .slice(0, 8)
+                                              .map((kw) => (
+                                                <button
+                                                  key={`suggest-missing-${kw}`}
+                                                  onClick={() => {
+                                                    handleBatchHighlight(
+                                                      kw,
+                                                      "rgba(244, 114, 182, 0.4)",
+                                                    );
+                                                    setBatchInput("");
+                                                    setIsBatchSuggestOpen(false);
+                                                  }}
+                                                  className="px-2 py-0.5 rounded bg-rose-500/20 border border-rose-400/40 text-rose-300 text-[10px] font-bold hover:bg-rose-500 hover:text-white transition-all"
+                                                >
+                                                  🎯 {kw}
+                                                </button>
+                                              ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                    {/* Industry & Role High-Impact Skills */}
+                                    {(() => {
+                                      const { skillsByCategory } = getMatchedIndustrySkills(
+                                        result?.targetRole,
+                                        batchInput,
+                                      );
+                                      return Object.entries(skillsByCategory).map(
+                                        ([catName, skills]) => (
+                                          <div key={catName}>
+                                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
+                                              ⚡ {catName}:
+                                            </div>
+                                            <div className="flex flex-wrap gap-1">
+                                              {skills.slice(0, 8).map((sk) => (
+                                                <button
+                                                  key={`suggest-sk-${sk}`}
+                                                  onClick={() => {
+                                                    handleBatchHighlight(sk);
+                                                    setBatchInput("");
+                                                    setIsBatchSuggestOpen(false);
+                                                  }}
+                                                  className="px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/30 text-purple-300 text-[10px] font-bold hover:bg-purple-500 hover:text-slate-950 transition-all"
+                                                >
+                                                  {sk}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        ),
+                                      );
+                                    })()}
+                                  </div>
                                 )}
                               </div>
                               <button
@@ -3013,6 +3299,7 @@ Qualifications:
                                   if (batchInput.trim()) {
                                     handleBatchHighlight(batchInput.trim());
                                     setBatchInput("");
+                                    setIsBatchSuggestOpen(false);
                                   }
                                 }}
                                 disabled={!batchInput.trim()}
@@ -3023,18 +3310,18 @@ Qualifications:
                             </div>
                           </div>
 
-                          {/* Preset Skill Chips from Analysis */}
+                          {/* Preset Skill Chips from Analysis & Industry Database */}
                           {result && (
                             <div className="space-y-2 pt-2 border-t border-white/10">
                               <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
                                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mr-1 flex items-center gap-1">
-                                  <Tag className="w-3 h-3 text-purple-400" /> Presets:
+                                  <Tag className="w-3 h-3 text-purple-400" /> Recommended:
                                 </span>
-                                
+
                                 {/* Missing Skills */}
                                 {result.skillGapReport?.slice(0, 5).map((gap) => {
                                   const isHighlighted = activeBatchKeywords.some(
-                                    (k) => k.keyword.toLowerCase() === gap.skill.toLowerCase()
+                                    (k) => k.keyword.toLowerCase() === gap.skill.toLowerCase(),
                                   );
                                   return (
                                     <button
@@ -3043,7 +3330,10 @@ Qualifications:
                                         if (isHighlighted) {
                                           clearBatchHighlight(gap.skill);
                                         } else {
-                                          handleBatchHighlight(gap.skill, "rgba(244, 114, 182, 0.4)");
+                                          handleBatchHighlight(
+                                            gap.skill,
+                                            "rgba(244, 114, 182, 0.4)",
+                                          );
                                         }
                                       }}
                                       className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-all flex items-center gap-1.5 ${
@@ -3058,6 +3348,45 @@ Qualifications:
                                     </button>
                                   );
                                 })}
+
+                                {/* Industry High-Impact Skill Pills */}
+                                {(() => {
+                                  const { skillsByCategory } = getMatchedIndustrySkills(
+                                    result?.targetRole,
+                                  );
+                                  const industryTop = Object.values(skillsByCategory)
+                                    .flat()
+                                    .slice(0, 6);
+                                  return industryTop.map((sk) => {
+                                    const isHighlighted = activeBatchKeywords.some(
+                                      (k) => k.keyword.toLowerCase() === sk.toLowerCase(),
+                                    );
+                                    return (
+                                      <button
+                                        key={`ind-preset-${sk}`}
+                                        onClick={() => {
+                                          if (isHighlighted) {
+                                            clearBatchHighlight(sk);
+                                          } else {
+                                            handleBatchHighlight(
+                                              sk,
+                                              "rgba(56, 189, 248, 0.4)",
+                                            );
+                                          }
+                                        }}
+                                        className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-all flex items-center gap-1.5 ${
+                                          isHighlighted
+                                            ? "bg-sky-500/20 text-sky-300 border-sky-400/50 shadow-[0_0_10px_rgba(56,189,248,0.3)]"
+                                            : "bg-white/5 text-slate-300 border-white/10 hover:bg-sky-500/10 hover:text-sky-300 hover:border-sky-500/30"
+                                        }`}
+                                      >
+                                        <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                                        {sk}
+                                        {isHighlighted && <X className="w-3 h-3 ml-0.5 opacity-70" />}
+                                      </button>
+                                    );
+                                  });
+                                })()}
 
                                 {/* Keywords Found */}
                                 {result.atsAnalysis?.jobKeywordsFound?.slice(0, 5).map((kw) => {
@@ -3932,32 +4261,104 @@ AWS Certified Solutions Architect – Associate (2022)`;
               className="space-y-8"
               ref={printRef}
             >
+              {/* OCR Scanned Document Notice Banner */}
+              {(result.atsMetadata?.ocrUsed || result.atsMetadata?.isScannedPdf) && (
+                <div className="bg-amber-500/15 border border-amber-500/40 p-4 rounded-2xl flex items-start gap-4 shadow-xl backdrop-blur-md animate-fadeIn mb-6">
+                  <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 shrink-0">
+                    <Camera className="w-5 h-5 text-amber-300 animate-pulse" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-black text-amber-300 uppercase tracking-widest flex items-center gap-2">
+                      Scanned Document / Image PDF Parsed via Tesseract.js OCR
+                    </h4>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      We detected a scanned image-based PDF. Text was extracted using onboard Tesseract OCR.
+                      Standard ATS scanners heavily penalize non-selectable text. For maximum compatibility and score, re-export your resume as a text-native PDF or DOCX format.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Header Controls */}
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-8 border-b border-white/5">
                 <div>
-                  <h2 className="text-4xl font-black font-display text-white tracking-tight">
-                    Executive Summary
-                  </h2>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-4xl font-black font-display text-white tracking-tight">
+                      Executive Summary
+                    </h2>
+                    {activeVersionId && (
+                      <span className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 text-[10px] font-extrabold uppercase tracking-wider">
+                        {history.find(h => h.id === activeVersionId)?.versionName || "Active Version"}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-slate-500 text-sm font-bold tracking-widest uppercase mt-2">
-                    Analysis For: {file?.name}
+                    Analysis For: {file?.name || history.find(h => h.id === activeVersionId)?.fileName || "Resume"}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-4 no-print">
+                <div className="flex flex-wrap gap-3 no-print">
+                  {/* ATS Generator & AI Coach Button */}
+                  <button
+                    onClick={() => setIsResumeBuilderOpen(true)}
+                    className="px-6 py-3 rounded-full bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 text-white font-black text-[11px] uppercase tracking-widest transition-all flex items-center gap-2.5 shadow-[0_0_25px_rgba(168,85,247,0.5)] hover:scale-105 active:scale-95"
+                  >
+                    <Sparkles className="h-4 w-4 text-purple-200 animate-pulse" />
+                    <span>ATS Builder & Coach</span>
+                  </button>
+
+                  {/* Version Selector Dropdown */}
+                  {history.length > 0 && (
+                    <div className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 px-4 py-2.5 rounded-full shadow-lg">
+                      <Layers className="h-4 w-4 text-purple-400 shrink-0" />
+                      <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                        Version:
+                      </span>
+                      <select
+                        value={activeVersionId || (history[0]?.id ?? "")}
+                        onChange={(e) => switchActiveVersion(e.target.value)}
+                        className="bg-transparent text-xs font-black text-purple-200 focus:outline-none cursor-pointer max-w-[170px] truncate"
+                      >
+                        {history.map((ver, idx) => (
+                          <option key={ver.id} value={ver.id} className="bg-slate-900 text-white">
+                            {ver.versionName || `Version ${history.length - idx}`} ({ver.result?.overallScore || 0}% ATS)
+                          </option>
+                        ))}
+                        <option value="__new__" className="bg-purple-900 text-purple-200 font-bold">
+                          + Save Snapshot Version
+                        </option>
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Print-Friendly Toggle Button */}
+                  <button
+                    onClick={togglePrintFriendlyTheme}
+                    title="Toggle High-Contrast Print-Friendly Theme for clean PDF exports"
+                    className={`px-5 py-3 rounded-full border text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-xl ${
+                      isPrintFriendly
+                        ? "bg-amber-400 text-slate-950 border-amber-300 font-extrabold shadow-[0_0_20px_rgba(251,191,36,0.6)] scale-105"
+                        : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"
+                    }`}
+                  >
+                    <Printer className="h-4 w-4" />
+                    {isPrintFriendly ? "Print Theme: ON" : "Print-Friendly Theme"}
+                  </button>
+
                   <button
                     onClick={() => setIsLinkedInModalOpen(true)}
-                    className="px-8 py-3 rounded-full bg-[#0A66C2]/10 border border-[#0A66C2]/20 text-[#0A66C2] font-black text-[11px] uppercase tracking-widest hover:bg-[#0A66C2] hover:text-white transition-all flex items-center gap-3 shadow-xl"
+                    className="px-6 py-3 rounded-full bg-[#0A66C2]/10 border border-[#0A66C2]/20 text-[#0A66C2] font-black text-[11px] uppercase tracking-widest hover:bg-[#0A66C2] hover:text-white transition-all flex items-center gap-3 shadow-xl"
                   >
                     <Layers className="h-4 w-4" /> Share Success
                   </button>
                   <button
                     onClick={() => setIsExecutiveMode(!isExecutiveMode)}
-                    className={`px-8 py-3 rounded-full border text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-3 shadow-xl ${isExecutiveMode ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 hover:bg-amber-500 hover:text-white' : 'border-white/10 text-slate-300 hover:bg-white/5'}`}
+                    className={`px-6 py-3 rounded-full border text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-3 shadow-xl ${isExecutiveMode ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 hover:bg-amber-500 hover:text-white' : 'border-white/10 text-slate-300 hover:bg-white/5'}`}
                   >
                     <Briefcase className="h-4 w-4" /> {isExecutiveMode ? 'Exit Exec Mode' : 'Executive Mode'}
                   </button>
                   <button
                     onClick={handlePrint}
-                    className="px-8 py-3 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 font-black text-[11px] uppercase tracking-widest hover:bg-teal-500 hover:text-white transition-all flex items-center gap-3 shadow-xl"
+                    className="px-6 py-3 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 font-black text-[11px] uppercase tracking-widest hover:bg-teal-500 hover:text-white transition-all flex items-center gap-3 shadow-xl"
                   >
                     <Printer className="h-4 w-4" /> Export Report
                   </button>
@@ -3966,7 +4367,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       setResult(null);
                       setFile(null);
                     }}
-                    className="px-8 py-3 rounded-full border border-white/10 text-slate-300 font-black text-[11px] uppercase tracking-widest hover:bg-white/5 transition-all flex items-center gap-3 shadow-xl"
+                    className="px-6 py-3 rounded-full border border-white/10 text-slate-300 font-black text-[11px] uppercase tracking-widest hover:bg-white/5 transition-all flex items-center gap-3 shadow-xl"
                   >
                     <RefreshCw className="h-4 w-4" /> New Analysis
                   </button>
@@ -5643,6 +6044,21 @@ AWS Certified Solutions Architect – Associate (2022)`;
           />
         </a>
       </div>
+
+      {/* Interactive ATS Resume Generator & AI Coach Modal */}
+      <ResumeBuilderModal
+        isOpen={isResumeBuilderOpen}
+        onClose={() => setIsResumeBuilderOpen(false)}
+        rawResumeText={
+          result?.resumeRewriteDraft ||
+          result?.summary ||
+          result?.executiveSummary ||
+          file?.name ||
+          ""
+        }
+        jobDescription={jobDescription}
+        analysisResult={result}
+      />
     </div>
   );
 }

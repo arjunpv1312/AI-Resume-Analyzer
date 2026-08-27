@@ -9,6 +9,7 @@ import multer from "multer";
 import mammoth from "mammoth";
 import { fileURLToPath } from "url";
 import { createRequire } from "module";
+import { createWorker } from "tesseract.js";
 
 const require = createRequire(import.meta.url);
 const pdf = require("pdf-parse");
@@ -99,15 +100,63 @@ async function startServer() {
 
           let text = "";
           let pageCount = 0;
+          let ocrUsed = false;
+          let isScannedPdf = false;
 
           try {
-            if (file.mimetype === "application/pdf") {
+            const isImageFile =
+              file.mimetype.startsWith("image/") ||
+              /\.(png|jpe?g|webp|tiff|bmp)$/i.test(file.originalname);
+
+            if (isImageFile) {
+              console.log(
+                `[${requestId}] Image file detected (${file.mimetype}). Launching Tesseract OCR engine...`,
+              );
+              const worker = await createWorker("eng");
+              const ocrResult = await worker.recognize(file.buffer);
+              await worker.terminate();
+              text = ocrResult.data.text || "";
+              pageCount = 1;
+              ocrUsed = true;
+              isScannedPdf = true;
+              console.log(
+                `[${requestId}] Image OCR complete. Extracted ${text.length} characters.`,
+              );
+            } else if (file.mimetype === "application/pdf") {
               console.log(`[${requestId}] Parsing PDF...`);
               const pdfParser =
                 typeof pdf === "function" ? pdf : pdf.default || pdf;
               const data = await pdfParser(file.buffer);
-              text = data.text;
-              pageCount = data.numpages || 0;
+              text = data.text || "";
+              pageCount = data.numpages || 1;
+
+              // Check if PDF contains no selectable text (scanned PDF)
+              if (!text || text.trim().length < 60) {
+                console.log(
+                  `[${requestId}] PDF contains sparse text (${text.trim().length} chars). Scanned PDF detected! Running Tesseract OCR engine fallback...`,
+                );
+                try {
+                  const worker = await createWorker("eng");
+                  const ocrResult = await worker.recognize(file.buffer);
+                  await worker.terminate();
+                  if (
+                    ocrResult.data.text &&
+                    ocrResult.data.text.trim().length > text.trim().length
+                  ) {
+                    text = ocrResult.data.text;
+                    ocrUsed = true;
+                    isScannedPdf = true;
+                    console.log(
+                      `[${requestId}] Tesseract OCR fallback extracted ${text.length} characters from scanned PDF.`,
+                    );
+                  }
+                } catch (ocrErr) {
+                  console.warn(
+                    `[${requestId}] Tesseract OCR fallback failed:`,
+                    ocrErr,
+                  );
+                }
+              }
             } else if (
               file.mimetype ===
               "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -146,7 +195,7 @@ async function startServer() {
           }
 
           console.log(
-            `[${requestId}] Extraction complete. Length: ${text.length} chars`,
+            `[${requestId}] Extraction complete. Length: ${text.length} chars (OCR used: ${ocrUsed})`,
           );
 
           // ATS Rule-Based Engine
@@ -159,6 +208,14 @@ async function startServer() {
             let rulesScore = 100;
             let formattingScore = 100;
             const flags: string[] = [];
+
+            if (isScannedPdf || ocrUsed) {
+              rulesScore -= 15;
+              formattingScore -= 15;
+              flags.push(
+                "Scanned / Image-Based PDF Warning: Document contains non-selectable text parsed via Tesseract OCR. Standard enterprise ATS software without OCR will fail to parse image-based resumes. Re-export your resume as a text-native PDF or DOCX file.",
+              );
+            }
 
             // 0. File Naming Convention Check
             if (fileName) {
@@ -755,6 +812,8 @@ async function startServer() {
               jobKeywordsMissing,
               keywordDensity,
               bulletPointQualityScore,
+              ocrUsed,
+              isScannedPdf,
             };
           };
 
@@ -781,6 +840,8 @@ async function startServer() {
               jobKeywordsMissing: atsRulesResults.jobKeywordsMissing,
               keywordDensity: atsRulesResults.keywordDensity,
               bulletPointQualityScore: atsRulesResults.bulletPointQualityScore,
+              ocrUsed: atsRulesResults.ocrUsed,
+              isScannedPdf: atsRulesResults.isScannedPdf,
             },
           });
         } catch (error) {
@@ -1139,6 +1200,215 @@ async function startServer() {
             "The AI model is currently experiencing high demand. Please try again later.";
         }
         res.status(500).json({ error: errMsg });
+      }
+    });
+
+    // ATS Resume Generation & Structuring Endpoint
+    app.post("/api/generate-ats-resume", async (req, res) => {
+      try {
+        const { resumeText, jobDescription, analysisResult } = req.body;
+
+        if (!resumeText) {
+          return res.status(400).json({ error: "resumeText is required" });
+        }
+
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+          return res.status(400).json({
+            error: "GEMINI_API_KEY environment variable is required",
+          });
+        }
+
+        const { GoogleGenAI } = await import("@google/genai");
+        const ai = new GoogleGenAI({ apiKey });
+
+        const missingKeywords = analysisResult?.atsAnalysis?.jobKeywordsMissing || [];
+        const targetRole = analysisResult?.targetRole || "";
+
+        const prompt = `
+You are a World-Class Resume Strategist and ATS Specialist.
+Your task is to take raw resume text and structure/optimize it into a 100% ATS-compliant resume JSON object.
+
+Target Role: "${targetRole}"
+Job Description context: "${jobDescription ? jobDescription.slice(0, 1500) : "N/A"}"
+Missing high-impact keywords to seamlessly incorporate where appropriate: ${JSON.stringify(missingKeywords)}
+
+Raw Resume Text:
+"""
+${resumeText.slice(0, 6000)}
+"""
+
+Instructions:
+1. Extract and standardize candidate contact details (Name, Title, Email, Phone, Location, LinkedIn/Website).
+2. Write a powerful, 2-3 line Professional Summary tailored to the target role.
+3. Standardize Work Experience items into clean structured objects:
+   - Company, Position, Duration, and a list of 3-5 high-impact, quantified bullet points starting with strong action verbs (e.g., Spearheaded, Orchestrated, Engineered).
+4. Extract Education entries (Degree, Institution, Year/Location).
+5. Group skills into relevant categories (e.g. Core Skills, Technologies/Tools, Methodologies).
+6. Ensure no table layout, columns, or non-standard characters exist.
+
+Return strictly a valid JSON object matching this schema:
+{
+  "name": "Full Name",
+  "title": "Professional Title / Target Role",
+  "contact": {
+    "email": "user@email.com",
+    "phone": "+1 ...",
+    "location": "City, State / Country",
+    "linkedin": "linkedin.com/in/...",
+    "portfolio": "github.com/..."
+  },
+  "summary": "2-3 sentence executive summary...",
+  "experience": [
+    {
+      "id": "exp_1",
+      "company": "Company Name",
+      "position": "Job Title",
+      "duration": "2021 - Present",
+      "location": "City, State",
+      "bulletPoints": [
+        "Action verb + task + metric/impact result...",
+        "Action verb + task + metric/impact result..."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "id": "edu_1",
+      "degree": "B.S. in Computer Science",
+      "institution": "University Name",
+      "year": "2020",
+      "location": "City, State"
+    }
+  ],
+  "skills": {
+    "core": ["Skill 1", "Skill 2"],
+    "tools": ["Tool 1", "Tool 2"],
+    "methodologies": ["Agile", "Scrum"]
+  },
+  "projects": [
+    {
+      "id": "proj_1",
+      "name": "Project Title",
+      "description": "Short overview",
+      "bulletPoints": ["Key achievement..."]
+    }
+  ],
+  "estimatedAtsScore": 92
+}
+`;
+
+        const aiResponse = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          config: {
+            temperature: 0.2,
+            responseMimeType: "application/json",
+          },
+        });
+
+        const textResponse = aiResponse.text || "{}";
+        const parsed = JSON.parse(textResponse);
+        res.json(parsed);
+      } catch (err: any) {
+        console.error("Error generating ATS resume JSON:", err);
+        res.status(500).json({ error: err.message || "Failed to generate ATS resume format" });
+      }
+    });
+
+    // Interactive AI Resume Coach Chat & Rewriter Endpoint
+    app.post("/api/resume-coach", async (req, res) => {
+      try {
+        const {
+          resumeText,
+          jobDescription,
+          analysisResult,
+          currentResumeData,
+          chatHistory = [],
+          userPrompt,
+          quickAction,
+        } = req.body;
+
+        if (!userPrompt && !quickAction) {
+          return res.status(400).json({ error: "userPrompt or quickAction is required" });
+        }
+
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+          return res.status(400).json({
+            error: "GEMINI_API_KEY environment variable is required",
+          });
+        }
+
+        const { GoogleGenAI } = await import("@google/genai");
+        const ai = new GoogleGenAI({ apiKey });
+
+        const prompt = `
+You are an Interactive AI Executive Resume Coach & ATS Optimizer.
+The candidate is working with you to optimize their resume for maximum ATS scoring and recruiter response rate.
+
+Context:
+- Target Role: "${analysisResult?.targetRole || "Target Position"}"
+- Overall ATS Score: ${analysisResult?.overallScore || 70}%
+- Missing JD Keywords: ${JSON.stringify(analysisResult?.atsAnalysis?.jobKeywordsMissing || [])}
+- Low Quality Bullet Points: ${JSON.stringify(analysisResult?.atsAnalysis?.bulletPointIssues || [])}
+- Formatting Flags: ${JSON.stringify(analysisResult?.atsAnalysis?.formattingFlags || [])}
+
+Current Structured Resume JSON:
+${JSON.stringify(currentResumeData || {}, null, 2)}
+
+User Request / Action Triggered:
+"${userPrompt || quickAction}"
+
+Previous Chat Conversation History:
+${JSON.stringify(chatHistory.slice(-6))}
+
+Instructions:
+1. Provide a direct, encouraging, and highly specific coaching response to the user's request. Explain what changes were made or how to address their concern.
+2. If the user request implies updating or refining the resume (e.g. "Quantify bullet points", "Inject missing keywords", "Rewrite summary", or a specific editing instruction), return an updated, complete, valid ATS resume JSON object under the key "updatedResume".
+3. Calculate an updated estimated ATS Compatibility Score (0-100) reflecting the enhancements made.
+
+Return strictly a valid JSON object matching this schema:
+{
+  "reply": "Your clear, actionable coaching response and advice to the user...",
+  "updatedResume": {
+    "name": "Full Name",
+    "title": "Title",
+    "contact": { "email": "", "phone": "", "location": "", "linkedin": "", "portfolio": "" },
+    "summary": "Updated summary...",
+    "experience": [
+      {
+        "id": "exp_1",
+        "company": "Company",
+        "position": "Title",
+        "duration": "Duration",
+        "location": "Location",
+        "bulletPoints": ["Bullet 1 with % metric", "Bullet 2 with power verb"]
+      }
+    ],
+    "education": [{ "id": "edu_1", "degree": "", "institution": "", "year": "", "location": "" }],
+    "skills": { "core": [], "tools": [], "methodologies": [] },
+    "projects": []
+  },
+  "estimatedAtsScore": 95
+}
+`;
+
+        const aiResponse = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          config: {
+            temperature: 0.3,
+            responseMimeType: "application/json",
+          },
+        });
+
+        const textResponse = aiResponse.text || "{}";
+        const parsed = JSON.parse(textResponse);
+        res.json(parsed);
+      } catch (err: any) {
+        console.error("Error in AI Resume Coach chat:", err);
+        res.status(500).json({ error: err.message || "Failed to process coach message" });
       }
     });
 

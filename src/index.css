@@ -127,6 +127,59 @@
   }
 }
 
+/* Print-Friendly Theme (High-Contrast Clean Document Export) */
+.print-friendly-mode,
+html.print-friendly-mode,
+.print-friendly-mode body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  transition: all 0.3s ease;
+}
+
+.print-friendly-mode .bg-gradient-body {
+  display: none !important;
+}
+
+.print-friendly-mode .glass-panel,
+.print-friendly-mode .glass-card {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+  color: #0f172a !important;
+  backdrop-filter: none !important;
+}
+
+.print-friendly-mode .glow-text,
+.print-friendly-mode .glow-text-accent {
+  background: none !important;
+  -webkit-text-fill-color: #0f172a !important;
+  color: #0f172a !important;
+  text-shadow: none !important;
+}
+
+.print-friendly-mode p,
+.print-friendly-mode h1,
+.print-friendly-mode h2,
+.print-friendly-mode h3,
+.print-friendly-mode h4,
+.print-friendly-mode span:not(.pdf-highlight-span) {
+  color: #0f172a !important;
+}
+
+.print-friendly-mode .text-slate-400,
+.print-friendly-mode .text-slate-500,
+.print-friendly-mode .text-slate-300 {
+  color: #475569 !important;
+}
+
+.print-friendly-mode input,
+.print-friendly-mode select,
+.print-friendly-mode textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
 @media print {
   body {
     background: white !important;
