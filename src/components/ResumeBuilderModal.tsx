@@ -29,6 +29,7 @@ interface ResumeBuilderModalProps {
   rawResumeText: string;
   jobDescription: string;
   analysisResult: any;
+  initialSkillToFrame?: string | null;
 }
 
 interface ChatMessage {
@@ -44,6 +45,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
   rawResumeText,
   jobDescription,
   analysisResult,
+  initialSkillToFrame,
 }) => {
   const [resumeData, setResumeData] = useState<AtsResumeData | null>(null);
   const [activeTab, setActiveTab] = useState<"preview" | "editor">("preview");
@@ -111,12 +113,23 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
     setActiveScore(calculatedScore);
   }, [resumeData, analysisResult]);
 
+  const lastFramedSkillRef = useRef<string | null>(null);
+
   // Generate initial ATS resume JSON on modal open if not generated yet
   useEffect(() => {
     if (isOpen && !resumeData && !isGeneratingInitial) {
       generateInitialAtsResume();
     }
   }, [isOpen]);
+
+  // Auto-trigger skill framing if initialSkillToFrame is provided
+  useEffect(() => {
+    if (isOpen && initialSkillToFrame && lastFramedSkillRef.current !== initialSkillToFrame) {
+      lastFramedSkillRef.current = initialSkillToFrame;
+      const prompt = `How can I frame the missing skill "${initialSkillToFrame}" in the context of my previous work experience for a ${analysisResult?.careerPath?.topRole || analysisResult?.targetRole || 'target'} position? Provide 2-3 tailored bullet points I can add directly.`;
+      handleSendMessage(prompt, `Frame "${initialSkillToFrame}"`);
+    }
+  }, [isOpen, initialSkillToFrame, analysisResult]);
 
   const generateInitialAtsResume = async () => {
     setIsGeneratingInitial(true);
