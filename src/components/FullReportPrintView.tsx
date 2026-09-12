@@ -80,7 +80,7 @@ export const FullReportPrintView = forwardRef<HTMLDivElement, FullReportPrintVie
               </h2>
               <div className="grid grid-cols-2 gap-3">
                 {result.skillGapReport.map((gap: any, idx: number) => (
-                  <div key={idx} className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
+                  <div key={`print-gap-${gap.skill || idx}-${idx}`} className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold text-slate-900 uppercase block">{gap.skill}</span>
                       <span className="text-[10px] text-slate-500 font-semibold">Priority Requirement</span>
@@ -113,7 +113,7 @@ export const FullReportPrintView = forwardRef<HTMLDivElement, FullReportPrintVie
                   <span className="text-[10px] font-extrabold text-slate-400 uppercase block">Alternative Trajectory Pivots</span>
                   <div className="grid grid-cols-2 gap-2">
                     {result.careerPath.alternatives.slice(0, 2).map((alt: any, idx: number) => (
-                      <div key={idx} className="p-2.5 bg-slate-800 rounded-lg border border-slate-700">
+                      <div key={`print-alt-${alt.role || idx}-${idx}`} className="p-2.5 bg-slate-800 rounded-lg border border-slate-700">
                         <span className="text-xs font-bold text-white block">{alt.role}</span>
                         <span className="text-[10px] text-teal-400 font-bold">{alt.match}% Match</span>
                       </div>
@@ -136,7 +136,7 @@ export const FullReportPrintView = forwardRef<HTMLDivElement, FullReportPrintVie
                     <span className="text-[10px] font-black text-amber-800 uppercase block">Title Updates</span>
                     <ul className="text-xs text-slate-700 space-y-1 list-disc pl-4 font-medium">
                       {result.improvementPlan.resumeHeadlineUpdates.slice(0, 2).map((u: string, i: number) => (
-                        <li key={i}>{u}</li>
+                        <li key={`print-hl-${i}`}>{u}</li>
                       ))}
                     </ul>
                   </div>
@@ -146,7 +146,7 @@ export const FullReportPrintView = forwardRef<HTMLDivElement, FullReportPrintVie
                     <span className="text-[10px] font-black text-rose-800 uppercase block">Layout Fixes</span>
                     <ul className="text-xs text-slate-700 space-y-1 list-disc pl-4 font-medium">
                       {result.improvementPlan.formattingFixes.slice(0, 2).map((f: string, i: number) => (
-                        <li key={i}>{f}</li>
+                        <li key={`print-fmt-${i}`}>{f}</li>
                       ))}
                     </ul>
                   </div>

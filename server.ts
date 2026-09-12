@@ -7,14 +7,9 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import multer from "multer";
 import mammoth from "mammoth";
-import { fileURLToPath } from "url";
-import { createRequire } from "module";
 import { createWorker } from "tesseract.js";
-
-const require = createRequire(import.meta.url);
-const pdf = require("pdf-parse");
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// @ts-ignore
+import pdf from "pdf-parse/lib/pdf-parse.js";
 
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -120,7 +115,7 @@ async function startServer() {
       );
     }
 
-    // Helper: Execute Gemini AI generation with automatic multi-key failover and exponential retry
+    // Helper: Execute Gemini AI generation with automatic multi-key failover, model fallback, and exponential retry
     async function executeGeminiPrompt(
       promptConfig: {
         model?: string;
@@ -144,84 +139,116 @@ async function startServer() {
       let lastError: any = null;
       const attemptedSources: string[] = [];
 
+      // Determine model progression: requested model -> gemini-2.5-flash -> gemini-3.8-flash
+      const primaryModel = promptConfig.model || "gemini-2.5-flash";
+      const modelFallbackChain = Array.from(
+        new Set([primaryModel, "gemini-2.5-flash", "gemini-3.8-flash"])
+      );
+
       for (let keyIdx = 0; keyIdx < keys.length; keyIdx++) {
         const keyRecord = keys[keyIdx];
         attemptedSources.push(keyRecord.source);
 
-        console.log(
-          `[GEMINI API] Attempting generation with ${keyRecord.source} (${keyIdx + 1} of ${keys.length})...`
-        );
-
         const ai = new GoogleGenAI({
           apiKey: keyRecord.key,
-          httpOptions: {
-            headers: {
-              "User-Agent": "aistudio-build",
-            },
-          },
         });
 
-        let retries = maxRetriesPerKey;
-        let waitTime = 1500;
+        for (const modelToUse of modelFallbackChain) {
+          let retries = maxRetriesPerKey;
+          let waitTime = 1000;
 
-        while (retries >= 0) {
-          try {
-            const response = await ai.models.generateContent({
-              model: promptConfig.model || "gemini-3.8-flash",
-              contents: promptConfig.contents,
-              config: promptConfig.config,
-            });
-            console.log(`[GEMINI API] Generation succeeded using ${keyRecord.source}`);
-            return response;
-          } catch (err: any) {
-            lastError = err;
-            const errMsg = err?.message || "";
-            const isAuthIssue = isAuthOrKeyError(err);
-            const isQuota =
-              errMsg.includes("Quota exceeded") ||
-              errMsg.includes("429") ||
-              errMsg.includes("RESOURCE_EXHAUSTED");
-            const isTemporary =
-              errMsg.includes("503") ||
-              errMsg.includes("high demand") ||
-              errMsg.includes("UNAVAILABLE") ||
-              errMsg.includes("Overloaded") ||
-              errMsg.includes("Too Many Requests");
-
-            // If it's an auth/key error or quota error and another key is available, fail over immediately
-            if ((isAuthIssue || isQuota) && keyIdx < keys.length - 1) {
-              const nextSource = keys[keyIdx + 1].source;
-              console.warn(
-                `[GEMINI FAILOVER] Key ${keyRecord.source} encountered error (${errMsg.substring(0, 150)}). Failing over to ${nextSource}...`
+          while (retries >= 0) {
+            try {
+              const response = await ai.models.generateContent({
+                model: modelToUse,
+                contents: promptConfig.contents,
+                config: promptConfig.config,
+              });
+              console.log(
+                `[GEMINI API] Generation succeeded using ${keyRecord.source} with model ${modelToUse}`
               );
-              break; // exit retry loop to advance to next key
-            }
+              return response;
+            } catch (err: any) {
+              lastError = err;
+              const errMsg = err?.message || "";
+              const isAuthIssue = isAuthOrKeyError(err);
+              const isQuota =
+                errMsg.includes("Quota exceeded") ||
+                errMsg.includes("429") ||
+                errMsg.includes("RESOURCE_EXHAUSTED");
+              const isTemporary =
+                errMsg.includes("503") ||
+                errMsg.includes("high demand") ||
+                errMsg.includes("UNAVAILABLE") ||
+                errMsg.includes("Overloaded") ||
+                errMsg.includes("Too Many Requests");
 
-            if (retries > 0 && isTemporary) {
-              retries--;
-              console.warn(
-                `[GEMINI RETRY] Temporary limitation on ${keyRecord.source}, retrying in ${waitTime}ms... (${retries} left)`
-              );
-              await new Promise((resolve) => setTimeout(resolve, waitTime));
-              waitTime *= 2;
-              continue;
-            }
+              // If it's an auth/key error, immediately break out to try the next key
+              if (isAuthIssue) {
+                if (keyIdx < keys.length - 1) {
+                  console.warn(
+                    `[GEMINI FAILOVER] Key ${keyRecord.source} auth error (${errMsg.substring(0, 100)}). Failing over to next key...`
+                  );
+                }
+                break; // break retry loop to jump to next key
+              }
 
+              // If temporary / high demand on this model, retry once or try next model
+              if (retries > 0 && isTemporary) {
+                retries--;
+                console.warn(
+                  `[GEMINI RETRY] Temporary limit on ${keyRecord.source} (${modelToUse}), retrying in ${waitTime}ms...`
+                );
+                await new Promise((resolve) => setTimeout(resolve, waitTime));
+                waitTime *= 2;
+                continue;
+              }
+
+              // Fall through to next model in fallback chain
+              break;
+            }
+          }
+
+          // If auth issue, don't try more models on an invalid key
+          if (isAuthOrKeyError(lastError)) {
             break;
           }
         }
       }
 
       console.error(
-        `[GEMINI ERROR] All configured API keys (${attemptedSources.join(", ")}) failed to complete request.`
+        `[GEMINI ERROR] All configured API keys (${attemptedSources.join(", ")}) failed to complete request. Last error:`,
+        lastError?.message || lastError
       );
 
-      const finalError: any = new Error(
-        `Gemini API authentication failed across configured keys (${attemptedSources.join(", ")}). Please check your API configuration in Settings.`
-      );
-      finalError.isAuthError = true;
-      finalError.code = "API_KEY_AUTHENTICATION_FAILED";
-      finalError.statusCode = 401;
+      const isActualAuth = isAuthOrKeyError(lastError);
+      const isQuota =
+        lastError?.message?.includes("Quota exceeded") ||
+        lastError?.message?.includes("429") ||
+        lastError?.message?.includes("RESOURCE_EXHAUSTED");
+
+      let finalError: any;
+      if (isActualAuth) {
+        finalError = new Error(
+          `Gemini API authentication failed across configured keys (${attemptedSources.join(", ")}). Please check your API configuration in Settings (GEMINI_API_KEY / GEMINI_API_KEY_2).`
+        );
+        finalError.isAuthError = true;
+        finalError.code = "API_KEY_AUTHENTICATION_FAILED";
+        finalError.statusCode = 401;
+      } else if (isQuota) {
+        finalError = new Error(
+          "You exceeded your current Gemini API quota. Please check your plan or configure an alternative key in GEMINI_API_KEY_2 in Settings."
+        );
+        finalError.isQuotaError = true;
+        finalError.code = "RESOURCE_EXHAUSTED";
+        finalError.statusCode = 429;
+      } else {
+        finalError = new Error(
+          lastError?.message || "AI processing interrupted. Please retry in a moment."
+        );
+        finalError.statusCode = 500;
+      }
+
       finalError.attemptedSources = attemptedSources;
       finalError.originalError = lastError?.message || String(lastError);
       throw finalError;
@@ -234,8 +261,36 @@ async function startServer() {
         status: "ok",
         geminiConfigured: keys.length > 0,
         keysCount: keys.length,
+        sources: keys.map((k) => k.source),
         timestamp: new Date().toISOString(),
       });
+    });
+
+    // Verification endpoint to test live Gemini API connectivity
+    app.post("/api/test-gemini", async (req, res) => {
+      try {
+        const testResponse = await executeGeminiPrompt({
+          model: "gemini-2.5-flash",
+          contents: [{ role: "user", parts: [{ text: "ping" }] }],
+        });
+        return res.json({
+          success: true,
+          status: "connected",
+          message: "Gemini API key authenticated successfully!",
+          response: testResponse?.text?.trim() || "pong",
+        });
+      } catch (err: any) {
+        console.error("Test Gemini connection error:", err);
+        return res.status(err.statusCode || 500).json({
+          success: false,
+          error:
+            err.message ||
+            "Gemini API authentication failed. Please check your API configuration in Settings (GEMINI_API_KEY / GEMINI_API_KEY_2).",
+          isAuthError: Boolean(err.isAuthError),
+          code: err.code || "CONNECTION_FAILED",
+          details: err.originalError || err.message,
+        });
+      }
     });
 
     app.post(
@@ -1953,7 +2008,7 @@ Return strictly a valid JSON object matching this schema:
       app.use(vite.middlewares);
     } else {
       // Production static files serving
-      const distPath = path.join(__dirname, "dist");
+      const distPath = path.join(process.cwd(), "dist");
       app.use(express.static(distPath));
       app.get("*", (req, res) => {
         res.sendFile(path.join(distPath, "index.html"));

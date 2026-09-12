@@ -495,7 +495,7 @@ export const D3CareerGraph: React.FC<D3CareerGraphProps> = ({
                 <span className="text-[10px] font-extrabold text-slate-400 uppercase">Skills:</span>
                 <div className="flex flex-wrap gap-1">
                   {selectedNode.skills.map((s, idx) => (
-                    <span key={idx} className="px-2 py-0.5 rounded bg-white/10 text-slate-200 text-[10px] font-bold">
+                    <span key={`node-sk-${s}-${idx}`} className="px-2 py-0.5 rounded bg-white/10 text-slate-200 text-[10px] font-bold">
                       {s}
                     </span>
                   ))}

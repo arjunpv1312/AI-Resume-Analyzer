@@ -1,6 +1,5 @@
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { GoogleGenAI } from "@google/genai";
 import { useDropzone } from "react-dropzone";
 import { useReactToPrint } from "react-to-print";
 import DOMPurify from "dompurify";
@@ -58,6 +57,10 @@ import { ResumeBuilderModal } from "./components/ResumeBuilderModal";
 import { D3CareerGraph } from "./components/D3CareerGraph";
 import { FullReportPrintView } from "./components/FullReportPrintView";
 import { ConnectLinkedInModal } from "./components/ConnectLinkedInModal";
+import { ResumeHealthWidget } from "./components/ResumeHealthWidget";
+import { MissingKeywordHelper } from "./components/MissingKeywordHelper";
+import { HistoryComparisonModal } from "./components/HistoryComparisonModal";
+import { LinkedInVerificationModal } from "./components/LinkedInVerificationModal";
 import { exportFullReportToDocx } from "./utils/fullReportExport";
 import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
@@ -362,8 +365,28 @@ const ScoringCircle = ({
 }) => {
   const data = [{ name: "Score", value: score, fill: color }];
   const level = getScoreLevel(score);
+  const isNeedsOptimization = score < 70;
+
   return (
-    <div className="flex flex-col items-center justify-center relative w-full pt-4 pb-2 group">
+    <motion.div
+      animate={
+        isNeedsOptimization
+          ? {
+              scale: [1, 1.025, 1],
+            }
+          : {}
+      }
+      transition={
+        isNeedsOptimization
+          ? {
+              duration: 2.4,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }
+          : undefined
+      }
+      className="flex flex-col items-center justify-center relative w-full pt-4 pb-2 group"
+    >
       <div className="h-40 w-full max-w-[220px] relative overflow-hidden -mb-10">
         <ResponsiveContainer width="100%" height="200%">
           <RadialBarChart
@@ -400,15 +423,33 @@ const ScoringCircle = ({
           <span>0</span>
           <span>100</span>
         </div>
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-32 h-32 bg-teal-500/20 rounded-full blur-3xl -z-10 transition-opacity duration-500 group-hover:opacity-100 opacity-60" />
+        <div
+          className={`absolute top-1/4 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full blur-3xl -z-10 transition-opacity duration-500 group-hover:opacity-100 ${
+            isNeedsOptimization
+              ? "bg-amber-500/30 animate-pulse opacity-90"
+              : "bg-teal-500/20 opacity-60"
+          }`}
+        />
       </div>
 
-      <div className="mt-10 flex flex-col items-center justify-center gap-3">
+      <div className="mt-10 flex flex-col items-center justify-center gap-2.5">
         <motion.div
           initial={{ y: 5, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: delay + 0.5 }}
-          className={`px-6 py-2 rounded-full border shadow-xl ${level.bg} ${level.border} transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(var(--brand-glow),0.1)]`}
+          animate={
+            isNeedsOptimization
+              ? { y: 0, opacity: 1, scale: [1, 1.03, 1] }
+              : { y: 0, opacity: 1 }
+          }
+          transition={
+            isNeedsOptimization
+              ? { duration: 2.2, repeat: Infinity, ease: "easeInOut" }
+              : { delay: delay + 0.5 }
+          }
+          className={`px-6 py-2 rounded-full border shadow-xl ${level.bg} ${level.border} ${
+            isNeedsOptimization
+              ? "ring-2 ring-amber-400/40 shadow-[0_0_15px_rgba(245,158,11,0.25)]"
+              : ""
+          } transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(var(--brand-glow),0.1)]`}
         >
           <span
             className={`text-xs font-black uppercase tracking-widest ${level.color}`}
@@ -416,6 +457,16 @@ const ScoringCircle = ({
             Level: {level.label}
           </span>
         </motion.div>
+        {isNeedsOptimization && (
+          <motion.div
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+            className="px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-[9px] font-black uppercase text-amber-300 flex items-center gap-1.5 shadow-sm"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+            <span>Optimization Needed (&lt;70%)</span>
+          </motion.div>
+        )}
         {label && (
           <div className="flex items-center gap-1.5 mt-2">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
@@ -439,7 +490,7 @@ const ScoringCircle = ({
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -797,6 +848,57 @@ export default function App() {
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+
+  // Floating Missing Keyword Placement Helper
+  const [selectedMissingKeyword, setSelectedMissingKeyword] = useState<string | null>(null);
+  const [keywordHelperAnchor, setKeywordHelperAnchor] = useState<{ top: number; left: number } | null>(null);
+
+  // Side-by-Side Version Comparison Modal
+  const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
+
+  // LinkedIn Verification & Real-Time Trust Score Modal
+  const [isLinkedInVerificationModalOpen, setIsLinkedInVerificationModalOpen] = useState(false);
+  const [linkedInTrustScore, setLinkedInTrustScore] = useState<number | null>(null);
+
+  // Gemini API connection test state
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<string | null>(null);
+
+  const handleTestConnection = async () => {
+    setIsTestingConnection(true);
+    setConnectionStatus(null);
+    try {
+      const res = await fetch("/api/test-gemini", { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setConnectionStatus("Connected! Gemini API key verified successfully.");
+        setIsApiKeyError(false);
+        setTimeout(() => {
+          setError(null);
+          setConnectionStatus(null);
+        }, 2200);
+      } else {
+        setConnectionStatus(
+          data.error || "Authentication check failed. Please verify the key in Settings."
+        );
+      }
+    } catch (e: any) {
+      setConnectionStatus(
+        "Connection check failed: " + (e.message || "Network unreachable")
+      );
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+
+  const handleMissingKeywordClick = (keyword: string, e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setSelectedMissingKeyword(keyword);
+    setKeywordHelperAnchor({
+      top: rect.bottom + window.scrollY + 8,
+      left: Math.min(window.innerWidth - 380, Math.max(16, rect.left + window.scrollX - 40)),
+    });
+  };
 
   // Load session state
   React.useEffect(() => {
@@ -2126,7 +2228,7 @@ export default function App() {
                   className="bg-transparent text-xs font-bold text-purple-200 focus:outline-none cursor-pointer max-w-[160px] truncate"
                 >
                   {history.map((ver, idx) => (
-                    <option key={ver.id} value={ver.id} className="bg-slate-900 text-white">
+                    <option key={`top-ver-${ver.id || idx}-${idx}`} value={ver.id} className="bg-slate-900 text-white">
                       {ver.versionName || `Version ${history.length - idx}`} ({ver.result?.overallScore || 0}% ATS)
                     </option>
                   ))}
@@ -2426,6 +2528,58 @@ export default function App() {
             }}
           />
 
+          {/* LinkedIn Live Verification & Real-Time Trust Score Modal */}
+          <LinkedInVerificationModal
+            isOpen={isLinkedInVerificationModalOpen}
+            onClose={() => setIsLinkedInVerificationModalOpen(false)}
+            resumeData={result}
+            resumeText={result?.summary || jobDescription || (file ? file.name : "")}
+            initialLinkedinUrl={linkedinUrl}
+            initialLinkedinData={linkedinData}
+            onSaveVerifiedData={(url, data, trustScore) => {
+              setLinkedinUrl(url);
+              setLinkedinData(data);
+              setLinkedInTrustScore(trustScore);
+              sessionStorage.setItem("current_linkedin_url", url);
+              sessionStorage.setItem("current_linkedin_data", data);
+            }}
+          />
+
+          {/* Side-by-Side Version Comparison Modal */}
+          <HistoryComparisonModal
+            isOpen={isComparisonModalOpen}
+            onClose={() => setIsComparisonModalOpen(false)}
+            history={history}
+            initialCompareIds={compareIds}
+            onLoadVersion={(item) => {
+              setResult(item.result);
+              if (item.stickyNotes) setStickyNotes(JSON.parse(JSON.stringify(item.stickyNotes)));
+              if (item.highlights) setHighlights(JSON.parse(JSON.stringify(item.highlights)));
+              if (item.pageSummaries) setPageSummaries(JSON.parse(JSON.stringify(item.pageSummaries)));
+              if (item.jobDescription) setJobDescription(item.jobDescription);
+              setIsComparisonModalOpen(false);
+              setSnapshotToast(`Loaded version "${item.versionName || item.fileName}"`);
+              setTimeout(() => setSnapshotToast(null), 3000);
+            }}
+          />
+
+          {/* Floating Missing Keyword Sentence Placement Helper */}
+          <MissingKeywordHelper
+            keyword={selectedMissingKeyword}
+            targetRole={result?.targetRole || "Software Engineer"}
+            foundSkills={result?.foundSkills || []}
+            existingOptimization={result?.atsAnalysis?.keywordOptimizations?.find(
+              (o) => o.keyword.toLowerCase() === selectedMissingKeyword?.toLowerCase()
+            )}
+            anchorPosition={keywordHelperAnchor}
+            onClose={() => setSelectedMissingKeyword(null)}
+            onOpenResumeBuilder={(kw) => {
+              setSelectedSkillToFrame(kw);
+              setIsResumeBuilderOpen(true);
+              setSelectedMissingKeyword(null);
+            }}
+          />
+
           {isPurgePromptOpen && (
             <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
               <motion.div
@@ -2635,27 +2789,33 @@ export default function App() {
                 </div>
               )}
 
-              {compareIds.length >= 2 && (
-                <div className="sticky bottom-0 left-0 right-0 pt-8 mt-8 border-t border-white/5 bg-brand-deep/95">
+              {compareIds.length >= 2 ? (
+                <div className="sticky bottom-0 left-0 right-0 pt-6 mt-6 border-t border-white/10 bg-brand-deep/95">
                   <button
                     onClick={() => {
-                      // We'll calculate a comparison result
-                      const items = compareIds
-                        .map((id) => history.find((h) => h.id === id))
-                        .filter(Boolean);
-                      if (items.length >= 2) {
-                        // For simplicity, we just trigger UI view or we could create a "virtual" result
-                        // But let's just alert the scores for now or open a simple comparison modal
-                        // Better: Set a "comparison" mode state
-                        setResult(null); // Clear main result view to show compare view if implemented
-                      }
+                      setIsComparisonModalOpen(true);
+                      setIsHistoryOpen(false);
                     }}
-                    className="w-full btn-primary py-4 text-[11px]"
+                    className="w-full btn-primary py-3.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 cursor-pointer"
                   >
-                    Compare Selected Versions
+                    <Layers className="w-4 h-4" />
+                    <span>Compare {compareIds.length} Selected Versions</span>
                   </button>
                 </div>
-              )}
+              ) : history.length >= 2 ? (
+                <div className="sticky bottom-0 left-0 right-0 pt-6 mt-6 border-t border-white/10 bg-brand-deep/95">
+                  <button
+                    onClick={() => {
+                      setIsComparisonModalOpen(true);
+                      setIsHistoryOpen(false);
+                    }}
+                    className="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-teal-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <Layers className="w-4 h-4" />
+                    <span>Side-by-Side Version Comparison</span>
+                  </button>
+                </div>
+              ) : null}
             </motion.div>
           )}
 
@@ -3289,7 +3449,7 @@ Qualifications:
                                   "rgba(244, 114, 182, 0.4)",
                                 ].map((color) => (
                                   <button
-                                    key={color}
+                                    key={`pal-color-${color}`}
                                     onClick={() => setHighlightColor(color)}
                                     className={`w-4 h-4 rounded-full border border-white/20 transition-transform ${highlightColor === color ? "scale-125 ring-1 ring-white/50" : "hover:scale-110"}`}
                                     style={{ backgroundColor: color }}
@@ -3561,9 +3721,9 @@ Qualifications:
                                                   kw.toLowerCase().includes(batchInput.toLowerCase()),
                                               )
                                               .slice(0, 8)
-                                              .map((kw) => (
+                                              .map((kw, kwIdx) => (
                                                 <button
-                                                  key={`suggest-missing-${kw}`}
+                                                  key={`suggest-missing-${kw}-${kwIdx}`}
                                                   onClick={() => {
                                                     handleBatchHighlight(
                                                       kw,
@@ -3588,15 +3748,15 @@ Qualifications:
                                         batchInput,
                                       );
                                       return Object.entries(skillsByCategory).map(
-                                        ([catName, skills]) => (
-                                          <div key={catName}>
+                                        ([catName, skills], catIdx) => (
+                                          <div key={`cat-${catName}-${catIdx}`}>
                                             <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
                                               ⚡ {catName}:
                                             </div>
                                             <div className="flex flex-wrap gap-1">
-                                              {skills.slice(0, 8).map((sk) => (
+                                              {skills.slice(0, 8).map((sk, skIdx) => (
                                                 <button
-                                                  key={`suggest-sk-${sk}`}
+                                                  key={`suggest-sk-${catName}-${sk}-${skIdx}`}
                                                   onClick={() => {
                                                     handleBatchHighlight(sk);
                                                     setBatchInput("");
@@ -3640,13 +3800,13 @@ Qualifications:
                                 </span>
 
                                 {/* Missing Skills */}
-                                {result.skillGapReport?.slice(0, 5).map((gap) => {
+                                {result.skillGapReport?.slice(0, 5).map((gap, gapIdx) => {
                                   const isHighlighted = activeBatchKeywords.some(
                                     (k) => k.keyword.toLowerCase() === gap.skill.toLowerCase(),
                                   );
                                   return (
                                     <button
-                                      key={`gap-${gap.skill}`}
+                                      key={`gap-${gap.skill}-${gapIdx}`}
                                       onClick={() => {
                                         if (isHighlighted) {
                                           clearBatchHighlight(gap.skill);
@@ -3675,16 +3835,16 @@ Qualifications:
                                   const { skillsByCategory } = getMatchedIndustrySkills(
                                     result?.targetRole,
                                   );
-                                  const industryTop = Object.values(skillsByCategory)
-                                    .flat()
-                                    .slice(0, 6);
-                                  return industryTop.map((sk) => {
+                                  const industryTop = Array.from(
+                                    new Set(Object.values(skillsByCategory).flat())
+                                  ).slice(0, 6);
+                                  return industryTop.map((sk, skIdx) => {
                                     const isHighlighted = activeBatchKeywords.some(
                                       (k) => k.keyword.toLowerCase() === sk.toLowerCase(),
                                     );
                                     return (
                                       <button
-                                        key={`ind-preset-${sk}`}
+                                        key={`ind-preset-${sk}-${skIdx}`}
                                         onClick={() => {
                                           if (isHighlighted) {
                                             clearBatchHighlight(sk);
@@ -3710,13 +3870,13 @@ Qualifications:
                                 })()}
 
                                 {/* Keywords Found */}
-                                {result.atsAnalysis?.jobKeywordsFound?.slice(0, 5).map((kw) => {
+                                {result.atsAnalysis?.jobKeywordsFound?.slice(0, 5).map((kw, kwIdx) => {
                                   const isHighlighted = activeBatchKeywords.some(
                                     (k) => k.keyword.toLowerCase() === kw.toLowerCase()
                                   );
                                   return (
                                     <button
-                                      key={`found-${kw}`}
+                                      key={`found-${kw}-${kwIdx}`}
                                       onClick={() => {
                                         if (isHighlighted) {
                                           clearBatchHighlight(kw);
@@ -3738,13 +3898,13 @@ Qualifications:
                                 })}
 
                                 {/* Top Resume Keywords */}
-                                {result.atsAnalysis?.topResumeKeywords?.slice(0, 5).map((kw) => {
+                                {result.atsAnalysis?.topResumeKeywords?.slice(0, 5).map((kw, kwIdx) => {
                                   const isHighlighted = activeBatchKeywords.some(
                                     (k) => k.keyword.toLowerCase() === kw.toLowerCase()
                                   );
                                   return (
                                     <button
-                                      key={`top-${kw}`}
+                                      key={`top-${kw}-${kwIdx}`}
                                       onClick={() => {
                                         if (isHighlighted) {
                                           clearBatchHighlight(kw);
@@ -3775,9 +3935,9 @@ Qualifications:
                                 <Layers className="w-3.5 h-3.5 text-purple-400" />
                                 <span>Active Batch Terms ({activeBatchKeywords.length}):</span>
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  {activeBatchKeywords.map((b) => (
+                                  {activeBatchKeywords.map((b, bIdx) => (
                                     <span
-                                      key={b.keyword}
+                                      key={`batch-${b.keyword}-${bIdx}`}
                                       className="px-2 py-0.5 rounded bg-white/10 text-white font-semibold flex items-center gap-1 border border-white/10"
                                     >
                                       <span
@@ -3913,14 +4073,14 @@ Qualifications:
                           </Document>
                           {highlights
                             .filter((h) => h.pageNumber === pageNumber && visibleHighlightColors.includes(h.color))
-                            .map((hl) => (
+                            .map((hl, hlIdx) => (
                               <div
-                                key={hl.id}
+                                key={`hl-${hl.id || hlIdx}-${hlIdx}`}
                                 className="absolute inset-0 pointer-events-none z-10"
                               >
                                 {hl.rects.map((r, i) => (
                                   <div
-                                    key={i}
+                                    key={`hl-rect-${hl.id || hlIdx}-${i}`}
                                     className="absolute mix-blend-multiply pdf-highlight pointer-events-auto cursor-pointer"
                                     style={{
                                       top: r.top,
@@ -3943,12 +4103,12 @@ Qualifications:
                           <AnimatePresence>
                             {visibleStickyNotes && stickyNotes
                               .filter((n) => n.pageNumber === pageNumber)
-                              .map((note) => {
+                              .map((note, noteIdx) => {
                                 const colorKey = note.color && STICKY_COLOR_CONFIG[note.color] ? note.color : "yellow";
                                 const conf = STICKY_COLOR_CONFIG[colorKey];
                                 return (
                                   <motion.div
-                                    key={note.id}
+                                    key={`note-${note.id || noteIdx}-${noteIdx}`}
                                     initial={{ scale: 0.3, opacity: 0, y: -15 }}
                                     animate={{ scale: 1, opacity: 1, y: 0 }}
                                     exit={{ scale: 0.2, opacity: 0, transition: { duration: 0.15 } }}
@@ -4029,9 +4189,9 @@ Qualifications:
                                           </span>
                                           <div className="flex items-center gap-1">
                                             {Object.entries(STICKY_COLOR_CONFIG).map(
-                                              ([ckey, cval]) => (
+                                              ([ckey, cval], ckIdx) => (
                                                 <button
-                                                  key={ckey}
+                                                  key={`note-col-${note.id || 'note'}-${ckey}-${ckIdx}`}
                                                   onClick={() =>
                                                     setStickyNotes((notes) =>
                                                       notes.map((n) =>
@@ -4239,12 +4399,12 @@ Qualifications:
                                   </button>
                                 </div>
                                 <div className="space-y-2">
-                                  {filteredStickyNotes.map((note) => {
+                                  {filteredStickyNotes.map((note, noteIdx) => {
                                     const colorKey = note.color && STICKY_COLOR_CONFIG[note.color] ? note.color : "yellow";
                                     const conf = STICKY_COLOR_CONFIG[colorKey];
                                     return (
                                       <div
-                                        key={`sidebar-note-${note.id}`}
+                                        key={`sidebar-note-${note.id || noteIdx}-${noteIdx}`}
                                         className="flex flex-col bg-[#0A0A15]/60 p-2.5 rounded-xl border border-white/5 hover:border-amber-500/40 transition-all cursor-pointer group"
                                         onClick={() => {
                                           setPageNumber(note.pageNumber);
@@ -4289,9 +4449,9 @@ Qualifications:
                                   <FileText className="w-3.5 h-3.5" /> Highlights ({filteredHighlights.length})
                                 </h4>
                                 <div className="space-y-2">
-                                  {filteredHighlights.map((hl) => (
+                                  {filteredHighlights.map((hl, hlIdx) => (
                                     <div
-                                      key={hl.id}
+                                      key={`sidebar-hl-${hl.id || hlIdx}-${hlIdx}`}
                                       className="flex items-center justify-between bg-[#0A0A15]/50 p-2.5 rounded-lg border border-white/5 hover:border-white/10 transition-colors cursor-pointer"
                                       onClick={() => setPageNumber(hl.pageNumber)}
                                     >
@@ -4369,7 +4529,7 @@ Qualifications:
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 8 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    className={`mt-8 max-w-2xl mx-auto p-5 rounded-2xl border text-left flex items-start gap-4 transition-all ${
+                    className={`mt-8 max-w-2xl mx-auto p-5 rounded-2xl border text-left flex items-start gap-4 transition-all relative ${
                       isApiKeyError
                         ? "bg-amber-500/10 border-amber-500/30 text-amber-200 shadow-xl shadow-amber-500/5"
                         : "bg-rose-500/10 border-rose-500/25 text-rose-300 shadow-xl shadow-rose-500/5"
@@ -4386,7 +4546,7 @@ Qualifications:
                         </div>
                       )}
                     </div>
-                    <div className="flex-1 space-y-1.5">
+                    <div className="flex-1 space-y-2 pr-6">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h4
                           className={`text-xs font-black uppercase tracking-wider ${
@@ -4406,6 +4566,20 @@ Qualifications:
                       <p className="text-xs text-slate-300 font-medium leading-relaxed">
                         {error}
                       </p>
+
+                      {/* Live Feedback / Connection status message */}
+                      {connectionStatus && (
+                        <div
+                          className={`p-2 rounded-lg text-xs font-semibold ${
+                            connectionStatus.includes("Connected")
+                              ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-300"
+                              : "bg-amber-500/20 border border-amber-500/40 text-amber-300"
+                          }`}
+                        >
+                          {connectionStatus}
+                        </div>
+                      )}
+
                       {isApiKeyError && (
                         <div className="pt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400 border-t border-amber-500/15 mt-2">
                           <span className="font-semibold text-amber-200/90">
@@ -4420,7 +4594,52 @@ Qualifications:
                           </code>
                         </div>
                       )}
+
+                      {/* Interactive Actions: Test Connection & Retry */}
+                      <div className="pt-2 flex flex-wrap items-center gap-2.5">
+                        <button
+                          type="button"
+                          onClick={handleTestConnection}
+                          disabled={isTestingConnection}
+                          className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer"
+                        >
+                          <RefreshCw
+                            className={`w-3.5 h-3.5 ${isTestingConnection ? "animate-spin text-teal-400" : "text-slate-300"}`}
+                          />
+                          <span>
+                            {isTestingConnection
+                              ? "Verifying Key..."
+                              : "Test Connection"}
+                          </span>
+                        </button>
+
+                        {file && (
+                          <button
+                            type="button"
+                            onClick={analyzeResume}
+                            disabled={isAnalyzing}
+                            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 text-[11px] font-black flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Retry Analysis</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Dismiss Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setError(null);
+                        setIsApiKeyError(false);
+                        setConnectionStatus(null);
+                      }}
+                      className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+                      title="Dismiss error message"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </motion.div>
                 )}
               </div>
@@ -4688,7 +4907,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         className="bg-transparent text-xs font-black text-purple-200 focus:outline-none cursor-pointer max-w-[170px] truncate"
                       >
                         {history.map((ver, idx) => (
-                          <option key={ver.id} value={ver.id} className="bg-slate-900 text-white">
+                          <option key={`main-ver-${ver.id || idx}-${idx}`} value={ver.id} className="bg-slate-900 text-white">
                             {ver.versionName || `Version ${history.length - idx}`} ({ver.result?.overallScore || 0}% ATS)
                           </option>
                         ))}
@@ -4786,7 +5005,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           </h3>
                           <ul className="space-y-3">
                             {result.foundSkills.slice(0, 3).map((skill, idx) => (
-                              <li key={idx} className="flex items-start gap-2">
+                              <li key={`found-str-${skill || idx}-${idx}`} className="flex items-start gap-2">
                                 <div className="h-4 w-4 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
                                   <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                                 </div>
@@ -4805,7 +5024,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           </h3>
                           <ul className="space-y-3">
                             {result.missingSkills.slice(0, 3).map((skill, idx) => (
-                              <li key={idx} className="flex items-start gap-2">
+                              <li key={`crit-gap-${skill || idx}-${idx}`} className="flex items-start gap-2">
                                 <div className="h-4 w-4 rounded-full bg-rose-500/20 flex items-center justify-center shrink-0 mt-0.5">
                                   <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
                                 </div>
@@ -5102,6 +5321,17 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 </div>
               </div>
 
+              {/* 4-Quadrant Spider Chart: Resume Health Overview Widget */}
+              <div className="mb-8" id="resume-health-overview">
+                <ResumeHealthWidget
+                  result={result}
+                  onOpenOptimizer={(focusArea) => {
+                    if (focusArea) setSelectedSkillToFrame(focusArea);
+                    setIsResumeBuilderOpen(true);
+                  }}
+                />
+              </div>
+
               <GlassCard className="mb-8" id="career-progression" style={{ order: sectionOrder.indexOf('career-progression') }}>
                 <div className="flex justify-between items-center mb-8">
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">
@@ -5358,6 +5588,20 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         <Edit2 className="w-3 h-3 text-teal-400" />
                         <span>Manage Sync</span>
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsLinkedInVerificationModalOpen(true)}
+                        className="text-xs text-white bg-gradient-to-r from-teal-500/20 to-blue-500/20 hover:from-teal-500/30 hover:to-blue-500/30 px-3 py-1.5 rounded-xl border border-teal-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow-[0_0_15px_rgba(20,184,166,0.2)]"
+                        title="Perform live verification of LinkedIn profile metrics against resume content for candidate Trust Score"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
+                        <span>Live Trust Score</span>
+                        {linkedInTrustScore !== null && (
+                          <span className="px-1.5 py-0.2 rounded-full bg-teal-400/25 text-teal-300 font-black text-[10px]">
+                            {linkedInTrustScore}%
+                          </span>
+                        )}
+                      </button>
                     </div>
                   </div>
 
@@ -5422,7 +5666,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               {result.linkedinComparison.missingFromLinkedIn.map(
                                 (s, i) => (
                                   <li
-                                    key={i}
+                                    key={`li-miss-${i}`}
                                     className="text-xs text-slate-300 flex items-start gap-2"
                                   >
                                     <span className="text-emerald-500">
@@ -5460,7 +5704,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               {result.linkedinComparison.missingFromResume.map(
                                 (s, i) => (
                                   <li
-                                    key={i}
+                                    key={`res-miss-${i}`}
                                     className="text-xs text-slate-300 flex items-start gap-2"
                                   >
                                     <span className="text-rose-500">•</span>{" "}
@@ -5506,15 +5750,30 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         </p>
                       </div>
                     </div>
-                    <motion.button
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => setIsConnectLinkedInModalOpen(true)}
-                      className="w-full md:w-auto px-6 py-3 rounded-xl bg-[#0A66C2] hover:bg-[#004182] text-white font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(10,102,194,0.4)] flex items-center justify-center gap-2 shrink-0 cursor-pointer"
-                    >
-                      <Zap className="w-4 h-4 text-teal-300" />
-                      <span>Connect Profile Now</span>
-                    </motion.button>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setIsLinkedInVerificationModalOpen(true)}
+                        className="px-4 py-3 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 font-bold text-xs uppercase tracking-wider transition-all border border-teal-500/30 flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:shadow-[0_0_15px_rgba(20,184,166,0.2)]"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-teal-400" />
+                        <span>Live Trust Score</span>
+                        {linkedInTrustScore !== null && (
+                          <span className="px-1.5 py-0.5 rounded-full bg-teal-400/25 text-teal-300 font-black text-[10px]">
+                            {linkedInTrustScore}%
+                          </span>
+                        )}
+                      </button>
+                      <motion.button
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => setIsConnectLinkedInModalOpen(true)}
+                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#0A66C2] hover:bg-[#004182] text-white font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(10,102,194,0.4)] flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                      >
+                        <Zap className="w-4 h-4 text-teal-300" />
+                        <span>Connect Profile Now</span>
+                      </motion.button>
+                    </div>
                   </div>
                 </GlassCard>
               )}
@@ -5818,7 +6077,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                   .slice(0, 3)
                                   .map((ms, msx) => (
                                     <span
-                                      key={msx}
+                                      key={`miss-skill-${msx}`}
                                       className="text-[9px] font-black uppercase bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded"
                                     >
                                       {ms}
@@ -5833,7 +6092,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         ?.slice(0, 2)
                         .map((alt, i) => (
                           <motion.div
-                            key={i}
+                            key={`alt-path-${i}`}
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
@@ -5899,7 +6158,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 .slice(0, 3)
                                 .map((s, i) => (
                                   <li
-                                    key={i}
+                                    key={`upd-headline-${i}`}
                                     className="flex items-start gap-2 text-xs text-slate-300 font-medium"
                                   >
                                     <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5" />
@@ -5921,7 +6180,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 .slice(0, 3)
                                 .map((s, i) => (
                                   <li
-                                    key={i}
+                                    key={`upd-fmt-${i}`}
                                     className="flex items-start gap-2 text-xs text-slate-300 font-medium"
                                   >
                                     <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5" />
@@ -5944,7 +6203,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 .slice(0, 3)
                                 .map((s, i) => (
                                   <li
-                                    key={i}
+                                    key={`upd-cert-${i}`}
                                     className="flex items-start gap-2 text-xs text-slate-300 font-medium"
                                   >
                                     <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5" />
@@ -5968,7 +6227,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 .slice(0, 3)
                                 .map((s, i) => (
                                   <li
-                                    key={i}
+                                    key={`upd-proj-${i}`}
                                     className="flex items-start gap-2 text-xs text-slate-300 font-medium"
                                   >
                                     <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5" />
@@ -6269,13 +6528,13 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {result.atsAnalysis.jobKeywordsMissing
-                                ?.slice(0, 8)
+                                ?.slice(0, 12)
                                 .map((kw, i) => (
                                   <button
                                     key={`jkm-${i}`}
-                                    onClick={() => handleMissingSkillClick(kw)}
-                                    title="Click to frame this keyword in AI Coach"
-                                    className="text-[10px] font-bold px-2.5 py-1 bg-rose-500/10 border border-rose-500/30 rounded-full text-rose-300 hover:bg-rose-500/20 hover:scale-105 transition-all shadow-[0_0_10px_rgba(244,63,94,0.1)] cursor-pointer flex items-center gap-1 group"
+                                    onClick={(e) => handleMissingKeywordClick(kw, e)}
+                                    title="Click for exact sentence placement recommendation"
+                                    className="text-[10px] font-bold px-2.5 py-1 bg-rose-500/10 border border-rose-500/30 rounded-full text-rose-300 hover:bg-rose-500/20 hover:scale-105 transition-all shadow-[0_0_10px_rgba(244,63,94,0.1)] cursor-pointer flex items-center gap-1 group active:scale-95"
                                   >
                                     <span>{kw}</span>
                                     <Sparkles className="w-2.5 h-2.5 text-rose-400 group-hover:rotate-12 transition-transform" />
@@ -6366,7 +6625,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         </h3>
                         <div className="space-y-4">
                           {result.sectionsDetailed.map((section, idx) => (
-                            <div key={idx} className="group relative">
+                            <div key={`section-det-${idx}`} className="group relative">
                               <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-white/5 border border-white/5 hover:border-teal-500/30 transition-colors">
                                 <h4 className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-2">
                                   <span className="h-1.5 w-1.5 rounded-full bg-teal-500 opacity-50 group-hover:opacity-100 transition-opacity" />
