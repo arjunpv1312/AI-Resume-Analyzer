@@ -308,7 +308,7 @@ export const ResumeHealthWidget: React.FC<ResumeHealthWidgetProps> = ({
 
             return (
               <div
-                key={`quad-${idx}`}
+                key={`quad-${q.name}-${idx}`}
                 className={`p-4 rounded-2xl bg-slate-950/60 border ${q.borderColor} hover:bg-slate-950/90 transition-all flex flex-col justify-between group`}
               >
                 <div>

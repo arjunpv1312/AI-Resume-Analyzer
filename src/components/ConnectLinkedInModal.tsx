@@ -24,7 +24,9 @@ interface ConnectLinkedInModalProps {
   linkedinUrl: string;
   linkedinData?: string;
   resumeContext?: string;
-  onSave: (url: string, data?: string) => void;
+  resumeData?: any;
+  initialTrustScore?: number | null;
+  onSave: (url: string, data?: string, trustScore?: number) => void;
   onDisconnect: () => void;
 }
 
@@ -34,6 +36,8 @@ export function ConnectLinkedInModal({
   linkedinUrl,
   linkedinData = "",
   resumeContext = "",
+  resumeData = null,
+  initialTrustScore = null,
   onSave,
   onDisconnect,
 }: ConnectLinkedInModalProps) {
@@ -42,6 +46,9 @@ export function ConnectLinkedInModal({
   const [accessToken, setAccessToken] = useState("");
   const [showAuthOptions, setShowAuthOptions] = useState(false);
   const [isRetrieving, setIsRetrieving] = useState(false);
+  const [isVerifyingTrust, setIsVerifyingTrust] = useState(false);
+  const [trustReport, setTrustReport] = useState<any | null>(null);
+  const [credibilityScore, setCredibilityScore] = useState<number | null>(initialTrustScore);
   const [retrievalStatus, setRetrievalStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState(false);
@@ -52,10 +59,12 @@ export function ConnectLinkedInModal({
     setAccessToken("");
     setShowAuthOptions(false);
     setIsRetrieving(false);
+    setIsVerifyingTrust(false);
+    setCredibilityScore(initialTrustScore);
     setRetrievalStatus(null);
     setError(null);
     setSuccessNotice(false);
-  }, [linkedinUrl, linkedinData, isOpen]);
+  }, [linkedinUrl, linkedinData, initialTrustScore, isOpen]);
 
   if (!isOpen) return null;
 
@@ -180,6 +189,49 @@ export function ConnectLinkedInModal({
     }
   };
 
+  const handleVerifyTrustScore = async () => {
+    const trimmed = url.trim();
+    const normalized = trimmed ? normalizeLinkedInUrl(trimmed) : "";
+
+    setIsVerifyingTrust(true);
+    setError(null);
+    setRetrievalStatus("Performing real-time verification against resume content...");
+
+    try {
+      const response = await fetch("/api/linkedin/verify-trust", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          linkedinUrl: normalized,
+          linkedinData: profileText.trim(),
+          resumeText: resumeContext,
+          resumeData: resumeData,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to compute LinkedIn Trust Score.");
+      }
+
+      setCredibilityScore(data.credibilityScore);
+      setTrustReport(data);
+      if (!profileText.trim() && data.synchronizedProfileData) {
+        setProfileText(data.synchronizedProfileData);
+      }
+      if (!url.trim() && data.normalizedUrl) {
+        setUrl(data.normalizedUrl);
+      }
+      setRetrievalStatus(
+        `✓ Real-time verification complete: ${data.credibilityScore}% Credibility Score (${data.credibilityTier})`
+      );
+    } catch (err: any) {
+      console.error("Trust score verification error:", err);
+      setError(err.message || "Could not verify LinkedIn Trust Score.");
+    } finally {
+      setIsVerifyingTrust(false);
+    }
+  };
+
   const handleSave = () => {
     const trimmed = url.trim();
     if (!trimmed) {
@@ -194,7 +246,7 @@ export function ConnectLinkedInModal({
     }
 
     setError(null);
-    onSave(normalized, profileText.trim());
+    onSave(normalized, profileText.trim(), credibilityScore ?? undefined);
     setSuccessNotice(true);
     setTimeout(() => {
       onClose();
@@ -213,7 +265,7 @@ export function ConnectLinkedInModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md">
+      <div key="connect-linkedin-backdrop" className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md">
         <motion.div
           initial={{ scale: 0.94, opacity: 0, y: 10 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -389,6 +441,73 @@ export function ConnectLinkedInModal({
                 rows={4}
                 className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#0A66C2] focus:ring-1 focus:ring-[#0A66C2] transition-all resize-none leading-relaxed font-mono"
               />
+            </div>
+
+            {/* Real-time LinkedIn Trust Score Verification Bar & Credibility Score */}
+            <div className="p-4 rounded-2xl bg-slate-900/90 border border-teal-500/25 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-bold text-white flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-teal-400" />
+                    <span>Real-Time Profile vs. Resume Verification</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Cross-check public LinkedIn identity, role seniority, timeline, and skills against your resume.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleVerifyTrustScore}
+                  disabled={isVerifyingTrust}
+                  className="px-4 py-2 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/40 text-teal-300 hover:text-white text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50"
+                >
+                  <ShieldCheck className={`w-3.5 h-3.5 text-teal-400 ${isVerifyingTrust ? "animate-spin" : ""}`} />
+                  <span>{isVerifyingTrust ? "Verifying..." : "LinkedIn Trust Score"}</span>
+                </button>
+              </div>
+
+              {credibilityScore !== null && (
+                <div className="pt-3 border-t border-white/10 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs text-slate-300">
+                      <span className="font-semibold text-white">Credibility Score</span>
+                      <span aria-hidden="true">·</span>
+                      <span className="text-teal-300">
+                        {trustReport?.credibilityTier ||
+                          (credibilityScore >= 85
+                            ? "Verified High Credibility"
+                            : credibilityScore >= 70
+                            ? "Strong Profile Credibility"
+                            : "Moderate Credibility")}
+                      </span>
+                    </div>
+                    <span className="text-lg font-mono font-bold tabular-nums text-teal-400">
+                      {credibilityScore}%
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-teal-400 rounded-full transition-all duration-500"
+                      style={{ width: `${credibilityScore}%` }}
+                    />
+                  </div>
+                  {trustReport?.trustFactors && (
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      {trustReport.trustFactors.map((tf: any, idx: number) => (
+                        <div
+                          key={`modal-tf-${tf.name}-${idx}`}
+                          className="flex items-center justify-between text-[11px] text-slate-400 bg-white/[0.03] px-2.5 py-1.5 rounded-lg border border-white/5"
+                        >
+                          <span className="truncate pr-2">{tf.name.split(" ")[0]}</span>
+                          <span className="font-mono font-semibold tabular-nums text-slate-200">
+                            {tf.score}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Status message */}

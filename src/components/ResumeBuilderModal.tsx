@@ -623,15 +623,15 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                     }}
                     className="w-full bg-slate-900 border border-emerald-500/40 rounded-lg p-2 text-xs text-white focus:ring-1 focus:ring-emerald-400 outline-none"
                   >
-                    {resumeData?.experience?.map((exp, expIdx) =>
+                    {resumeData?.experience?.flatMap((exp, expIdx) =>
                       exp.bulletPoints?.map((bp, bpIdx) => (
                         <option
-                          key={`bullet-opt-${expIdx}-${bpIdx}`}
+                          key={`bullet-opt-${exp.id || expIdx}-${bpIdx}`}
                           value={`${exp.id || `exp_${expIdx}`}:${bpIdx}`}
                         >
                           {exp.company} ({exp.position}): "{bp.slice(0, 55)}..."
                         </option>
-                      ))
+                      )) || []
                     )}
                   </select>
                 </div>

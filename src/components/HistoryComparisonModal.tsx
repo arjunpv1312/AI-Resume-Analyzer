@@ -171,7 +171,7 @@ IMPROVEMENT DELTA:
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-2xl overflow-y-auto">
+      <div key="history-comparison-backdrop" className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-2xl overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -313,7 +313,7 @@ IMPROVEMENT DELTA:
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {metrics.map((metric, mIdx) => (
                   <div
-                    key={`metric-${mIdx}`}
+                    key={`metric-${metric.label}-${mIdx}`}
                     className="p-4 rounded-2xl bg-slate-950/60 border border-white/10 relative overflow-hidden group hover:border-teal-500/40 transition-all"
                   >
                     <div className="flex items-start justify-between mb-3">
@@ -410,7 +410,7 @@ IMPROVEMENT DELTA:
                     <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
                       {item1.result.foundSkills?.map((skill, sIdx) => (
                         <span
-                          key={`s1-${sIdx}`}
+                          key={`s1-${skill}-${sIdx}`}
                           className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-slate-300 font-medium"
                         >
                           {skill}
@@ -463,7 +463,7 @@ IMPROVEMENT DELTA:
                         const isNew = newlyAddedSkills.includes(skill);
                         return (
                           <span
-                            key={`s2-${sIdx}`}
+                            key={`s2-${skill}-${sIdx}`}
                             className={`px-2 py-0.5 rounded-md text-[10px] font-medium border flex items-center gap-1 ${
                               isNew
                                 ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-bold"

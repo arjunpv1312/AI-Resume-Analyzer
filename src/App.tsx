@@ -50,7 +50,10 @@ import {
   RotateCcw,
   Notebook,
   Plus,
-  Key
+  Key,
+  Sun,
+  Moon,
+  Share2
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { ResumeBuilderModal } from "./components/ResumeBuilderModal";
@@ -61,6 +64,8 @@ import { ResumeHealthWidget } from "./components/ResumeHealthWidget";
 import { MissingKeywordHelper } from "./components/MissingKeywordHelper";
 import { HistoryComparisonModal } from "./components/HistoryComparisonModal";
 import { LinkedInVerificationModal } from "./components/LinkedInVerificationModal";
+import { VerifiedTrustBadgeCard } from "./components/VerifiedTrustBadgeCard";
+import { ResumeCanvasTab } from "./components/ResumeCanvasTab";
 import { exportFullReportToDocx } from "./utils/fullReportExport";
 import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
@@ -844,7 +849,9 @@ export default function App() {
   const [isApiKeyError, setIsApiKeyError] = useState(false);
   const [isSessionPurged, setIsSessionPurged] = useState(false);
   const [history, setHistory] = useState<AnalysisHistoryItem[]>([]);
-  const [currentTheme, setCurrentTheme] = useState("cosmic");
+  const [currentTheme, setCurrentTheme] = useState("canva-light");
+  const [activeStudioTab, setActiveStudioTab] = useState<"scorecard" | "canvas" | "skills" | "career" | "recruiter" | "all">("scorecard");
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
@@ -859,6 +866,75 @@ export default function App() {
   // LinkedIn Verification & Real-Time Trust Score Modal
   const [isLinkedInVerificationModalOpen, setIsLinkedInVerificationModalOpen] = useState(false);
   const [linkedInTrustScore, setLinkedInTrustScore] = useState<number | null>(null);
+  const [linkedInTrustReport, setLinkedInTrustReport] = useState<any | null>(null);
+  const [isVerifyingLinkedInTrust, setIsVerifyingLinkedInTrust] = useState(false);
+
+  const handleVerifyLinkedInTrust = async (customUrl?: string, customData?: string) => {
+    setIsVerifyingLinkedInTrust(true);
+    try {
+      let extractedResumeText = result?.summary || "";
+      if (!extractedResumeText && file) {
+        try {
+          if (file.type === "text/plain" || file.name.endsWith(".txt")) {
+            extractedResumeText = await file.text();
+          } else {
+            extractedResumeText = `Resume File: ${file.name}`;
+          }
+        } catch {
+          extractedResumeText = `Resume File: ${file.name}`;
+        }
+      }
+      if (!extractedResumeText && jobDescription) {
+        extractedResumeText = jobDescription;
+      }
+
+      const targetUrl =
+        (customUrl !== undefined ? customUrl : linkedinUrl).trim() ||
+        "https://www.linkedin.com/in/alexmercer-tech";
+      const targetData =
+        (customData !== undefined ? customData : linkedinData).trim() ||
+        "Headline: Senior Staff Software Engineer & Cloud Architect | Distributed Systems, Node.js, AWS\nAbout: 8+ years architecting high-throughput cloud infrastructure and leading engineering teams.";
+
+      let savedWeights = null;
+      try {
+        const rawW = localStorage.getItem("linkedin_trust_custom_weights_v1");
+        if (rawW) savedWeights = JSON.parse(rawW);
+      } catch {
+        // ignore
+      }
+
+      const response = await fetch("/api/linkedin/verify-trust", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          linkedinUrl: targetUrl,
+          linkedinData: targetData,
+          resumeText: extractedResumeText,
+          resumeData: result,
+          weights: savedWeights,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok && data) {
+        const score = data.credibilityScore ?? data.trustScore ?? 88;
+        setLinkedInTrustScore(score);
+        setLinkedInTrustReport(data);
+        sessionStorage.setItem("current_linkedin_trust_score", String(score));
+        sessionStorage.setItem("current_linkedin_trust_report", JSON.stringify(data));
+        if (!linkedinUrl && data.normalizedUrl) {
+          setLinkedinUrl(data.normalizedUrl);
+        }
+        if (!linkedinData && data.synchronizedProfileData) {
+          setLinkedinData(data.synchronizedProfileData);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to verify LinkedIn Trust Score:", err);
+    } finally {
+      setIsVerifyingLinkedInTrust(false);
+    }
+  };
 
   // Gemini API connection test state
   const [isTestingConnection, setIsTestingConnection] = useState(false);
@@ -906,6 +982,8 @@ export default function App() {
     const savedJobDescription = sessionStorage.getItem("current_job_description");
     const savedLinkedinUrl = sessionStorage.getItem("current_linkedin_url");
     const savedLinkedinData = sessionStorage.getItem("current_linkedin_data");
+    const savedTrustScore = sessionStorage.getItem("current_linkedin_trust_score");
+    const savedTrustReport = sessionStorage.getItem("current_linkedin_trust_report");
     
     if (savedResult) {
       try {
@@ -925,6 +1003,21 @@ export default function App() {
 
     if (savedLinkedinData) {
       setLinkedinData(savedLinkedinData);
+    }
+
+    if (savedTrustScore) {
+      const parsedScore = Number(savedTrustScore);
+      if (!Number.isNaN(parsedScore)) {
+        setLinkedInTrustScore(parsedScore);
+      }
+    }
+
+    if (savedTrustReport) {
+      try {
+        setLinkedInTrustReport(JSON.parse(savedTrustReport));
+      } catch (e) {
+        console.error("Failed to parse saved trust report", e);
+      }
     }
   }, []);
 
@@ -2087,153 +2180,101 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen selection:bg-teal-500/30">
+    <div className="min-h-screen">
       <div className="bg-gradient-body"></div>
-      {/* Background Orbs & Particles */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-[-1]">
-        <div className="absolute top-[-15%] right-[-10%] w-[600px] h-[600px] rounded-full bg-brand-accent/10 blur-[150px] animate-pulse transition-all duration-1000"></div>
-        <div
-          className="absolute bottom-[-15%] left-[-10%] w-[500px] h-[500px] rounded-full bg-brand-purple/10 blur-[150px] animate-pulse transition-all duration-1000"
-          style={{ animationDelay: "2s" }}
-        ></div>
-        <div
-          className="absolute top-[40%] left-[40%] w-[400px] h-[400px] rounded-full bg-brand-glow/5 blur-[150px] mix-blend-screen -z-10 animate-pulse transition-all duration-1000"
-          style={{ animationDelay: "4s" }}
-        ></div>
 
-        {/* Floating Particles */}
-        {Array.from({ length: 15 }).map((_, i) => (
-          <motion.div
-            key={`particle-${i}`}
-            className="absolute rounded-full bg-white/20"
-            style={{
-              width: Math.random() * 4 + 1 + "px",
-              height: Math.random() * 4 + 1 + "px",
-              top: Math.random() * 100 + "%",
-              left: Math.random() * 100 + "%",
+      {/* Canva & Figma Studio Navigation */}
+      <nav className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 h-[72px] flex items-center justify-between">
+          <div 
+            onClick={() => {
+              setResult(null);
+              setFile(null);
             }}
-            animate={{
-              y: [0, -100, 0],
-              opacity: [0, 0.5, 0],
-            }}
-            transition={{
-              duration: Math.random() * 10 + 10,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Modern Navigation */}
-      <nav className="sticky top-0 z-50 bg-[#0A0A15]/60 backdrop-blur-[40px] border-b border-white/[0.05] shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-        <div className="max-w-7xl mx-auto px-6 h-[88px] flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <motion.div
-              whileHover={{ rotate: 180, scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 200, damping: 10 }}
-              className="h-12 w-12 rounded-2xl bg-gradient-to-br from-brand-glow to-brand-accent flex items-center justify-center shadow-[0_0_30px_rgba(var(--brand-glow),0.3)] border border-white/20 cursor-pointer"
-            >
-              <BrainCircuit className="text-white h-6 w-6" />
-            </motion.div>
-            <div className="flex flex-col justify-center">
-              <span className="text-[22px] font-black font-display tracking-tight text-white leading-none mb-1">
-                EXECUTIVE <span className="glow-text-accent">INTELLIGENCE</span>
-              </span>
-              <span className="text-[10px] font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Autonomous Analysis Engine
+            className="flex items-center gap-3.5 cursor-pointer group"
+          >
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center shadow-sm text-white group-hover:scale-105 transition-transform">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-black font-display tracking-tight text-slate-900 dark:text-white">
+                  Resume Studio
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 text-[10px] font-extrabold uppercase tracking-wide border border-indigo-200 dark:border-indigo-800">
+                  AI Canvas
+                </span>
+              </div>
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                Executive ATS & Career Workspace
               </span>
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-5 text-[11px] font-black uppercase tracking-widest text-slate-400">
-            <a
-              href="https://interviewcoach-969933961049.asia-southeast1.run.app"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-2 bg-brand-teal/5 border border-brand-teal/20 px-4 py-2.5 rounded-full text-brand-teal hover:bg-brand-teal/15 hover:text-white transition-all duration-300 shadow-[0_0_15px_rgba(20,184,166,0.1)] hover:shadow-[0_0_25px_rgba(20,184,166,0.25)]"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+          <div className="flex items-center gap-3 text-xs font-bold text-slate-600 dark:text-slate-300">
+            {/* Theme Toggle: Studio Light vs Figma Dark */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentTheme("canva-light");
+                  document.documentElement.setAttribute("data-theme", "canva-light");
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  currentTheme === "canva-light"
+                    ? "bg-white text-indigo-600 shadow-sm font-extrabold"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white"
+                }`}
+                title="Switch to Canva Light Theme"
               >
-                <path d="m12 14 4-4" />
-                <path d="M3.34 19a10 10 0 1 1 17.32 0" />
-              </svg>
-              Interview Coach
-            </a>
-            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 p-1.5 rounded-full">
-              {[
-                { id: "cosmic", color: "bg-[#7000ff]", name: "Cosmic" },
-                { id: "ocean", color: "bg-[#2563eb]", name: "Ocean" },
-                { id: "ember", color: "bg-[#e11d48]", name: "Ember" },
-                { id: "forest", color: "bg-[#059669]", name: "Forest" },
-              ].map((theme) => (
-                <button
-                  key={theme.id}
-                  onClick={() => {
-                    setCurrentTheme(theme.id);
-                    document.documentElement.setAttribute(
-                      "data-theme",
-                      theme.id,
-                    );
-                  }}
-                  title={theme.name}
-                  className={`w-5 h-5 rounded-full transition-all duration-300 ${theme.color} ${currentTheme === theme.id ? "ring-2 ring-white scale-110 shadow-[0_0_12px_rgba(255,255,255,0.4)]" : "opacity-40 hover:opacity-100 hover:scale-110 cursor-pointer"}`}
-                />
-              ))}
+                <Sun className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Light</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentTheme("figma-dark");
+                  document.documentElement.setAttribute("data-theme", "figma-dark");
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  currentTheme === "figma-dark"
+                    ? "bg-slate-900 text-white shadow-sm font-extrabold"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white"
+                }`}
+                title="Switch to Figma Dark Theme"
+              >
+                <Moon className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Dark</span>
+              </button>
             </div>
-            {/* ATS Resume Generator & AI Coach Modal Trigger */}
+
+            {/* ATS Resume Generator & AI Coach Trigger */}
             {result && (
               <button
                 onClick={() => setIsResumeBuilderOpen(true)}
-                className="px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black text-xs transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-105 active:scale-95"
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-sm hover:from-indigo-500 hover:to-violet-500 active:scale-95 cursor-pointer"
               >
-                <Sparkles className="h-4 w-4 text-purple-200 animate-pulse" />
-                <span>ATS Builder & Coach</span>
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>ATS Builder</span>
               </button>
             )}
 
-            {/* High-Contrast Print-Friendly Theme Toggle */}
-            <button
-              onClick={togglePrintFriendlyTheme}
-              title="Toggle High-Contrast Print-Friendly Theme for clean PDF exports"
-              className={`px-5 py-2.5 rounded-full border text-xs font-bold transition-all flex items-center gap-2 shadow-sm ${
-                isPrintFriendly
-                  ? "bg-amber-400 text-slate-950 border-amber-300 font-extrabold shadow-[0_0_15px_rgba(251,191,36,0.5)] scale-105"
-                  : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"
-              }`}
-            >
-              <Printer className="h-4 w-4" />
-              {isPrintFriendly ? "Print Theme: ON" : "Print-Friendly"}
-            </button>
-
-            {/* Session Resume Version Dropdown Selector */}
+            {/* Version Dropdown Selector if session history exists */}
             {history.length > 0 && (
-              <div className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 px-3.5 py-2 rounded-full no-print">
-                <Layers className="h-3.5 w-3.5 text-purple-400 shrink-0" />
-                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest hidden lg:inline">
-                  Version:
-                </span>
+              <div className="hidden lg:flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl no-print">
+                <Layers className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
                 <select
                   value={activeVersionId || (history[0]?.id ?? "")}
                   onChange={(e) => switchActiveVersion(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-purple-200 focus:outline-none cursor-pointer max-w-[160px] truncate"
+                  className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer max-w-[140px] truncate"
                 >
                   {history.map((ver, idx) => (
-                    <option key={`top-ver-${ver.id || idx}-${idx}`} value={ver.id} className="bg-slate-900 text-white">
-                      {ver.versionName || `Version ${history.length - idx}`} ({ver.result?.overallScore || 0}% ATS)
+                    <option key={`top-ver-${ver.id || idx}-${idx}`} value={ver.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                      {ver.versionName || `Version ${history.length - idx}`} ({ver.result?.overallScore || 0}%)
                     </option>
                   ))}
-                  <option value="__new__" className="bg-purple-900 text-purple-200 font-bold">
-                    + Save Snapshot Version
+                  <option key="opt-new" value="__new__" className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 font-bold">
+                    + Snapshot
                   </option>
                 </select>
               </div>
@@ -2241,17 +2282,17 @@ export default function App() {
 
             <button
               onClick={() => setIsGuideOpen(true)}
-              className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition-all flex items-center gap-2"
+              className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <BookOpen className="h-4 w-4" />
-              Formatting Guide
+              <BookOpen className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Guide</span>
             </button>
             <button
               onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-              className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition-all flex items-center gap-2"
+              className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <Layers className="h-4 w-4" />
-              History {history.length > 0 && `(${history.length})`}
+              <Layers className="h-3.5 w-3.5" />
+              <span>History {history.length > 0 && `(${history.length})`}</span>
             </button>
           </div>
         </div>
@@ -2260,7 +2301,7 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-6 py-12">
         <AnimatePresence>
           {isGuideOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm overflow-y-auto">
+            <div key="guide-modal" className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm overflow-y-auto">
               <motion.div
                 initial={{ scale: 0.95, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -2452,7 +2493,7 @@ export default function App() {
           )}
 
           {isLinkedInModalOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+            <div key="linkedin-post-modal" className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -2484,14 +2525,22 @@ export default function App() {
 
           {/* Connect LinkedIn Profile Modal */}
           <ConnectLinkedInModal
+            key="connect-linkedin-modal"
             isOpen={isConnectLinkedInModalOpen}
             onClose={() => setIsConnectLinkedInModalOpen(false)}
             linkedinUrl={linkedinUrl}
             linkedinData={linkedinData}
-            resumeContext={jobDescription || (file ? `File: ${file.name}` : "")}
-            onSave={(newUrl, newData) => {
+            resumeContext={result?.summary || jobDescription || (file ? `File: ${file.name}` : "")}
+            resumeData={result}
+            initialTrustScore={linkedInTrustScore}
+            onSave={(newUrl, newData, verifiedScore) => {
               setLinkedinUrl(newUrl);
               setLinkedinData(newData || "");
+              if (typeof verifiedScore === "number") {
+                setLinkedInTrustScore(verifiedScore);
+                sessionStorage.setItem("current_linkedin_trust_score", String(verifiedScore));
+              }
+              handleVerifyLinkedInTrust(newUrl, newData || "");
               if (result) {
                 const topRole = result.careerPath?.topRole || "Senior Technology Leader";
                 setResult({
@@ -2516,6 +2565,10 @@ export default function App() {
             onDisconnect={() => {
               setLinkedinUrl("");
               setLinkedinData("");
+              setLinkedInTrustScore(null);
+              setLinkedInTrustReport(null);
+              sessionStorage.removeItem("current_linkedin_trust_score");
+              sessionStorage.removeItem("current_linkedin_trust_report");
               if (result && result.linkedinComparison) {
                 setResult({
                   ...result,
@@ -2530,6 +2583,7 @@ export default function App() {
 
           {/* LinkedIn Live Verification & Real-Time Trust Score Modal */}
           <LinkedInVerificationModal
+            key="linkedin-verification-modal"
             isOpen={isLinkedInVerificationModalOpen}
             onClose={() => setIsLinkedInVerificationModalOpen(false)}
             resumeData={result}
@@ -2547,6 +2601,7 @@ export default function App() {
 
           {/* Side-by-Side Version Comparison Modal */}
           <HistoryComparisonModal
+            key="history-comparison-modal"
             isOpen={isComparisonModalOpen}
             onClose={() => setIsComparisonModalOpen(false)}
             history={history}
@@ -2565,6 +2620,7 @@ export default function App() {
 
           {/* Floating Missing Keyword Sentence Placement Helper */}
           <MissingKeywordHelper
+            key="missing-keyword-helper"
             keyword={selectedMissingKeyword}
             targetRole={result?.targetRole || "Software Engineer"}
             foundSkills={result?.foundSkills || []}
@@ -2581,7 +2637,7 @@ export default function App() {
           />
 
           {isPurgePromptOpen && (
-            <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+            <div key="purge-prompt-modal" className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -2643,6 +2699,7 @@ export default function App() {
 
           {isHistoryOpen && (
             <motion.div
+              key="history-drawer"
               initial={{ opacity: 0, x: 100 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 100 }}
@@ -2821,6 +2878,7 @@ export default function App() {
 
           {compareIds.length >= 2 && !result && (
             <motion.div
+              key="delta-comparison-view"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="fixed inset-0 z-[70] bg-brand-deep flex flex-col p-12 overflow-y-auto"
@@ -2850,7 +2908,7 @@ export default function App() {
                       : 0;
 
                     return (
-                      <GlassCard key={`gc-${idx}`} className="space-y-8">
+                      <GlassCard key={`gc-${item.id || idx}-${idx}`} className="space-y-8">
                         <div className="space-y-2">
                           <p className="text-[10px] font-black text-teal-400 uppercase tracking-widest flex items-center justify-between">
                             <span>
@@ -2926,7 +2984,7 @@ export default function App() {
                               .slice(0, 10)
                               .map((s, i) => (
                                 <span
-                                  key={`fs-${i}`}
+                                  key={`fs-${idx}-${s}-${i}`}
                                   className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-[9px] font-black text-slate-500 uppercase"
                                 >
                                   {s}
@@ -2944,7 +3002,7 @@ export default function App() {
                               .slice(0, 3)
                               .map((gap, i) => (
                                 <div
-                                  key={`sgr-${i}`}
+                                  key={`sgr-${idx}-${gap.skill || i}-${i}`}
                                   className="flex justify-between items-center text-[10px] uppercase"
                                 >
                                   <span className="text-slate-400">
@@ -3001,6 +3059,7 @@ export default function App() {
 
           {isSessionPurged && (
             <motion.div
+              key="session-purged-toast"
               initial={{ opacity: 0, y: -50 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -50 }}
@@ -3013,6 +3072,7 @@ export default function App() {
 
           {snapshotToast && (
             <motion.div
+              key="snapshot-toast"
               initial={{ opacity: 0, y: 50, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 50, scale: 0.9 }}
@@ -3229,86 +3289,179 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     </button>
                   </div>
 
-                  <div className="mt-4 border-t border-white/5 pt-4">
+                  <div className="mt-4 border-t border-white/5 pt-4 space-y-3">
                     <div className="group relative w-full">
                       {linkedinUrl ? (
-                        <div className="w-full flex items-center justify-between p-3 rounded-xl border border-[#0A66C2]/40 bg-[#0A66C2]/15 shadow-[0_0_20px_rgba(10,102,194,0.25)] transition-all">
-                          <button
-                            type="button"
-                            onClick={() => setIsConnectLinkedInModalOpen(true)}
-                            className="flex items-center gap-3 text-left overflow-hidden flex-1 cursor-pointer"
-                          >
-                            <img
-                              src="https://cdn-icons-png.flaticon.com/512/174/174857.png"
-                              width="20"
-                              height="20"
-                              alt="LI"
-                              className="shrink-0"
-                            />
-                            <div className="overflow-hidden">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-black uppercase tracking-wider text-white">
-                                  LinkedIn Connected
-                                </span>
-                                <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[9px] font-bold">
-                                  Active
-                                </span>
-                              </div>
-                              <p className="text-[10px] text-teal-300 font-mono truncate max-w-[180px] sm:max-w-xs">
-                                {linkedinUrl.replace(/^https?:\/\/(www\.)?linkedin\.com\//i, "")}
-                              </p>
-                            </div>
-                          </button>
-                          <div className="flex items-center gap-1 shrink-0 ml-2">
+                        <div className="w-full flex flex-col gap-2.5 p-3 rounded-xl border border-[#0A66C2]/40 bg-[#0A66C2]/15 shadow-[0_0_20px_rgba(10,102,194,0.25)] transition-all">
+                          <div className="flex items-center justify-between gap-2">
                             <button
                               type="button"
                               onClick={() => setIsConnectLinkedInModalOpen(true)}
-                              className="text-[10px] font-black uppercase tracking-wider text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-lg border border-white/10 transition-all cursor-pointer"
+                              className="flex items-center gap-3 text-left overflow-hidden flex-1 cursor-pointer"
                             >
-                              Manage
+                              <img
+                                src="https://cdn-icons-png.flaticon.com/512/174/174857.png"
+                                width="20"
+                                height="20"
+                                alt="LI"
+                                referrerPolicy="no-referrer"
+                                className="shrink-0"
+                              />
+                              <div className="overflow-hidden">
+                                <div className="flex items-center gap-2 text-xs text-white">
+                                  <span className="font-bold tracking-wide">
+                                    LinkedIn Connected
+                                  </span>
+                                  <span aria-hidden="true" className="text-slate-400">·</span>
+                                  <span className="text-emerald-400 font-semibold text-[11px]">
+                                    Active
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-teal-300 font-mono truncate max-w-[180px] sm:max-w-xs">
+                                  {linkedinUrl.replace(/^https?:\/\/(www\.)?linkedin\.com\//i, "")}
+                                </p>
+                              </div>
                             </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setLinkedinUrl("");
-                                setLinkedinData("");
-                              }}
-                              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer"
-                              title="Disconnect LinkedIn profile"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleVerifyLinkedInTrust()}
+                                disabled={isVerifyingLinkedInTrust}
+                                className="text-[11px] font-bold text-teal-300 hover:text-white bg-teal-500/15 hover:bg-teal-500/25 px-3 py-1.5 rounded-lg border border-teal-500/30 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer disabled:opacity-50"
+                                title="Perform real-time verification of LinkedIn profile data against resume content"
+                              >
+                                <ShieldCheck className={`w-3.5 h-3.5 text-teal-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
+                                <span>{isVerifyingLinkedInTrust ? "Verifying..." : "LinkedIn Trust Score"}</span>
+                                {linkedInTrustScore !== null && (
+                                  <span className="font-mono font-bold tabular-nums text-white ml-0.5">
+                                    {linkedInTrustScore}%
+                                  </span>
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setIsConnectLinkedInModalOpen(true)}
+                                className="text-[11px] font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-lg border border-white/10 transition-all whitespace-nowrap cursor-pointer"
+                              >
+                                Manage
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLinkedinUrl("");
+                                  setLinkedinData("");
+                                  setLinkedInTrustScore(null);
+                                  setLinkedInTrustReport(null);
+                                  sessionStorage.removeItem("current_linkedin_trust_score");
+                                  sessionStorage.removeItem("current_linkedin_trust_report");
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer"
+                                title="Disconnect LinkedIn profile"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ) : (
-                        <motion.button
-                          type="button"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => setIsConnectLinkedInModalOpen(true)}
-                          className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border transition-all bg-[#0A66C2]/5 hover:bg-[#0A66C2]/15 border-[#0A66C2]/30 text-[#38bdf8] hover:shadow-[0_0_20px_rgba(10,102,194,0.3)] cursor-pointer"
-                        >
-                          <img
-                            src="https://cdn-icons-png.flaticon.com/512/174/174857.png"
-                            width="18"
-                            height="18"
-                            alt="LI"
-                            className="grayscale group-hover:grayscale-0 transition-all duration-300"
-                          />
-                          <span className="text-xs font-black uppercase tracking-widest text-[#38bdf8] group-hover:text-white transition-colors">
-                            Connect LinkedIn Profile
-                          </span>
-                          <span className="text-[9px] font-bold text-teal-400 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded-full ml-1">
-                            +15% Boost
-                          </span>
-                        </motion.button>
+                        <div className="flex flex-col sm:flex-row items-stretch gap-2">
+                          <motion.button
+                            type="button"
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.99 }}
+                            onClick={() => setIsConnectLinkedInModalOpen(true)}
+                            className="flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl border transition-all bg-[#0A66C2]/10 hover:bg-[#0A66C2]/20 border-[#0A66C2]/35 text-[#38bdf8] hover:text-white cursor-pointer whitespace-nowrap"
+                          >
+                            <img
+                              src="https://cdn-icons-png.flaticon.com/512/174/174857.png"
+                              width="16"
+                              height="16"
+                              alt="LI"
+                              referrerPolicy="no-referrer"
+                              className="shrink-0"
+                            />
+                            <span className="text-xs font-bold tracking-wide">
+                              Connect LinkedIn Profile
+                            </span>
+                          </motion.button>
+                          <button
+                            type="button"
+                            onClick={() => handleVerifyLinkedInTrust()}
+                            disabled={isVerifyingLinkedInTrust}
+                            className="px-4 py-3 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/35 text-teal-300 hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50"
+                            title="Verify public LinkedIn profile data against your resume content in real time"
+                          >
+                            <ShieldCheck className={`w-4 h-4 text-teal-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
+                            <span>{isVerifyingLinkedInTrust ? "Verifying..." : "LinkedIn Trust Score"}</span>
+                            {linkedInTrustScore !== null && (
+                              <span className="font-mono font-bold tabular-nums text-white">
+                                {linkedInTrustScore}%
+                              </span>
+                            )}
+                          </button>
+                        </div>
                       )}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-slate-800 text-white text-[10px] font-medium p-3.5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-white/10 shadow-2xl leading-relaxed text-center hidden group-hover:block">
-                        Connect your LinkedIn profile for cross-vector ATS matching, public presence audit, and keyword gap analysis.
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-3 h-3 bg-slate-800 border-b border-r border-white/10 rotate-45 transform"></div>
-                      </div>
                     </div>
+
+                    {/* Real-Time Credibility Score Display inside the LinkedIn Connection Section */}
+                    {linkedInTrustScore !== null && (
+                      <div className="p-3.5 rounded-xl bg-slate-900/90 border border-teal-500/30 space-y-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 text-xs text-slate-300">
+                            <ShieldCheck className="w-4 h-4 text-teal-400 shrink-0" />
+                            <span className="font-semibold text-white">Credibility Score</span>
+                            <span aria-hidden="true">·</span>
+                            <span className="text-teal-300 font-medium">
+                              {linkedInTrustReport?.credibilityTier ||
+                                (linkedInTrustScore >= 85
+                                  ? "Verified High Credibility"
+                                  : linkedInTrustScore >= 70
+                                  ? "Strong Profile Credibility"
+                                  : "Moderate Credibility")}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-base font-mono font-bold tabular-nums text-teal-400">
+                              {linkedInTrustScore}%
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setIsLinkedInVerificationModalOpen(true)}
+                              className="text-[11px] font-semibold text-slate-300 hover:text-white underline underline-offset-2 cursor-pointer whitespace-nowrap"
+                            >
+                              Full Audit
+                            </button>
+                          </div>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-teal-400 rounded-full transition-all duration-500"
+                            style={{ width: `${linkedInTrustScore}%` }}
+                          />
+                        </div>
+                        {linkedInTrustReport?.trustFactors && (
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-0.5">
+                            {linkedInTrustReport.trustFactors.map((tf: any, idx: number) => (
+                              <div
+                                key={`landing-tf-${tf.name}-${idx}`}
+                                className="flex items-center justify-between text-[10px] text-slate-400 bg-white/[0.03] px-2 py-1 rounded border border-white/5"
+                              >
+                                <span className="truncate pr-1">{tf.name.split(" ")[0]}</span>
+                                <span className="font-mono font-semibold tabular-nums text-slate-200">
+                                  {tf.score}%
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {linkedInTrustReport?.verificationSummary && (
+                          <p className="text-[11px] text-slate-400 leading-relaxed">
+                            {linkedInTrustReport.verificationSummary}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </GlassCard>
 
@@ -4867,125 +5020,224 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 </div>
               )}
 
-              {/* Header Controls */}
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-8 border-b border-white/5">
-                <div>
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-4xl font-black font-display text-white tracking-tight">
-                      Executive Summary
-                    </h2>
-                    {activeVersionId && (
-                      <span className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 text-[10px] font-extrabold uppercase tracking-wider">
-                        {history.find(h => h.id === activeVersionId)?.versionName || "Active Version"}
+              {/* Canva & Figma Studio Header & Toolbar */}
+              <div className="flex flex-col gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h2 className="text-3xl font-black font-display text-slate-900 dark:text-white tracking-tight">
+                        Executive Summary
+                      </h2>
+                      <span className="px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-black">
+                        {result.overallScore}% Overall Fit
                       </span>
-                    )}
-                  </div>
-                  <p className="text-slate-500 text-sm font-bold tracking-widest uppercase mt-2">
-                    Analysis For: {file?.name || history.find(h => h.id === activeVersionId)?.fileName || "Resume"}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-3 no-print">
-                  {/* ATS Generator & AI Coach Button */}
-                  <button
-                    onClick={() => setIsResumeBuilderOpen(true)}
-                    className="px-6 py-3 rounded-full bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 text-white font-black text-[11px] uppercase tracking-widest transition-all flex items-center gap-2.5 shadow-[0_0_25px_rgba(168,85,247,0.5)] hover:scale-105 active:scale-95"
-                  >
-                    <Sparkles className="h-4 w-4 text-purple-200 animate-pulse" />
-                    <span>ATS Builder & Coach</span>
-                  </button>
-
-                  {/* Version Selector Dropdown */}
-                  {history.length > 0 && (
-                    <div className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 px-4 py-2.5 rounded-full shadow-lg">
-                      <Layers className="h-4 w-4 text-purple-400 shrink-0" />
-                      <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                        Version:
-                      </span>
-                      <select
-                        value={activeVersionId || (history[0]?.id ?? "")}
-                        onChange={(e) => switchActiveVersion(e.target.value)}
-                        className="bg-transparent text-xs font-black text-purple-200 focus:outline-none cursor-pointer max-w-[170px] truncate"
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const el = document.getElementById("verified-trust-badge-section");
+                          if (el) {
+                            el.scrollIntoView({ behavior: "smooth", block: "center" });
+                          } else {
+                            setIsLinkedInVerificationModalOpen(true);
+                          }
+                        }}
+                        className="px-3 py-1 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/40 text-teal-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                        title="Verified Trust Badge — Click to share or embed your LinkedIn Credibility Score"
                       >
-                        {history.map((ver, idx) => (
-                          <option key={`main-ver-${ver.id || idx}-${idx}`} value={ver.id} className="bg-slate-900 text-white">
-                            {ver.versionName || `Version ${history.length - idx}`} ({ver.result?.overallScore || 0}% ATS)
-                          </option>
-                        ))}
-                        <option value="__new__" className="bg-purple-900 text-purple-200 font-bold">
-                          + Save Snapshot Version
-                        </option>
-                      </select>
+                        <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
+                        <span>Verified Trust</span>
+                        <span aria-hidden="true" className="text-teal-500/60">·</span>
+                        <span className="font-mono font-extrabold tabular-nums text-white">
+                          {linkedInTrustScore ?? (linkedinUrl ? 86 : 78)}%
+                        </span>
+                        <Share2 className="w-3 h-3 text-teal-400 ml-0.5" />
+                      </button>
+                      {activeVersionId && (
+                        <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold">
+                          {history.find(h => h.id === activeVersionId)?.versionName || "Active Version"}
+                        </span>
+                      )}
                     </div>
-                  )}
+                    <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold mt-1.5 flex items-center gap-2">
+                      <span>Analyzing: <strong className="text-slate-800 dark:text-slate-200">{file?.name || history.find(h => h.id === activeVersionId)?.fileName || "Candidate Resume"}</strong></span>
+                      <span>•</span>
+                      <span>Target: <strong className="text-slate-800 dark:text-slate-200">{result.careerPath.topRole || "Executive Leadership"}</strong></span>
+                    </p>
+                  </div>
 
-                  {/* Print-Friendly Toggle Button */}
-                  <button
-                    onClick={togglePrintFriendlyTheme}
-                    title="Toggle High-Contrast Print-Friendly Theme for clean PDF exports"
-                    className={`px-5 py-3 rounded-full border text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-xl ${
-                      isPrintFriendly
-                        ? "bg-amber-400 text-slate-950 border-amber-300 font-extrabold shadow-[0_0_20px_rgba(251,191,36,0.6)] scale-105"
-                        : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"
-                    }`}
-                  >
-                    <Printer className="h-4 w-4" />
-                    {isPrintFriendly ? "Print Theme: ON" : "Print-Friendly Theme"}
-                  </button>
+                  <div className="flex items-center gap-2.5 flex-wrap no-print">
+                    <button
+                      onClick={() => setIsResumeBuilderOpen(true)}
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-sm hover:from-indigo-500 hover:to-violet-500 active:scale-95 cursor-pointer"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      <span>ATS Builder & Coach</span>
+                    </button>
 
-                  <button
-                    onClick={() => setIsLinkedInModalOpen(true)}
-                    className="px-6 py-3 rounded-full bg-[#0A66C2]/10 border border-[#0A66C2]/20 text-[#0A66C2] font-black text-[11px] uppercase tracking-widest hover:bg-[#0A66C2] hover:text-white transition-all flex items-center gap-3 shadow-xl"
-                  >
-                    <Layers className="h-4 w-4" /> Share Success
-                  </button>
-                  <button
-                    onClick={() => setIsExecutiveMode(!isExecutiveMode)}
-                    className={`px-6 py-3 rounded-full border text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-3 shadow-xl ${isExecutiveMode ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 hover:bg-amber-500 hover:text-white' : 'border-white/10 text-slate-300 hover:bg-white/5'}`}
-                  >
-                    <Briefcase className="h-4 w-4" /> {isExecutiveMode ? 'Exit Exec Mode' : 'Executive Mode'}
-                  </button>
-                  <button
-                    onClick={handlePrint}
-                    className="px-6 py-3 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 font-black text-[11px] uppercase tracking-widest hover:bg-teal-500 hover:text-white transition-all flex items-center gap-3 shadow-xl"
-                  >
-                    <Printer className="h-4 w-4" /> Export Report
-                  </button>
-                  <button
-                    onClick={() => {
-                      setResult(null);
-                      setFile(null);
-                    }}
-                    className="px-6 py-3 rounded-full border border-white/10 text-slate-300 font-black text-[11px] uppercase tracking-widest hover:bg-white/5 transition-all flex items-center gap-3 shadow-xl"
-                  >
-                    <RefreshCw className="h-4 w-4" /> New Analysis
-                  </button>
-                  <button
-                    onClick={exportToExcel}
-                    className="btn-primary py-3 px-8 text-[11px] flex items-center gap-3"
-                  >
-                    <Download className="h-4 w-4" /> Export Excel
-                  </button>
-                  <button
-                    onClick={exportToCSV}
-                    className="btn-primary py-3 px-8 text-[11px] flex items-center gap-3"
-                  >
-                    <Download className="h-4 w-4" /> Export CSV
-                  </button>
+                    <button
+                      onClick={() => setIsExecutiveMode(!isExecutiveMode)}
+                      className={`px-4 py-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                        isExecutiveMode 
+                          ? "bg-amber-500 text-white border-amber-500 shadow-sm" 
+                          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+                      }`}
+                    >
+                      <Briefcase className="h-4 w-4" />
+                      <span>{isExecutiveMode ? "Brief Active" : "Executive Brief"}</span>
+                    </button>
+
+                    {/* Unified Export Menu */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                        className="px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs flex items-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer hover:bg-slate-800 dark:hover:bg-slate-100"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Export</span>
+                        <ChevronDown className="w-3 h-3 ml-0.5" />
+                      </button>
+
+                      {isExportMenuOpen && (
+                        <div className="absolute right-0 mt-2 w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                          <button
+                            onClick={() => {
+                              setIsExportMenuOpen(false);
+                              handleFullReportPdfPrint();
+                            }}
+                            className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer"
+                          >
+                            <Printer className="w-4 h-4 text-purple-600" />
+                            <div>
+                              <div className="font-bold">Executive PDF Report</div>
+                              <div className="text-[10px] text-slate-400">High-resolution print format</div>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsExportMenuOpen(false);
+                              exportFullReportToDocx(result);
+                            }}
+                            className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer"
+                          >
+                            <FileText className="w-4 h-4 text-blue-600" />
+                            <div>
+                              <div className="font-bold">Word Document (.docx)</div>
+                              <div className="text-[10px] text-slate-400">Editable executive briefing</div>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsExportMenuOpen(false);
+                              exportToExcel();
+                            }}
+                            className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer"
+                          >
+                            <Download className="w-4 h-4 text-emerald-600" />
+                            <div>
+                              <div className="font-bold">Excel Spreadsheet (.xlsx)</div>
+                              <div className="text-[10px] text-slate-400">Full audit score matrix</div>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsExportMenuOpen(false);
+                              exportToCSV();
+                            }}
+                            className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer"
+                          >
+                            <Download className="w-4 h-4 text-slate-500" />
+                            <div>
+                              <div className="font-bold">CSV Dataset (.csv)</div>
+                              <div className="text-[10px] text-slate-400">Raw tabular metrics</div>
+                            </div>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setResult(null);
+                        setFile(null);
+                      }}
+                      className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                      title="New Analysis"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Canva & Figma Segmented Studio Navigation Tabs */}
+                <div className="flex items-center justify-between gap-4 p-1.5 bg-slate-100/90 dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 overflow-x-auto no-print">
+                  <div className="flex items-center gap-1 min-w-max">
+                    {[
+                      { id: "scorecard", label: "Scorecard & Health", icon: BarChart2 },
+                      { id: "canvas", label: "Resume Canvas", icon: FileText, badge: file ? "Live" : undefined },
+                      { id: "skills", label: "Skills & Keywords", icon: Target, badge: `${(result.missingSkills?.length ?? result.skillGapReport?.length ?? 0)} Gaps` },
+                      { id: "career", label: "Career Roadmap", icon: TrendingUp },
+                      { id: "recruiter", label: "Recruiter Brief", icon: Briefcase },
+                      { id: "all", label: "Complete Overview", icon: Layout },
+                    ].map((tab) => {
+                      const Icon = tab.icon;
+                      const isActive = activeStudioTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveStudioTab(tab.id as any)}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            isActive
+                              ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/80 dark:border-slate-700/80 font-extrabold"
+                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50"
+                          }`}
+                        >
+                          <Icon className={`w-3.5 h-3.5 ${isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`} />
+                          <span>{tab.label}</span>
+                          {tab.badge && (
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                              isActive ? "bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+                            }`}>
+                              {tab.badge}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
+              {/* Canva Resume Artboard View */}
+              {activeStudioTab === "canvas" && (
+                <div className="mb-12">
+                  <ResumeCanvasTab
+                    result={result}
+                    file={file}
+                    onOpenBuilder={() => setIsResumeBuilderOpen(true)}
+                    onPrint={handleFullReportPdfPrint}
+                  />
+                </div>
+              )}
               
-              {isExecutiveMode && (
+              {activeStudioTab !== "canvas" && (isExecutiveMode || activeStudioTab === "scorecard" || activeStudioTab === "all" || isPrintFriendly) && (
                 <div className="mb-8">
                   <GlassCard className="p-8 md:p-12 border-t-4 border-t-amber-500 bg-gradient-to-b from-amber-500/5 to-transparent">
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="h-12 w-12 rounded-xl bg-amber-500/20 flex items-center justify-center border border-amber-500/30">
-                        <Briefcase className="h-6 w-6 text-amber-400" />
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-xl bg-amber-500/20 flex items-center justify-center border border-amber-500/30">
+                          <Briefcase className="h-6 w-6 text-amber-400" />
+                        </div>
+                        <div>
+                          <h2 className="text-2xl font-black text-white font-display uppercase tracking-widest">Executive Summary</h2>
+                          <p className="text-amber-400/80 text-xs font-bold uppercase tracking-[0.2em]">High-Level Narrative Analysis</p>
+                        </div>
                       </div>
-                      <div>
-                        <h2 className="text-2xl font-black text-white font-display uppercase tracking-widest">Executive Summary</h2>
-                        <p className="text-amber-400/80 text-xs font-bold uppercase tracking-[0.2em]">High-Level Narrative Analysis</p>
-                      </div>
+                      <button
+                        onClick={handleFullReportPdfPrint}
+                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer self-start sm:self-auto"
+                      >
+                        <Printer className="w-4 h-4" /> Export Executive PDF
+                      </button>
                     </div>
                     
                     <div className="space-y-8">
@@ -5023,7 +5275,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             <AlertCircle className="h-4 w-4 text-rose-400" /> Critical Gaps
                           </h3>
                           <ul className="space-y-3">
-                            {result.missingSkills.slice(0, 3).map((skill, idx) => (
+                            {(result.missingSkills || result.skillGapReport?.map(s => s.skill) || []).slice(0, 3).map((skill, idx) => (
                               <li key={`crit-gap-${skill || idx}-${idx}`} className="flex items-start gap-2">
                                 <div className="h-4 w-4 rounded-full bg-rose-500/20 flex items-center justify-center shrink-0 mt-0.5">
                                   <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
@@ -5031,7 +5283,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 <span className="text-xs text-slate-300">{skill}</span>
                               </li>
                             ))}
-                             {result.missingSkills.length === 0 && (
+                             {(!result.missingSkills?.length && !result.skillGapReport?.length) && (
                               <li className="text-xs text-slate-500 italic">No critical missing skills identified.</li>
                             )}
                           </ul>
@@ -5042,7 +5294,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 </div>
               )}
 
-              {!isExecutiveMode && (
+              {activeStudioTab !== "canvas" && !isExecutiveMode && (
                 <div className="flex flex-col">
               {/* Career Progress Badges */}
               <div className="mb-8" id="career-progress" style={{ order: sectionOrder.indexOf('career-progress') }}>
@@ -5084,7 +5336,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                   </div>
 
                   {/* Badges Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.overallScore >= 85 ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-white/5 border-white/10 opacity-50 grayscale'}`}>
                       <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.overallScore >= 85 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-slate-400'}`}>
                         <Briefcase className="h-5 w-5" />
@@ -5116,9 +5368,46 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       <span className="text-xs font-black uppercase tracking-widest text-white mb-1">Trajectory Pro</span>
                       <span className="text-[9px] text-slate-400">Confidence 80%+</span>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const el = document.getElementById("verified-trust-badge-section");
+                        if (el) {
+                          el.scrollIntoView({ behavior: "smooth", block: "center" });
+                        } else {
+                          setIsLinkedInVerificationModalOpen(true);
+                        }
+                      }}
+                      className="p-4 rounded-xl border bg-teal-500/15 border-teal-500/40 hover:bg-teal-500/25 flex flex-col items-center text-center transition-all cursor-pointer group"
+                      title="Click to share or embed your Verified Trust LinkedIn Credibility Badge"
+                    >
+                      <div className="h-10 w-10 rounded-full flex items-center justify-center mb-2 bg-teal-500/20 text-teal-400 group-hover:scale-105 transition-transform">
+                        <ShieldCheck className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs font-black uppercase tracking-widest text-white mb-1">
+                        Verified Trust
+                      </span>
+                      <span className="text-[10px] font-mono font-bold text-teal-300 tabular-nums">
+                        {linkedInTrustScore ?? (linkedinUrl ? 86 : 78)}% Credibility · Share
+                      </span>
+                    </button>
                   </div>
                 </GlassCard>
               </div>
+
+              {/* Verified Trust Badge Card (Share & Embed in Professional Profile) */}
+              <VerifiedTrustBadgeCard
+                credibilityScore={linkedInTrustScore}
+                credibilityTier={linkedInTrustReport?.credibilityTier}
+                linkedinUrl={linkedinUrl}
+                candidateName={linkedInTrustReport?.candidateName || "Alex Mercer"}
+                targetRole={result.careerPath?.topRole || "Executive Leadership"}
+                trustFactors={linkedInTrustReport?.trustFactors}
+                isVerifying={isVerifyingLinkedInTrust}
+                onVerifyNow={() => handleVerifyLinkedInTrust()}
+                onOpenVerificationModal={() => setIsLinkedInVerificationModalOpen(true)}
+              />
 
               {/* Full Analysis Report Export & ATS Generator Banner */}
               <GlassCard className="mb-8 border-l-4 border-l-teal-500 bg-gradient-to-r from-teal-500/10 via-purple-500/5 to-transparent p-6 md:p-8 flex flex-wrap items-center justify-between gap-6">
@@ -5418,7 +5707,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       ),
                     },
                   ].map((m, i) => (
-                    <div key={`m-${i}`} className="space-y-3">
+                    <div key={`m-${m.label}-${i}`} className="space-y-3">
                       <div className="flex justify-between items-end">
                         <div className="flex items-center gap-2">
                           <div>
@@ -5479,7 +5768,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     <div className="space-y-12">
                       {result.careerTimeline.map((item, idx) => (
                         <div
-                          key={`timeline-${idx}`}
+                          key={`timeline-${item.role || idx}-${item.company || idx}-${idx}`}
                           className="relative pl-12 md:pl-16"
                         >
                           {/* Timeline dot */}
@@ -5503,7 +5792,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           <ul className="space-y-2">
                             {item.highlights.map((highlight, hIdx) => (
                               <li
-                                key={`hl-${hIdx}`}
+                                key={`timeline-hl-${idx}-${hIdx}`}
                                 className="text-[12px] text-slate-300 leading-relaxed font-medium flex items-start gap-3"
                               >
                                 <span className="text-teal-500 mt-1.5 opacity-50">
@@ -5590,20 +5879,80 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       </button>
                       <button
                         type="button"
-                        onClick={() => setIsLinkedInVerificationModalOpen(true)}
-                        className="text-xs text-white bg-gradient-to-r from-teal-500/20 to-blue-500/20 hover:from-teal-500/30 hover:to-blue-500/30 px-3 py-1.5 rounded-xl border border-teal-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow-[0_0_15px_rgba(20,184,166,0.2)]"
-                        title="Perform live verification of LinkedIn profile metrics against resume content for candidate Trust Score"
+                        onClick={() => handleVerifyLinkedInTrust()}
+                        disabled={isVerifyingLinkedInTrust}
+                        className="text-xs text-white bg-teal-500/20 hover:bg-teal-500/30 px-3.5 py-1.5 rounded-xl border border-teal-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap disabled:opacity-50"
+                        title="Perform real-time verification of LinkedIn profile data against resume content for Credibility Score"
                       >
-                        <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
-                        <span>Live Trust Score</span>
+                        <ShieldCheck className={`w-3.5 h-3.5 text-teal-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
+                        <span>{isVerifyingLinkedInTrust ? "Verifying..." : "LinkedIn Trust Score"}</span>
                         {linkedInTrustScore !== null && (
-                          <span className="px-1.5 py-0.2 rounded-full bg-teal-400/25 text-teal-300 font-black text-[10px]">
+                          <span className="font-mono font-bold tabular-nums text-teal-300 ml-1">
                             {linkedInTrustScore}%
                           </span>
                         )}
                       </button>
                     </div>
                   </div>
+
+                  {/* Real-Time Credibility Score Banner in Connected LinkedIn Section */}
+                  {linkedInTrustScore !== null && (
+                    <div className="mb-6 p-4 rounded-2xl bg-slate-900/90 border border-teal-500/30 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-xs text-slate-300">
+                          <ShieldCheck className="w-4 h-4 text-teal-400 shrink-0" />
+                          <span className="font-bold text-white">Credibility Score</span>
+                          <span aria-hidden="true">·</span>
+                          <span className="text-teal-300 font-medium">
+                            {linkedInTrustReport?.credibilityTier ||
+                              (linkedInTrustScore >= 85
+                                ? "Verified High Credibility"
+                                : linkedInTrustScore >= 70
+                                ? "Strong Profile Credibility"
+                                : "Moderate Credibility")}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg font-mono font-bold tabular-nums text-teal-400">
+                            {linkedInTrustScore}% Credibility
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setIsLinkedInVerificationModalOpen(true)}
+                            className="text-xs font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-lg border border-white/10 transition-all cursor-pointer whitespace-nowrap"
+                          >
+                            Detailed Audit
+                          </button>
+                        </div>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-teal-400 rounded-full transition-all duration-500"
+                          style={{ width: `${linkedInTrustScore}%` }}
+                        />
+                      </div>
+                      {linkedInTrustReport?.trustFactors && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {linkedInTrustReport.trustFactors.map((tf: any, idx: number) => (
+                            <div
+                              key={`dash-conn-tf-${tf.name}-${idx}`}
+                              className="flex items-center justify-between text-xs text-slate-400 bg-white/[0.03] px-3 py-1.5 rounded-lg border border-white/5"
+                            >
+                              <span className="truncate pr-2">{tf.name.split(" ")[0]}</span>
+                              <span className="font-mono font-semibold tabular-nums text-white">
+                                {tf.score}%
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {linkedInTrustReport?.verificationSummary && (
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                          {linkedInTrustReport.verificationSummary}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* LinkedIn Score Impact Progress Bar */}
                   <div className="mb-8 p-5 bg-[#14b8a6]/10 border border-[#14b8a6]/20 rounded-2xl relative overflow-hidden">
@@ -5666,7 +6015,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               {result.linkedinComparison.missingFromLinkedIn.map(
                                 (s, i) => (
                                   <li
-                                    key={`li-miss-${i}`}
+                                    key={`li-miss-${s}-${i}`}
                                     className="text-xs text-slate-300 flex items-start gap-2"
                                   >
                                     <span className="text-emerald-500">
@@ -5704,7 +6053,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               {result.linkedinComparison.missingFromResume.map(
                                 (s, i) => (
                                   <li
-                                    key={`res-miss-${i}`}
+                                    key={`res-miss-${s}-${i}`}
                                     className="text-xs text-slate-300 flex items-start gap-2"
                                   >
                                     <span className="text-rose-500">•</span>{" "}
@@ -5753,13 +6102,14 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
                       <button
                         type="button"
-                        onClick={() => setIsLinkedInVerificationModalOpen(true)}
-                        className="px-4 py-3 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 font-bold text-xs uppercase tracking-wider transition-all border border-teal-500/30 flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:shadow-[0_0_15px_rgba(20,184,166,0.2)]"
+                        onClick={() => handleVerifyLinkedInTrust()}
+                        disabled={isVerifyingLinkedInTrust}
+                        className="px-4 py-3 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 font-bold text-xs uppercase tracking-wider transition-all border border-teal-500/30 flex items-center justify-center gap-2 cursor-pointer shadow-sm whitespace-nowrap disabled:opacity-50"
                       >
-                        <ShieldCheck className="w-4 h-4 text-teal-400" />
-                        <span>Live Trust Score</span>
+                        <ShieldCheck className={`w-4 h-4 text-teal-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
+                        <span>{isVerifyingLinkedInTrust ? "Verifying..." : "LinkedIn Trust Score"}</span>
                         {linkedInTrustScore !== null && (
-                          <span className="px-1.5 py-0.5 rounded-full bg-teal-400/25 text-teal-300 font-black text-[10px]">
+                          <span className="font-mono font-bold tabular-nums text-white ml-1">
                             {linkedInTrustScore}%
                           </span>
                         )}
@@ -5768,13 +6118,56 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
                         onClick={() => setIsConnectLinkedInModalOpen(true)}
-                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#0A66C2] hover:bg-[#004182] text-white font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(10,102,194,0.4)] flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#0A66C2] hover:bg-[#004182] text-white font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(10,102,194,0.4)] flex items-center justify-center gap-2 shrink-0 cursor-pointer whitespace-nowrap"
                       >
                         <Zap className="w-4 h-4 text-teal-300" />
                         <span>Connect Profile Now</span>
                       </motion.button>
                     </div>
                   </div>
+
+                  {linkedInTrustScore !== null && (
+                    <div className="mt-4 pt-4 border-t border-white/10 space-y-2.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-xs text-slate-300">
+                          <ShieldCheck className="w-4 h-4 text-teal-400 shrink-0" />
+                          <span className="font-bold text-white">Credibility Score</span>
+                          <span aria-hidden="true">·</span>
+                          <span className="text-teal-300 font-medium">
+                            {linkedInTrustReport?.credibilityTier ||
+                              (linkedInTrustScore >= 85
+                                ? "Verified High Credibility"
+                                : linkedInTrustScore >= 70
+                                ? "Strong Profile Credibility"
+                                : "Moderate Credibility")}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-base font-mono font-bold tabular-nums text-teal-400">
+                            {linkedInTrustScore}% Credibility
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setIsLinkedInVerificationModalOpen(true)}
+                            className="text-xs font-semibold text-slate-300 hover:text-white underline underline-offset-2 cursor-pointer whitespace-nowrap"
+                          >
+                            Full Verification Report
+                          </button>
+                        </div>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-teal-400 rounded-full transition-all duration-500"
+                          style={{ width: `${linkedInTrustScore}%` }}
+                        />
+                      </div>
+                      {linkedInTrustReport?.verificationSummary && (
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                          {linkedInTrustReport.verificationSummary}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </GlassCard>
               )}
 
@@ -6077,7 +6470,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                   .slice(0, 3)
                                   .map((ms, msx) => (
                                     <span
-                                      key={`miss-skill-${msx}`}
+                                      key={`miss-skill-${ms}-${msx}`}
                                       className="text-[9px] font-black uppercase bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded"
                                     >
                                       {ms}
@@ -6092,7 +6485,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         ?.slice(0, 2)
                         .map((alt, i) => (
                           <motion.div
-                            key={`alt-path-${i}`}
+                            key={`alt-path-${alt.role || i}-${i}`}
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
@@ -6158,7 +6551,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 .slice(0, 3)
                                 .map((s, i) => (
                                   <li
-                                    key={`upd-headline-${i}`}
+                                    key={`upd-headline-${s.slice(0, 15)}-${i}`}
                                     className="flex items-start gap-2 text-xs text-slate-300 font-medium"
                                   >
                                     <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5" />
@@ -6180,7 +6573,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 .slice(0, 3)
                                 .map((s, i) => (
                                   <li
-                                    key={`upd-fmt-${i}`}
+                                    key={`upd-fmt-${s.slice(0, 15)}-${i}`}
                                     className="flex items-start gap-2 text-xs text-slate-300 font-medium"
                                   >
                                     <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5" />
@@ -6203,7 +6596,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 .slice(0, 3)
                                 .map((s, i) => (
                                   <li
-                                    key={`upd-cert-${i}`}
+                                    key={`upd-cert-${s.slice(0, 15)}-${i}`}
                                     className="flex items-start gap-2 text-xs text-slate-300 font-medium"
                                   >
                                     <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5" />
@@ -6227,7 +6620,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 .slice(0, 3)
                                 .map((s, i) => (
                                   <li
-                                    key={`upd-proj-${i}`}
+                                    key={`upd-proj-${s.slice(0, 15)}-${i}`}
                                     className="flex items-start gap-2 text-xs text-slate-300 font-medium"
                                   >
                                     <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5" />
@@ -6256,7 +6649,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: i * 0.1 }}
-                          key={`rec-${i}`}
+                          key={`rec-${step.slice(0, 20)}-${i}`}
                           className="space-y-3"
                         >
                           <div
@@ -6302,6 +6695,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           <AnimatePresence>
                             {selectedRecommendation === step && (
                               <motion.div
+                                key={`rec-detail-${i}`}
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: "auto" }}
                                 exit={{ opacity: 0, height: 0 }}
@@ -6341,7 +6735,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                               {recommendationDetail.examples.map(
                                                 (example, eIdx) => (
                                                   <div
-                                                    key={`ex-${eIdx}`}
+                                                    key={`ex-${selectedRecommendation?.slice(0, 15)}-${eIdx}`}
                                                     className="group/ex relative p-4 pr-12 rounded-xl bg-white/5 border border-white/5 text-sm text-slate-300 leading-relaxed font-mono"
                                                   >
                                                     {example}
@@ -6399,7 +6793,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     <div className="space-y-4">
                       {result.skillGapReport.map((gap, i) => (
                         <div
-                          key={`gap-${i}`}
+                          key={`gap-${gap.skill || i}-${i}`}
                           className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 group relative overflow-hidden transition-all duration-300"
                         >
                           <div className="absolute inset-0 bg-emerald-500/10 translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
@@ -6469,7 +6863,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             ?.slice(0, 10)
                             .map((kw, i) => (
                               <span
-                                key={`kw-${i}`}
+                                key={`kw-${kw}-${i}`}
                                 className="text-[10px] font-bold px-2.5 py-1 bg-teal-500/10 border border-teal-500/30 rounded-full text-teal-300 hover:bg-teal-500/20 hover:scale-105 transition-all shadow-[0_0_10px_rgba(20,184,166,0.1)] cursor-default"
                               >
                                 {kw}
@@ -6489,7 +6883,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               {result.atsAnalysis.jobKeywordsFound?.map(
                                 (kw, i) => (
                                   <span
-                                    key={`jkf-${i}`}
+                                    key={`jkf-${kw}-${i}`}
                                     className="text-[10px] font-bold px-2.5 py-1 bg-sky-500/10 border border-sky-500/30 rounded-full text-sky-300 hover:bg-sky-500/20 hover:scale-105 transition-all shadow-[0_0_10px_rgba(56,189,248,0.1)] cursor-default"
                                   >
                                     {kw}
@@ -6531,7 +6925,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 ?.slice(0, 12)
                                 .map((kw, i) => (
                                   <button
-                                    key={`jkm-${i}`}
+                                    key={`jkm-${kw}-${i}`}
                                     onClick={(e) => handleMissingKeywordClick(kw, e)}
                                     title="Click for exact sentence placement recommendation"
                                     className="text-[10px] font-bold px-2.5 py-1 bg-rose-500/10 border border-rose-500/30 rounded-full text-rose-300 hover:bg-rose-500/20 hover:scale-105 transition-all shadow-[0_0_10px_rgba(244,63,94,0.1)] cursor-pointer flex items-center gap-1 group active:scale-95"
@@ -6555,7 +6949,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               {result.atsAnalysis.keywordOptimizations.map(
                                 (opt, i) => (
                                   <details
-                                    key={`ko-${i}`}
+                                    key={`ko-${opt.keyword}-${i}`}
                                     className="group bg-white/5 border border-white/10 rounded-xl px-4 py-3 transition-colors hover:border-amber-500/30"
                                   >
                                     <summary className="text-[11px] font-bold text-white flex items-center justify-between cursor-pointer outline-none list-none [&::-webkit-details-marker]:hidden">
@@ -6569,7 +6963,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                       {opt.suggestedPhrases.map(
                                         (phrase, pIdx) => (
                                           <div
-                                            key={`phrase-${i}-${pIdx}`}
+                                            key={`phrase-${opt.keyword}-${i}-${pIdx}`}
                                             className="group/phrase relative p-3 pr-10 rounded-lg bg-black/40 border border-white/5 text-xs text-slate-300 leading-relaxed font-mono"
                                           >
                                             {phrase}
@@ -6625,7 +7019,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         </h3>
                         <div className="space-y-4">
                           {result.sectionsDetailed.map((section, idx) => (
-                            <div key={`section-det-${idx}`} className="group relative">
+                            <div key={`section-det-${section.sectionName || idx}-${idx}`} className="group relative">
                               <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-white/5 border border-white/5 hover:border-teal-500/30 transition-colors">
                                 <h4 className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-2">
                                   <span className="h-1.5 w-1.5 rounded-full bg-teal-500 opacity-50 group-hover:opacity-100 transition-opacity" />
@@ -6660,7 +7054,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           <div className="space-y-4">
                             {result.interviewQuestions.map((q, idx) => (
                               <div
-                                key={`iq-${idx}`}
+                                key={`iq-${q.slice(0, 20)}-${idx}`}
                                 className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/20 text-slate-300 text-sm font-medium"
                               >
                                 <span className="text-purple-400 font-black mr-2">
@@ -6762,7 +7156,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 </div>
               )}
 {/* Floating Action Buttons */}
-              {!isExecutiveMode && (
+              {!isExecutiveMode && activeStudioTab !== "canvas" && (
                 <div className={`fixed top-1/4 left-4 z-50 transition-all duration-300 ${isQuickLinksOpen ? 'w-64' : 'w-12'}`}>
                   <div className="bg-brand-deep/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex">
                     <div className="w-12 flex flex-col items-center py-4 border-r border-white/5 shrink-0">

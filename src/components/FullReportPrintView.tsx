@@ -136,7 +136,7 @@ export const FullReportPrintView = forwardRef<HTMLDivElement, FullReportPrintVie
                     <span className="text-[10px] font-black text-amber-800 uppercase block">Title Updates</span>
                     <ul className="text-xs text-slate-700 space-y-1 list-disc pl-4 font-medium">
                       {result.improvementPlan.resumeHeadlineUpdates.slice(0, 2).map((u: string, i: number) => (
-                        <li key={`print-hl-${i}`}>{u}</li>
+                        <li key={`print-hl-${u.slice(0, 15)}-${i}`}>{u}</li>
                       ))}
                     </ul>
                   </div>
@@ -146,7 +146,7 @@ export const FullReportPrintView = forwardRef<HTMLDivElement, FullReportPrintVie
                     <span className="text-[10px] font-black text-rose-800 uppercase block">Layout Fixes</span>
                     <ul className="text-xs text-slate-700 space-y-1 list-disc pl-4 font-medium">
                       {result.improvementPlan.formattingFixes.slice(0, 2).map((f: string, i: number) => (
-                        <li key={`print-fmt-${i}`}>{f}</li>
+                        <li key={`print-fmt-${f.slice(0, 15)}-${i}`}>{f}</li>
                       ))}
                     </ul>
                   </div>

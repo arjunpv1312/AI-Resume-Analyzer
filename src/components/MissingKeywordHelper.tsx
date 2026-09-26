@@ -152,7 +152,7 @@ export const MissingKeywordHelper: React.FC<MissingKeywordHelperProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm sm:p-0">
+      <div key={`missing-kw-backdrop-${keyword}`} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm sm:p-0">
         {/* Backdrop dismiss */}
         <div className="fixed inset-0" onClick={onClose} />
 
