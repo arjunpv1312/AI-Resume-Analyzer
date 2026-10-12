@@ -65,7 +65,9 @@ import { MissingKeywordHelper } from "./components/MissingKeywordHelper";
 import { HistoryComparisonModal } from "./components/HistoryComparisonModal";
 import { LinkedInVerificationModal } from "./components/LinkedInVerificationModal";
 import { VerifiedTrustBadgeCard } from "./components/VerifiedTrustBadgeCard";
+import { ModelTrainingStudio } from "./components/ModelTrainingStudio";
 import { ResumeCanvasTab } from "./components/ResumeCanvasTab";
+import { AnalysisResult } from "./types";
 import { exportFullReportToDocx } from "./utils/fullReportExport";
 import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
@@ -93,79 +95,6 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
   import.meta.url,
 ).toString();
-
-interface AnalysisResult {
-  overallScore: number;
-  atsCompatibility: number;
-  skillsMatch: number;
-  formattingHealthScore?: number;
-  careerTrajectoryFitScore?: number;
-  foundSkills: string[];
-  missingSkills: string[];
-  improvementPlan?: {
-    missingSkillsToHighlight: string[];
-    resumeHeadlineUpdates: string[];
-    recommendedCertifications: string[];
-    projectsToHighlight: string[];
-    formattingFixes: string[];
-  };
-  careerPath: {
-    topRole: string;
-    confidence: number;
-    alternatives: { role: string; match: number; reasoning?: string }[];
-  };
-  careerTimeline?: {
-    role: string;
-    company: string;
-    duration: string;
-    highlights: string[];
-  }[];
-  linkedinComparison?: {
-    hasLinkedIn: boolean;
-    resumeHeadline: string;
-    linkedinHeadline: string;
-    matchAnalysis: string;
-    missingFromResume: string[];
-    missingFromLinkedIn: string[];
-  };
-  atsAnalysis: {
-    formattingScore: number;
-    keywordDensity: number;
-    bulletPointQualityScore?: number;
-    recommendations: string[];
-    topResumeKeywords?: string[];
-    jobKeywordsFound?: string[];
-    jobKeywordsMissing?: string[];
-    jobKeywordDensity?: number;
-    keywordOptimizations?: { keyword: string; suggestedPhrases: string[] }[];
-  };
-  skillGapReport: { skill: string; importance: string }[];
-  executiveSummary?: string;
-  careerTrajectories?: {
-    title: string;
-    timeline: string;
-    requiredSkills: string[];
-    requiredCertifications: string[];
-  }[];
-  sectionsFound: string[];
-  sectionsDetailed?: { sectionName: string; summary: string }[];
-  summary: string;
-  suggestions: string[];
-  interviewQuestions?: string[];
-  resumeRewriteDraft?: string;
-  coverLetterDraft?: string;
-  globalBenchmarking?: string;
-  recruiterSummary?: string;
-  targetRole?: string;
-  atsMetadata?: {
-    ocrUsed?: boolean;
-    isScannedPdf?: boolean;
-    rulesScore?: number;
-    formattingScore?: number;
-    parsedLength?: number;
-    [key: string]: any;
-  };
-}
 
 interface StickyNoteData {
   id: string;
@@ -819,6 +748,8 @@ export default function App() {
 
   const [selectedSkillToFrame, setSelectedSkillToFrame] = useState<string | null>(null);
   const [hasCopiedKeywords, setHasCopiedKeywords] = useState(false);
+  const [copiedExampleText, setCopiedExampleText] = useState<string | null>(null);
+  const [copiedPhraseText, setCopiedPhraseText] = useState<string | null>(null);
 
   const handleMissingSkillClick = (skillName: string) => {
     setSelectedSkillToFrame(skillName);
@@ -2046,7 +1977,7 @@ export default function App() {
       analysis.linkedinComparison.missingFromLinkedIn =
         analysis.linkedinComparison.missingFromLinkedIn || [];
 
-      // Inject rule-based keyword data
+      // Inject rule-based keyword data & preserve rawText for live model retraining
       if (analysis.atsAnalysis) {
         analysis.atsAnalysis.topResumeKeywords = analysis.atsAnalysis.topResumeKeywords?.length ? analysis.atsAnalysis.topResumeKeywords : atsMetadata.topResumeKeywords;
         analysis.atsAnalysis.jobKeywordsFound = analysis.atsAnalysis.jobKeywordsFound?.length ? analysis.atsAnalysis.jobKeywordsFound : atsMetadata.jobKeywordsFound;
@@ -2054,6 +1985,17 @@ export default function App() {
         analysis.atsAnalysis.jobKeywordDensity = analysis.atsAnalysis.jobKeywordDensity || atsMetadata.keywordDensity;
         analysis.atsAnalysis.bulletPointQualityScore = analysis.atsAnalysis.bulletPointQualityScore || atsMetadata.bulletPointQualityScore;
       }
+
+      analysis.atsMetadata = {
+        ...(analysis.atsMetadata || {}),
+        ...(atsMetadata || {}),
+        rawText: text,
+        pageCount,
+      };
+      analysis.scoreReasons = analysis.scoreReasons || atsMetadata?.scoreReasons || [];
+      analysis.categoryScores = analysis.categoryScores || atsMetadata?.categoryScores;
+      analysis.bulletPointAnalysis = analysis.bulletPointAnalysis || atsMetadata?.bulletAnalyses || [];
+      analysis.modelCalibration = analysis.modelCalibration || atsMetadata?.modelCalibration;
 
       setResult(analysis);
       if (analysis.overallScore >= 75) {
@@ -5052,6 +4994,20 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         </span>
                         <Share2 className="w-3 h-3 text-teal-400 ml-0.5" />
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const el = document.getElementById("model-training-studio-section");
+                          if (el) {
+                            el.scrollIntoView({ behavior: "smooth", block: "start" });
+                          }
+                        }}
+                        className="px-3 py-1 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/40 text-indigo-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                        title="Inspect itemized score reasons or retrain & calibrate the AI scoring model"
+                      >
+                        <BrainCircuit className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Score Reasons & Retrain Model</span>
+                      </button>
                       {activeVersionId && (
                         <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold">
                           {history.find(h => h.id === activeVersionId)?.versionName || "Active Version"}
@@ -5408,6 +5364,18 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 onVerifyNow={() => handleVerifyLinkedInTrust()}
                 onOpenVerificationModal={() => setIsLinkedInVerificationModalOpen(true)}
               />
+
+              {/* Deep Score Reasoning & AI Model Calibration Studio */}
+              <div id="model-training-studio-section">
+                <ModelTrainingStudio
+                  result={result}
+                  resumeText={result.atsMetadata?.rawText || ""}
+                  jobDescription={jobDescription}
+                  linkedinUrl={linkedinUrl}
+                  linkedinData={linkedinData}
+                  onAnalysisUpdated={(updated) => setResult(updated)}
+                />
+              </div>
 
               {/* Full Analysis Report Export & ATS Generator Banner */}
               <GlassCard className="mb-8 border-l-4 border-l-teal-500 bg-gradient-to-r from-teal-500/10 via-purple-500/5 to-transparent p-6 md:p-8 flex flex-wrap items-center justify-between gap-6">
@@ -6742,26 +6710,20 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                                     <button
                                                       onClick={(e) => {
                                                         e.stopPropagation();
-                                                        navigator.clipboard.writeText(
-                                                          example,
-                                                        );
-                                                        const btn =
-                                                          e.currentTarget;
-                                                        const originalHTML =
-                                                          btn.innerHTML;
-                                                        const checkHtml =
-                                                          '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check text-teal-400"><path d="M20 6 9 17l-5-5"/></svg>';
-                                                        btn.innerHTML =
-                                                          checkHtml;
+                                                        navigator.clipboard.writeText(example);
+                                                        setCopiedExampleText(example);
                                                         setTimeout(() => {
-                                                          btn.innerHTML =
-                                                            originalHTML;
+                                                          setCopiedExampleText((cur) => (cur === example ? null : cur));
                                                         }, 2000);
                                                       }}
                                                       className="absolute top-4 right-4 p-2 rounded-lg bg-white/5 opacity-0 group-hover/ex:opacity-100 hover:bg-white/10 transition-all cursor-pointer text-slate-400 hover:text-white"
                                                       title="Copy to clipboard"
                                                     >
-                                                      <Copy className="h-3.5 w-3.5" />
+                                                      {copiedExampleText === example ? (
+                                                        <Check className="h-3.5 w-3.5 text-teal-400" />
+                                                      ) : (
+                                                        <Copy className="h-3.5 w-3.5" />
+                                                      )}
                                                     </button>
                                                   </div>
                                                 ),
@@ -6973,20 +6935,19 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                                 navigator.clipboard.writeText(
                                                   phrase,
                                                 );
-                                                const btn = e.currentTarget;
-                                                const originalHTML =
-                                                  btn.innerHTML;
-                                                const checkHtml =
-                                                  '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check text-amber-400"><path d="M20 6 9 17l-5-5"/></svg>';
-                                                btn.innerHTML = checkHtml;
+                                                setCopiedPhraseText(phrase);
                                                 setTimeout(() => {
-                                                  btn.innerHTML = originalHTML;
+                                                  setCopiedPhraseText((cur) => (cur === phrase ? null : cur));
                                                 }, 2000);
                                               }}
                                               className="absolute top-1/2 -translate-y-1/2 right-3 p-1.5 rounded-md bg-white/5 opacity-0 group-hover/phrase:opacity-100 hover:bg-white/10 transition-all cursor-pointer text-slate-400 hover:text-white"
                                               title="Copy suggested phrase"
                                             >
-                                              <Copy className="h-3 w-3" />
+                                              {copiedPhraseText === phrase ? (
+                                                <Check className="h-3 w-3 text-amber-400" />
+                                              ) : (
+                                                <Copy className="h-3 w-3" />
+                                              )}
                                             </button>
                                           </div>
                                         ),

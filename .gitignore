@@ -6,3 +6,19 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Secrets, keys, and credentials
+*.key
+*.pem
+*api-key*
+*apikey*
+*.secret
+credentials.json
+service-account*.json
+
+# Debug and temporary scratch scripts
+debug-*.txt
+test-key*
+temp_*
+scratch.*
+
