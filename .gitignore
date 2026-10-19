@@ -4,21 +4,36 @@ dist/
 coverage/
 .DS_Store
 *.log
-.env*
+
+# Environment Files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*
 !.env.example
 
-# Secrets, keys, and credentials
+# Secrets, keys, certificates, and tokens
 *.key
 *.pem
+*.pfx
+*.p12
+*.secret
 *api-key*
 *apikey*
-*.secret
-credentials.json
+*secret*
+credentials*.json
 service-account*.json
+token*.json
+auth*.json
+client_secret*.json
 
 # Debug and temporary scratch scripts
 debug-*.txt
 test-key*
 temp_*
 scratch.*
+bun.lock
+
 

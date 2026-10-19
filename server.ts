@@ -60,6 +60,42 @@ async function startServer() {
       next();
     });
 
+    // Universal Secret Redaction Helper: Prevents any API keys, credentials, or tokens from ever leaking
+    function redactSecrets(input: any): any {
+      if (typeof input === "string") {
+        return input
+          .replace(/AIza[0-9A-Za-z_\-]{35}/g, "[REDACTED_API_KEY]")
+          .replace(/key=[a-zA-Z0-9_\-]+/gi, "key=[REDACTED]")
+          .replace(/apiKey=[a-zA-Z0-9_\-]+/gi, "apiKey=[REDACTED]")
+          .replace(/x-goog-api-key:[^\n\r,]+/gi, "x-goog-api-key: [REDACTED]")
+          .replace(/bearer\s+[a-zA-Z0-9_\-\.]+/gi, "bearer [REDACTED]");
+      }
+      if (Array.isArray(input)) {
+        return input.map(redactSecrets);
+      }
+      if (input !== null && typeof input === "object") {
+        const copy: Record<string, any> = {};
+        for (const [k, v] of Object.entries(input)) {
+          if (/key|secret|token|credential/i.test(k) && typeof v === "string" && v.length > 20) {
+            copy[k] = "[REDACTED]";
+          } else {
+            copy[k] = redactSecrets(v);
+          }
+        }
+        return copy;
+      }
+      return input;
+    }
+
+    // Intercept all JSON responses to ensure no sensitive credentials or keys are ever returned to clients
+    app.use((req, res, next) => {
+      const originalJson = res.json.bind(res);
+      res.json = (body: any) => {
+        return originalJson(redactSecrets(body));
+      };
+      next();
+    });
+
     // Multer setup for file uploads
     const upload = multer({
       storage: multer.memoryStorage(),
@@ -240,7 +276,7 @@ async function startServer() {
 
       console.error(
         `[GEMINI ERROR] All configured API keys (${attemptedSources.join(", ")}) failed to complete request. Last error:`,
-        lastError?.message || lastError
+        redactSecrets(lastError?.message || lastError)
       );
 
       const isActualAuth = isAuthOrKeyError(lastError);
@@ -266,13 +302,13 @@ async function startServer() {
         finalError.statusCode = 429;
       } else {
         finalError = new Error(
-          lastError?.message || "AI processing interrupted. Please retry in a moment."
+          redactSecrets(lastError?.message || "AI processing interrupted. Please retry in a moment.")
         );
         finalError.statusCode = 500;
       }
 
       finalError.attemptedSources = attemptedSources;
-      finalError.originalError = lastError?.message || String(lastError);
+      finalError.originalError = redactSecrets(lastError?.message || String(lastError));
       throw finalError;
     }
 
