@@ -42,6 +42,7 @@ export interface AtsSimulationResult {
   hasEmail: boolean;
   hasPhone: boolean;
   hasLinkedIn: boolean;
+  hasLinkedInHeader?: boolean;
   pageCount: number;
   topResumeKeywords: string[];
   jobKeywordsFound: string[];
@@ -51,8 +52,11 @@ export interface AtsSimulationResult {
   quantifiedBulletsCount: number;
   totalBulletsCount: number;
   strongVerbsFound: string[];
+  foundVerbs?: string[];
   weakPhrasesFound: string[];
   extractedMetrics: string[];
+  categoryScores?: Record<string, number>;
+  bulletAnalyses?: any[];
   scoreReasons: ScoreReasonItem[];
   ocrUsed: boolean;
   isScannedPdf: boolean;

@@ -53,9 +53,12 @@ import {
   Key,
   Sun,
   Moon,
-  Share2
+  Share2,
+  Settings
 } from "lucide-react";
 import confetti from "canvas-confetti";
+import { SettingsModal } from "./components/SettingsModal";
+import { maskApiKey } from "./utils/masking";
 import { ResumeBuilderModal } from "./components/ResumeBuilderModal";
 import { D3CareerGraph } from "./components/D3CareerGraph";
 import { FullReportPrintView } from "./components/FullReportPrintView";
@@ -65,11 +68,13 @@ import { MissingKeywordHelper } from "./components/MissingKeywordHelper";
 import { HistoryComparisonModal } from "./components/HistoryComparisonModal";
 import { LinkedInVerificationModal } from "./components/LinkedInVerificationModal";
 import { VerifiedTrustBadgeCard } from "./components/VerifiedTrustBadgeCard";
+import { ShareTrustScoreModal } from "./components/ShareTrustScoreModal";
+import { PdfExportPreviewModal } from "./components/PdfExportPreviewModal";
 import { ModelTrainingStudio } from "./components/ModelTrainingStudio";
 import { ResumeCanvasTab } from "./components/ResumeCanvasTab";
 import { AnalysisResult } from "./types";
 import { exportFullReportToDocx } from "./utils/fullReportExport";
-import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
+import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, animate } from "motion/react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import {
   PieChart,
@@ -288,7 +293,7 @@ const ScoringCircle = ({
   score,
   label,
   color,
-  delay,
+  delay = 0,
   tooltip,
 }: {
   score: number;
@@ -297,9 +302,25 @@ const ScoringCircle = ({
   delay: number;
   tooltip?: React.ReactNode;
 }) => {
-  const data = [{ name: "Score", value: score, fill: color }];
-  const level = getScoreLevel(score);
-  const isNeedsOptimization = score < 70;
+  const [displayScore, setDisplayScore] = useState(0);
+  const motionVal = useMotionValue(0);
+
+  useEffect(() => {
+    motionVal.set(0);
+    const controls = animate(motionVal, score, {
+      duration: 1.8,
+      delay: Math.max(0, delay) + 0.15,
+      ease: [0.16, 1, 0.3, 1], // Smooth exponential ease-out
+      onUpdate: (latest) => {
+        setDisplayScore(Math.round(latest));
+      },
+    });
+    return () => controls.stop();
+  }, [score, delay, motionVal]);
+
+  const data = [{ name: "Score", value: displayScore, fill: color }];
+  const level = getScoreLevel(displayScore);
+  const isNeedsOptimization = displayScore < 70;
 
   return (
     <motion.div
@@ -331,7 +352,7 @@ const ScoringCircle = ({
             barSize={14}
             data={data}
             startAngle={180}
-            endAngle={180 - 1.8 * score}
+            endAngle={180 - 1.8 * displayScore}
           >
             <RadialBar
               background={{ fill: "rgba(255,255,255,0.05)" }}
@@ -342,12 +363,12 @@ const ScoringCircle = ({
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-start pt-16">
           <motion.span
-            initial={{ scale: 0.5, opacity: 0 }}
+            initial={{ scale: 0.6, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: delay + 0.3, type: "spring", stiffness: 100 }}
+            transition={{ delay: delay + 0.1, type: "spring", stiffness: 120, damping: 14 }}
             className="text-5xl font-black font-display flex flex-col items-center leading-none text-white tracking-tighter"
           >
-            {score}
+            <span className="tabular-nums font-mono">{displayScore}</span>
             <span className="text-[10px] text-slate-500 font-sans tracking-widest uppercase mt-2">
               out of 100
             </span>
@@ -794,8 +815,15 @@ export default function App() {
   // Side-by-Side Version Comparison Modal
   const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
 
+  // API Credentials & Security Settings Modal
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // PDF Export Preview Modal state
+  const [isPdfPreviewOpen, setIsPdfPreviewOpen] = useState(false);
+
   // LinkedIn Verification & Real-Time Trust Score Modal
   const [isLinkedInVerificationModalOpen, setIsLinkedInVerificationModalOpen] = useState(false);
+  const [isShareTrustScoreOpen, setIsShareTrustScoreOpen] = useState(false);
   const [linkedInTrustScore, setLinkedInTrustScore] = useState<number | null>(null);
   const [linkedInTrustReport, setLinkedInTrustReport] = useState<any | null>(null);
   const [isVerifyingLinkedInTrust, setIsVerifyingLinkedInTrust] = useState(false);
@@ -875,7 +903,12 @@ export default function App() {
     setIsTestingConnection(true);
     setConnectionStatus(null);
     try {
-      const res = await fetch("/api/test-gemini", { method: "POST" });
+      const customKey = sessionStorage.getItem("custom_gemini_api_key");
+      const headers: Record<string, string> = {};
+      if (customKey) {
+        headers["x-gemini-api-key"] = customKey;
+      }
+      const res = await fetch("/api/test-gemini", { method: "POST", headers });
       const data = await res.json();
       if (res.ok && data.success) {
         setConnectionStatus("Connected! Gemini API key verified successfully.");
@@ -1807,8 +1840,15 @@ export default function App() {
       }
 
       setAnalysisStep("Parsing resume text via server-side engine...");
+      const customSessionKey = sessionStorage.getItem("custom_gemini_api_key");
+      const extractionHeaders: Record<string, string> = {};
+      if (customSessionKey) {
+        extractionHeaders["x-gemini-api-key"] = customSessionKey;
+      }
+
       const extractionResponse = await fetch("/api/analyze", {
         method: "POST",
+        headers: extractionHeaders,
         body: formData,
       });
 
@@ -1859,11 +1899,16 @@ export default function App() {
         "Initiating high-dimensional intelligence model generation...",
       );
 
+      const generationHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (customSessionKey) {
+        generationHeaders["x-gemini-api-key"] = customSessionKey;
+      }
+
       const generationResponse = await fetch("/api/generate-analysis", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: generationHeaders,
         body: JSON.stringify({
           text,
           jobDescription,
@@ -2236,6 +2281,14 @@ export default function App() {
               <Layers className="h-3.5 w-3.5" />
               <span>History {history.length > 0 && `(${history.length})`}</span>
             </button>
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1.5 cursor-pointer"
+              title="API Credentials & Security Settings"
+            >
+              <Settings className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
+              <span className="hidden sm:inline">Settings</span>
+            </button>
           </div>
         </div>
       </nav>
@@ -2558,6 +2611,39 @@ export default function App() {
               setSnapshotToast(`Loaded version "${item.versionName || item.fileName}"`);
               setTimeout(() => setSnapshotToast(null), 3000);
             }}
+          />
+
+          {/* API Credentials & Security Settings Modal */}
+          <SettingsModal
+            key="app-settings-security-modal"
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            onKeysUpdated={handleTestConnection}
+          />
+
+          {/* Share Verified Trust Score Social Media Graphic Modal */}
+          <ShareTrustScoreModal
+            key="share-trust-score-modal"
+            isOpen={isShareTrustScoreOpen}
+            onClose={() => setIsShareTrustScoreOpen(false)}
+            credibilityScore={linkedInTrustScore}
+            credibilityTier={linkedInTrustReport?.credibilityTier}
+            linkedinUrl={linkedinUrl}
+            candidateName={linkedInTrustReport?.candidateName || (file ? file.name.replace(/\.[^/.]+$/, "") : "Executive Candidate")}
+            targetRole={result?.careerPath?.topRole || "Senior Technology Leader"}
+            trustFactors={linkedInTrustReport?.trustFactors}
+          />
+
+          {/* PDF Export Preview & Interactive Section Filter Modal */}
+          <PdfExportPreviewModal
+            key="pdf-export-preview-modal"
+            isOpen={isPdfPreviewOpen}
+            onClose={() => setIsPdfPreviewOpen(false)}
+            result={result}
+            fileName={file?.name}
+            linkedinUrl={linkedinUrl}
+            linkedInTrustScore={linkedInTrustScore}
+            candidateName={linkedInTrustReport?.candidateName || (file ? file.name.replace(/\.[^/.]+$/, "") : "Alex Mercer")}
           />
 
           {/* Floating Missing Keyword Sentence Placement Helper */}
@@ -3040,10 +3126,12 @@ export default function App() {
                 <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="mb-6 inline-flex items-center gap-2 group relative cursor-pointer px-4 py-2 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-300 text-[10px] font-black uppercase tracking-[0.3em] shadow-[0_0_15px_rgba(20,184,166,0.2)]"
+                  className="mb-6 inline-flex items-center gap-2 group relative cursor-pointer px-4 py-2 rounded-full bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 text-teal-300 text-[10px] font-black uppercase tracking-[0.3em] shadow-[0_0_15px_rgba(20,184,166,0.2)] transition-colors"
+                  onClick={() => setIsSettingsOpen(true)}
+                  title="Click to view API Credentials & Security Settings"
                 >
-                  <Lock className="h-3 w-3" />
-                  Privacy-First Architecture • Zero Storage
+                  <Lock className="h-3 w-3 text-teal-400" />
+                  <span>Privacy-First Architecture • API Keys Masked & Protected</span>
                   <div className="absolute inset-x-0 bottom-full mb-3 hidden group-hover:block px-4 py-3 bg-[#0A0A15] border border-white/10 text-slate-300 text-[10px] font-medium normal-case tracking-normal rounded-xl shadow-2xl z-50 text-center w-64 mx-auto left-1/2 -translate-x-1/2 transition-all">
                     All parsing and analysis vectors happen locally or via
                     stateless API protocols. We never store your resume files or
@@ -4653,9 +4741,14 @@ Qualifications:
                             : "Analysis Interrupted"}
                         </h4>
                         {isApiKeyError && (
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-black uppercase tracking-wider border border-amber-500/30">
-                            Check Settings
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setIsSettingsOpen(true)}
+                            className="px-2.5 py-0.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[9px] font-black uppercase tracking-wider border border-amber-500/30 transition-colors cursor-pointer flex items-center gap-1"
+                          >
+                            <Settings className="w-2.5 h-2.5" />
+                            <span>Check Settings</span>
+                          </button>
                         )}
                       </div>
                       <p className="text-xs text-slate-300 font-medium leading-relaxed">
@@ -4680,18 +4773,28 @@ Qualifications:
                           <span className="font-semibold text-amber-200/90">
                             Configure in Settings:
                           </span>
-                          <code className="bg-black/50 px-2 py-0.5 rounded text-amber-300 font-mono text-[10px] border border-white/10">
-                            GEMINI_API_KEY
-                          </code>
-                          <span>or secondary key</span>
-                          <code className="bg-black/50 px-2 py-0.5 rounded text-amber-300 font-mono text-[10px] border border-white/10">
-                            GEMINI_API_KEY_2
-                          </code>
+                          <button
+                            type="button"
+                            onClick={() => setIsSettingsOpen(true)}
+                            className="bg-black/50 hover:bg-black/80 px-2 py-0.5 rounded text-amber-300 font-mono text-[10px] border border-white/10 transition-colors cursor-pointer flex items-center gap-1"
+                          >
+                            <Settings className="w-2.5 h-2.5" />
+                            <span>GEMINI_API_KEY / GEMINI_API_KEY_2 (Masked)</span>
+                          </button>
                         </div>
                       )}
 
                       {/* Interactive Actions: Test Connection & Retry */}
                       <div className="pt-2 flex flex-wrap items-center gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setIsSettingsOpen(true)}
+                          className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+                        >
+                          <Settings className="w-3.5 h-3.5" />
+                          <span>Open Settings</span>
+                        </button>
+
                         <button
                           type="button"
                           onClick={handleTestConnection}
@@ -5008,6 +5111,16 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         <BrainCircuit className="w-3.5 h-3.5 text-indigo-400" />
                         <span>Score Reasons & Retrain Model</span>
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsSettingsOpen(true)}
+                        className="px-3 py-1 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                        title="API Keys Masked & Protected — Click to open Settings"
+                      >
+                        <Lock className="w-3 h-3 text-teal-400" />
+                        <span className="hidden sm:inline">Keys:</span>
+                        <span className="font-mono text-[11px] text-teal-300 font-bold">Masked</span>
+                      </button>
                       {activeVersionId && (
                         <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold">
                           {history.find(h => h.id === activeVersionId)?.versionName || "Active Version"}
@@ -5058,14 +5171,30 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           <button
                             onClick={() => {
                               setIsExportMenuOpen(false);
-                              handleFullReportPdfPrint();
+                              setIsPdfPreviewOpen(true);
                             }}
                             className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer"
                           >
                             <Printer className="w-4 h-4 text-purple-600" />
                             <div>
-                              <div className="font-bold">Executive PDF Report</div>
-                              <div className="text-[10px] text-slate-400">High-resolution print format</div>
+                              <div className="font-bold flex items-center gap-1.5">
+                                <span>PDF Export Preview</span>
+                                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-extrabold uppercase">Custom</span>
+                              </div>
+                              <div className="text-[10px] text-slate-400">Toggle sections & print dossier</div>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsExportMenuOpen(false);
+                              handleFullReportPdfPrint();
+                            }}
+                            className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-slate-400" />
+                            <div>
+                              <div className="font-medium text-[11px]">Direct PDF Print</div>
+                              <div className="text-[9px] text-slate-400">High-resolution standard print</div>
                             </div>
                           </button>
                           <button
@@ -5171,6 +5300,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     file={file}
                     onOpenBuilder={() => setIsResumeBuilderOpen(true)}
                     onPrint={handleFullReportPdfPrint}
+                    onPreviewPdf={() => setIsPdfPreviewOpen(true)}
                   />
                 </div>
               )}
@@ -5188,12 +5318,21 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           <p className="text-amber-400/80 text-xs font-bold uppercase tracking-[0.2em]">High-Level Narrative Analysis</p>
                         </div>
                       </div>
-                      <button
-                        onClick={handleFullReportPdfPrint}
-                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer self-start sm:self-auto"
-                      >
-                        <Printer className="w-4 h-4" /> Export Executive PDF
-                      </button>
+                      <div className="flex items-center gap-2 self-start sm:self-auto">
+                        <button
+                          onClick={() => setIsPdfPreviewOpen(true)}
+                          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-purple-500/20 active:scale-95 cursor-pointer"
+                          title="Preview and toggle sections to include in PDF report"
+                        >
+                          <Eye className="w-4 h-4" /> PDF Preview
+                        </button>
+                        <button
+                          onClick={handleFullReportPdfPrint}
+                          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer"
+                        >
+                          <Printer className="w-4 h-4" /> Direct Print
+                        </button>
+                      </div>
                     </div>
                     
                     <div className="space-y-8">
@@ -5363,6 +5502,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 isVerifying={isVerifyingLinkedInTrust}
                 onVerifyNow={() => handleVerifyLinkedInTrust()}
                 onOpenVerificationModal={() => setIsLinkedInVerificationModalOpen(true)}
+                onShareTrustScore={() => setIsShareTrustScoreOpen(true)}
               />
 
               {/* Deep Score Reasoning & AI Model Calibration Studio */}
@@ -5398,10 +5538,19 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                 <div className="flex flex-wrap items-center gap-3">
                   <button
-                    onClick={handleFullReportPdfPrint}
-                    className="px-5 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-purple-500/20 active:scale-95 cursor-pointer"
+                    onClick={() => setIsPdfPreviewOpen(true)}
+                    className="px-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-purple-500/25 active:scale-95 cursor-pointer"
+                    title="Customize and toggle sections before exporting PDF"
                   >
-                    <Printer className="w-4 h-4" /> Download PDF Report
+                    <Eye className="w-4 h-4" /> PDF Export Preview
+                  </button>
+
+                  <button
+                    onClick={handleFullReportPdfPrint}
+                    className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+                    title="Print full executive report directly"
+                  >
+                    <Printer className="w-4 h-4 text-purple-300" /> Direct Print PDF
                   </button>
 
                   <button
@@ -5860,6 +6009,15 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           </span>
                         )}
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsShareTrustScoreOpen(true)}
+                        className="text-xs text-white bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-teal-500/20 active:scale-95 whitespace-nowrap font-bold"
+                        title="Generate social media card of your verified credibility score"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span>Share my Trust Score</span>
+                      </button>
                     </div>
                   </div>
 
@@ -5890,6 +6048,15 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             className="text-xs font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-lg border border-white/10 transition-all cursor-pointer whitespace-nowrap"
                           >
                             Detailed Audit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsShareTrustScoreOpen(true)}
+                            className="text-xs font-bold text-slate-950 bg-teal-400 hover:bg-teal-300 px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shadow-sm active:scale-95"
+                            title="Generate social media image card"
+                          >
+                            <Share2 className="w-3 h-3" />
+                            <span>Share my Trust Score</span>
                           </button>
                         </div>
                       </div>
@@ -6081,6 +6248,15 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             {linkedInTrustScore}%
                           </span>
                         )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsShareTrustScoreOpen(true)}
+                        className="px-4 py-3 rounded-xl bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-teal-500/20 active:scale-95 whitespace-nowrap"
+                        title="Generate a social media-ready image card of your verified credibility score"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        <span>Share my Trust Score</span>
                       </button>
                       <motion.button
                         whileHover={{ scale: 1.03 }}

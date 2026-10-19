@@ -30,6 +30,7 @@ export interface VerifiedTrustBadgeCardProps {
   isVerifying?: boolean;
   onVerifyNow: () => void;
   onOpenVerificationModal: () => void;
+  onShareTrustScore?: () => void;
 }
 
 type BadgeStyleVariant = "executive" | "compact" | "light";
@@ -47,6 +48,7 @@ export const VerifiedTrustBadgeCard: React.FC<VerifiedTrustBadgeCardProps> = ({
   isVerifying = false,
   onVerifyNow,
   onOpenVerificationModal,
+  onShareTrustScore,
 }) => {
   const [isShareDrawerOpen, setIsShareDrawerOpen] = useState(false);
   const [badgeStyle, setBadgeStyle] = useState<BadgeStyleVariant>("executive");
@@ -843,6 +845,22 @@ Credential URL: ${badgeSvgUrl}`;
                 <span>Export JPEG</span>
               </>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (onShareTrustScore) {
+                onShareTrustScore();
+              } else {
+                setIsShareDrawerOpen(true);
+              }
+            }}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white font-black text-xs transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shadow-md shadow-teal-500/25 active:scale-95"
+            title="Generate a social media-ready image card of your verified credibility score"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span>Share my Trust Score</span>
           </button>
 
           <button

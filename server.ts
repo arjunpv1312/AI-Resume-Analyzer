@@ -171,9 +171,13 @@ async function startServer() {
         contents: any;
         config?: any;
       },
-      maxRetriesPerKey = 1
+      maxRetriesPerKey = 1,
+      customApiKey?: string
     ): Promise<any> {
-      const keys = getAvailableGeminiApiKeys();
+      let keys = getAvailableGeminiApiKeys();
+      if (customApiKey && typeof customApiKey === "string" && customApiKey.trim().length > 15) {
+        keys = [{ key: customApiKey.trim(), source: "CUSTOM_SESSION_KEY" }, ...keys];
+      }
       if (keys.length === 0) {
         const err: any = new Error(
           "Gemini API key is unconfigured. Please configure GEMINI_API_KEY or GEMINI_API_KEY_2 in Settings."
@@ -324,13 +328,43 @@ async function startServer() {
       });
     });
 
+    // Settings API: Returns masked key status without exposing secrets in plain text
+    app.get("/api/settings/keys", (req, res) => {
+      const keys = getAvailableGeminiApiKeys();
+      const formatMask = (val: string) => {
+        if (!val || val.length < 8) return "••••••••";
+        return val.slice(0, 6) + "•".repeat(Math.max(12, val.length - 10)) + val.slice(-4);
+      };
+
+      const primary = keys.find((k) => k.source === "GEMINI_API_KEY") || keys[0];
+      const secondary = keys.find((k) => k.source === "GEMINI_API_KEY_2") || (keys.length > 1 ? keys[1] : null);
+
+      res.json({
+        primaryConfigured: Boolean(primary),
+        primarySource: primary ? primary.source : "GEMINI_API_KEY",
+        primaryMasked: primary ? formatMask(primary.key) : null,
+        secondaryConfigured: Boolean(secondary),
+        secondarySource: secondary ? secondary.source : "GEMINI_API_KEY_2",
+        secondaryMasked: secondary ? formatMask(secondary.key) : null,
+        totalKeys: keys.length,
+        sources: keys.map((k) => k.source),
+        securityProxyActive: true,
+        model: "gemini-2.5-flash",
+      });
+    });
+
     // Verification endpoint to test live Gemini API connectivity
     app.post("/api/test-gemini", async (req, res) => {
+      const customKey = (req.headers["x-gemini-api-key"] as string) || (req.body?.apiKey as string);
       try {
-        const testResponse = await executeGeminiPrompt({
-          model: "gemini-2.5-flash",
-          contents: [{ role: "user", parts: [{ text: "ping" }] }],
-        });
+        const testResponse = await executeGeminiPrompt(
+          {
+            model: "gemini-2.5-flash",
+            contents: [{ role: "user", parts: [{ text: "ping" }] }],
+          },
+          1,
+          customKey
+        );
         return res.json({
           success: true,
           status: "connected",
@@ -338,7 +372,7 @@ async function startServer() {
           response: testResponse?.text?.trim() || "pong",
         });
       } catch (err: any) {
-        console.error("Test Gemini connection error:", err);
+        console.error("Test Gemini connection error:", redactSecrets(err?.message || err));
         return res.status(err.statusCode || 500).json({
           success: false,
           error:
@@ -346,7 +380,7 @@ async function startServer() {
             "Gemini API authentication failed. Please check your API configuration in Settings (GEMINI_API_KEY / GEMINI_API_KEY_2).",
           isAuthError: Boolean(err.isAuthError),
           code: err.code || "CONNECTION_FAILED",
-          details: err.originalError || err.message,
+          details: redactSecrets(err.originalError || err.message),
         });
       }
     });
@@ -1350,15 +1384,20 @@ async function startServer() {
       `;
 
         let aiPartialResult: any = undefined;
+        const customSessionKey = (req.headers["x-gemini-api-key"] as string) || (req.body?.customApiKey as string);
         try {
-          const aiResponse = await executeGeminiPrompt({
-            model: "gemini-3-flash-preview",
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            config: {
-              temperature: 0.1,
-              responseMimeType: "application/json",
+          const aiResponse = await executeGeminiPrompt(
+            {
+              model: "gemini-3-flash-preview",
+              contents: [{ role: "user", parts: [{ text: prompt }] }],
+              config: {
+                temperature: 0.1,
+                responseMimeType: "application/json",
+              },
             },
-          });
+            1,
+            customSessionKey
+          );
 
           const analysisJson = aiResponse?.text || "";
           if (analysisJson) {

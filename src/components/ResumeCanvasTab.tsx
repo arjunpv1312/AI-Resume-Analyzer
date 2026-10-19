@@ -24,6 +24,7 @@ interface ResumeCanvasTabProps {
   file: File | null;
   onOpenBuilder?: () => void;
   onPrint?: () => void;
+  onPreviewPdf?: () => void;
 }
 
 export const ResumeCanvasTab: React.FC<ResumeCanvasTabProps> = ({
@@ -31,6 +32,7 @@ export const ResumeCanvasTab: React.FC<ResumeCanvasTabProps> = ({
   file,
   onOpenBuilder,
   onPrint,
+  onPreviewPdf,
 }) => {
   const [copied, setCopied] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
@@ -151,13 +153,24 @@ ${result.careerPath.alternatives.map(a => `Pivot Alternative: ${a.role} (${a.mat
           </button>
 
           {/* Action: Print / PDF */}
+          {onPreviewPdf && (
+            <button
+              onClick={onPreviewPdf}
+              className="px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Preview and customize PDF report sections"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>PDF Preview</span>
+            </button>
+          )}
+
           {onPrint && (
             <button
               onClick={onPrint}
               className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print</span>
+              <Printer className="w-3.5 h-3.5 text-slate-400" />
+              <span>Quick Print</span>
             </button>
           )}
 
