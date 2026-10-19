@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   ChevronDown,
   ChevronUp,
+  Share2,
 } from "lucide-react";
 
 interface ConnectLinkedInModalProps {
@@ -28,6 +29,8 @@ interface ConnectLinkedInModalProps {
   initialTrustScore?: number | null;
   onSave: (url: string, data?: string, trustScore?: number) => void;
   onDisconnect: () => void;
+  onOpenWalkthrough?: () => void;
+  onVerificationComplete?: (score: number, report?: any) => void;
 }
 
 export type GranularStepKey = "fetching" | "syncing" | "validating";
@@ -66,6 +69,8 @@ export function ConnectLinkedInModal({
   initialTrustScore = null,
   onSave,
   onDisconnect,
+  onOpenWalkthrough,
+  onVerificationComplete,
 }: ConnectLinkedInModalProps) {
   const [url, setUrl] = useState(linkedinUrl || "");
   const [profileText, setProfileText] = useState(linkedinData || "");
@@ -310,6 +315,9 @@ export function ConnectLinkedInModal({
       setRetrievalStatus(
         `✓ Real-time verification complete: ${data.credibilityScore}% Credibility Score (${data.credibilityTier})`
       );
+      if (onVerificationComplete && typeof data.credibilityScore === "number") {
+        onVerificationComplete(data.credibilityScore, data);
+      }
     } catch (err: any) {
       console.error("Trust score verification error:", err);
       setError(err.message || "Could not verify LinkedIn Trust Score.");
@@ -336,6 +344,17 @@ export function ConnectLinkedInModal({
     setSuccessNotice(true);
     setTimeout(() => {
       onClose();
+      // If verification completed and user hasn't seen the walkthrough yet, open walkthrough
+      if (typeof credibilityScore === "number") {
+        try {
+          const hasSeen = localStorage.getItem("has_seen_trust_score_walkthrough");
+          if (!hasSeen) {
+            onOpenWalkthrough?.();
+          }
+        } catch {
+          // ignore
+        }
+      }
     }, 400);
   };
 
@@ -697,6 +716,45 @@ export function ConnectLinkedInModal({
                       ))}
                     </div>
                   )}
+
+                  {/* Share My Trust Score interactive highlight callout */}
+                  <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-teal-500/15 via-[#0A66C2]/15 to-indigo-500/15 border border-teal-500/40 flex items-center justify-between gap-3 shadow-sm">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-300 shrink-0">
+                        <Share2 className="w-4 h-4 text-teal-400" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <span>Verified Trust Score Ready to Share</span>
+                          <span className="px-1.5 py-0.2 rounded bg-teal-400 text-slate-950 text-[9px] font-black uppercase">
+                            New
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-300">
+                          Highlight the "Share my Trust Score" button with an interactive guided walk-through.
+                        </p>
+                      </div>
+                    </div>
+                    {onOpenWalkthrough && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const normalized = normalizeLinkedInUrl(url.trim());
+                          if (normalized) {
+                            onSave(normalized, profileText.trim(), credibilityScore ?? undefined);
+                          }
+                          onClose();
+                          setTimeout(() => {
+                            onOpenWalkthrough();
+                          }, 350);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white font-black text-xs transition-all flex items-center gap-1.5 shadow-md shadow-teal-500/20 cursor-pointer shrink-0 active:scale-95 whitespace-nowrap"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-teal-300" />
+                        <span>Take Tour</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

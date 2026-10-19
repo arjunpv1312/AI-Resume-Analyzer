@@ -73,6 +73,7 @@ import { PdfExportPreviewModal } from "./components/PdfExportPreviewModal";
 import { TrustScoreWalkthroughTooltip } from "./components/TrustScoreWalkthroughTooltip";
 import { ModelTrainingStudio } from "./components/ModelTrainingStudio";
 import { ResumeCanvasTab } from "./components/ResumeCanvasTab";
+import { SkillNetworkGraph } from "./components/SkillNetworkGraph";
 import { AnalysisResult } from "./types";
 import { exportFullReportToDocx } from "./utils/fullReportExport";
 import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, animate } from "motion/react";
@@ -829,6 +830,9 @@ export default function App() {
   const [linkedInTrustScore, setLinkedInTrustScore] = useState<number | null>(null);
   const [linkedInTrustReport, setLinkedInTrustReport] = useState<any | null>(null);
   const [isVerifyingLinkedInTrust, setIsVerifyingLinkedInTrust] = useState(false);
+
+  // Skill visualization mode (D3 force-directed network graph vs flat cloud list)
+  const [skillVisualizationMode, setSkillVisualizationMode] = useState<"network" | "cloud">("network");
 
   const handleVerifyLinkedInTrust = async (customUrl?: string, customData?: string) => {
     setIsVerifyingLinkedInTrust(true);
@@ -2540,12 +2544,43 @@ export default function App() {
             resumeContext={result?.summary || jobDescription || (file ? `File: ${file.name}` : "")}
             resumeData={result}
             initialTrustScore={linkedInTrustScore}
+            onOpenWalkthrough={() => {
+              setIsConnectLinkedInModalOpen(false);
+              setTimeout(() => {
+                setIsTrustScoreWalkthroughOpen(true);
+              }, 300);
+            }}
+            onVerificationComplete={(score, report) => {
+              setLinkedInTrustScore(score);
+              if (report) setLinkedInTrustReport(report);
+              sessionStorage.setItem("current_linkedin_trust_score", String(score));
+              try {
+                const hasSeen = localStorage.getItem("has_seen_trust_score_walkthrough");
+                if (!hasSeen) {
+                  setTimeout(() => {
+                    setIsTrustScoreWalkthroughOpen(true);
+                  }, 400);
+                }
+              } catch {
+                // ignore
+              }
+            }}
             onSave={(newUrl, newData, verifiedScore) => {
               setLinkedinUrl(newUrl);
               setLinkedinData(newData || "");
               if (typeof verifiedScore === "number") {
                 setLinkedInTrustScore(verifiedScore);
                 sessionStorage.setItem("current_linkedin_trust_score", String(verifiedScore));
+                try {
+                  const hasSeen = localStorage.getItem("has_seen_trust_score_walkthrough");
+                  if (!hasSeen) {
+                    setTimeout(() => {
+                      setIsTrustScoreWalkthroughOpen(true);
+                    }, 400);
+                  }
+                } catch {
+                  // ignore
+                }
               }
               handleVerifyLinkedInTrust(newUrl, newData || "");
               if (result) {
@@ -6367,105 +6402,256 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 </GlassCard>
               )}
 
-              {/* Skill Cloud Visualizer & Gap Chart */}
-              <div id="skill-vector-engine" style={{ order: sectionOrder.indexOf('skill-vector-engine') }}>
-              <div className="grid lg:grid-cols-2 gap-8">
-                <GlassCard>
-                  <div className="flex flex-col items-center justify-center space-y-2 mb-4">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] text-center">
-                      Skill Landscape Profile
-                    </h3>
-                    <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">
-                      Visual distribution of matched & missing capabilities
+              {/* Skill Cloud Visualizer & D3 Force Network Graph */}
+              <div id="skill-vector-engine" style={{ order: sectionOrder.indexOf('skill-vector-engine') }} className="space-y-6">
+                {/* Section Header with Segmented View Switcher */}
+                <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-[#0A0A15]/60 border border-white/10 backdrop-blur-md">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse" />
+                      <h3 className="text-xs font-black text-white uppercase tracking-[0.25em]">
+                        Skills Ecosystem & Knowledge Architecture
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[9px] font-extrabold uppercase">
+                        {skillVisualizationMode === "network" ? "D3 Force Graph" : "Tag Cloud"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {skillVisualizationMode === "network"
+                        ? "Interactive force-directed network visualizing interconnected technologies, domain clusters, and priority ATS skill gap bridges"
+                        : "Distribution of matched capabilities and severity ranking of missing role requirements"}
                     </p>
                   </div>
-                  <SkillCloud
-                    found={result.foundSkills}
-                    missing={result.skillGapReport.map((g) => g.skill)}
-                    onSkillClick={handleMissingSkillClick}
-                  />
-                </GlassCard>
 
-                <GlassCard>
-                  <div className="flex flex-col items-center justify-center space-y-2 mb-4">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] text-center">
-                      Skill Gap Analysis
-                    </h3>
-                    <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">
-                      Severity of missing requirements
-                    </p>
+                  {/* Segmented Mode Selector */}
+                  <div className="flex items-center p-1 bg-black/40 border border-white/10 rounded-xl text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setSkillVisualizationMode("network")}
+                      className={`px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                        skillVisualizationMode === "network"
+                          ? "bg-gradient-to-r from-teal-500 to-indigo-600 text-white shadow-md shadow-teal-500/20"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>D3 Force Network</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSkillVisualizationMode("cloud")}
+                      className={`px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                        skillVisualizationMode === "cloud"
+                          ? "bg-gradient-to-r from-teal-500 to-indigo-600 text-white shadow-md shadow-teal-500/20"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <Tag className="w-3.5 h-3.5" />
+                      <span>Tag Cloud & Bar Chart</span>
+                    </button>
                   </div>
-                  <div className="h-64 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={result.skillGapReport.map((sg) => ({
-                          name: sg.skill,
-                          severity: sg.importance
-                            .toLowerCase()
-                            .includes("critical")
-                            ? 95
-                            : sg.importance.toLowerCase().includes("high")
-                              ? 75
-                              : sg.importance.toLowerCase().includes("medium")
-                                ? 50
-                                : 30,
-                        }))}
-                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="rgba(255,255,255,0.05)"
-                          vertical={false}
-                        />
-                        <XAxis
-                          dataKey="name"
-                          stroke="rgba(255,255,255,0.3)"
-                          tick={{
-                            fill: "rgba(255,255,255,0.5)",
-                            fontSize: 10,
-                            fontWeight: 700,
-                          }}
-                          tickMargin={10}
-                        />
-                        <YAxis
-                          stroke="rgba(255,255,255,0.3)"
-                          tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 10 }}
-                          tickFormatter={(val) => `${val}%`}
-                        />
-                        <RechartsTooltip
-                          cursor={{ fill: "rgba(255,255,255,0.02)" }}
-                          content={({ active, payload }) => {
-                            if (active && payload && payload.length) {
-                              return (
-                                <div className="bg-[#0A0A15]/90 border border-white/10 p-3 rounded-lg shadow-xl backdrop-blur-md">
-                                  <p className="text-white text-xs font-bold uppercase">
-                                    {payload[0].payload.name}
-                                  </p>
-                                  <p className="text-rose-400 text-[10px] font-black uppercase mt-1">
-                                    Gap Severity: {payload[0].value}%
-                                  </p>
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                        <Bar
-                          dataKey="severity"
-                          fill="#f43f5e"
-                          radius={[4, 4, 0, 0]}
-                          barSize={20}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
+                </div>
+
+                {skillVisualizationMode === "network" ? (
+                  <div className="space-y-6">
+                    {/* D3 Force-Directed Network Graph */}
+                    <SkillNetworkGraph
+                      foundSkills={result.foundSkills}
+                      missingSkills={result.skillGapReport.map((g) => g.skill)}
+                      skillGapReport={result.skillGapReport}
+                      onSkillClick={handleMissingSkillClick}
+                      height={580}
+                    />
+
+                    {/* Compact Severity & Demand Row */}
+                    <div className="grid lg:grid-cols-2 gap-6">
+                      <GlassCard>
+                        <div className="flex flex-col items-center justify-center space-y-1 mb-4">
+                          <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest text-center">
+                            Skill Gap Priority Severity
+                          </h4>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">
+                            Quantified urgency to bridge target role requirements
+                          </p>
+                        </div>
+                        <div className="h-56 w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={result.skillGapReport.map((sg) => ({
+                                name: sg.skill,
+                                severity: sg.importance.toLowerCase().includes("critical")
+                                  ? 95
+                                  : sg.importance.toLowerCase().includes("high")
+                                  ? 75
+                                  : sg.importance.toLowerCase().includes("medium")
+                                  ? 50
+                                  : 30,
+                              }))}
+                              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                              <XAxis
+                                dataKey="name"
+                                stroke="rgba(255,255,255,0.3)"
+                                tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 10, fontWeight: 700 }}
+                                tickMargin={10}
+                              />
+                              <YAxis
+                                stroke="rgba(255,255,255,0.3)"
+                                tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 10 }}
+                                tickFormatter={(val) => `${val}%`}
+                              />
+                              <RechartsTooltip
+                                cursor={{ fill: "rgba(255,255,255,0.02)" }}
+                                content={({ active, payload }) => {
+                                  if (active && payload && payload.length) {
+                                    return (
+                                      <div className="bg-[#0A0A15]/90 border border-white/10 p-3 rounded-lg shadow-xl backdrop-blur-md">
+                                        <p className="text-white text-xs font-bold uppercase">
+                                          {payload[0].payload.name}
+                                        </p>
+                                        <p className="text-rose-400 text-[10px] font-black uppercase mt-1">
+                                          Gap Severity: {payload[0].value}%
+                                        </p>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                }}
+                              />
+                              <Bar dataKey="severity" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={20} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </GlassCard>
+
+                      <GlassCard>
+                        <div className="flex flex-col items-center justify-center space-y-1 mb-4">
+                          <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest text-center">
+                            Network Graph Insights
+                          </h4>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">
+                            Technology clustering & adjacency recommendations
+                          </p>
+                        </div>
+                        <div className="space-y-3 text-xs">
+                          <div className="p-3.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-slate-300 leading-relaxed">
+                            <strong className="text-teal-300 block mb-1">Ecosystem Density:</strong>
+                            Your primary cluster is anchored around{" "}
+                            <span className="text-white font-bold">{result.foundSkills.slice(0, 4).join(", ")}</span>.
+                            Technologies connected by teal lines indicate native framework interoperability.
+                          </div>
+                          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-slate-300 leading-relaxed">
+                            <strong className="text-amber-300 block mb-1">Bridge Nodes (Dashed Amber Edges):</strong>
+                            Missing skills like{" "}
+                            <span className="text-amber-200 font-bold">
+                              {result.skillGapReport.slice(0, 2).map((g) => g.skill).join(", ") || "recommended skills"}
+                            </span>{" "}
+                            are connected directly to your existing proficiencies, showing the fastest path to bridge your gap without learning unrelated technologies.
+                          </div>
+                        </div>
+                      </GlassCard>
+                    </div>
                   </div>
-                </GlassCard>
+                ) : (
+                  <div className="grid lg:grid-cols-2 gap-8">
+                    <GlassCard>
+                      <div className="flex flex-col items-center justify-center space-y-2 mb-4">
+                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] text-center">
+                          Skill Landscape Profile
+                        </h3>
+                        <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">
+                          Visual distribution of matched & missing capabilities
+                        </p>
+                      </div>
+                      <SkillCloud
+                        found={result.foundSkills}
+                        missing={result.skillGapReport.map((g) => g.skill)}
+                        onSkillClick={handleMissingSkillClick}
+                      />
+                    </GlassCard>
+
+                    <GlassCard>
+                      <div className="flex flex-col items-center justify-center space-y-2 mb-4">
+                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] text-center">
+                          Skill Gap Analysis
+                        </h3>
+                        <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">
+                          Severity of missing requirements
+                        </p>
+                      </div>
+                      <div className="h-64 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={result.skillGapReport.map((sg) => ({
+                              name: sg.skill,
+                              severity: sg.importance
+                                .toLowerCase()
+                                .includes("critical")
+                                ? 95
+                                : sg.importance.toLowerCase().includes("high")
+                                  ? 75
+                                  : sg.importance.toLowerCase().includes("medium")
+                                    ? 50
+                                    : 30,
+                            }))}
+                            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                          >
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              stroke="rgba(255,255,255,0.05)"
+                              vertical={false}
+                            />
+                            <XAxis
+                              dataKey="name"
+                              stroke="rgba(255,255,255,0.3)"
+                              tick={{
+                                fill: "rgba(255,255,255,0.5)",
+                                fontSize: 10,
+                                fontWeight: 700,
+                              }}
+                              tickMargin={10}
+                            />
+                            <YAxis
+                              stroke="rgba(255,255,255,0.3)"
+                              tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 10 }}
+                              tickFormatter={(val) => `${val}%`}
+                            />
+                            <RechartsTooltip
+                              cursor={{ fill: "rgba(255,255,255,0.02)" }}
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  return (
+                                    <div className="bg-[#0A0A15]/90 border border-white/10 p-3 rounded-lg shadow-xl backdrop-blur-md">
+                                      <p className="text-white text-xs font-bold uppercase">
+                                        {payload[0].payload.name}
+                                      </p>
+                                      <p className="text-rose-400 text-[10px] font-black uppercase mt-1">
+                                        Gap Severity: {payload[0].value}%
+                                      </p>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Bar
+                              dataKey="severity"
+                              fill="#f43f5e"
+                              radius={[4, 4, 0, 0]}
+                              barSize={20}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </GlassCard>
+                  </div>
+                )}
+
+                <SkillDemandTrend
+                  role={result.careerPath.topRole || "Target Role"}
+                />
               </div>
-
-              <SkillDemandTrend
-                role={result.careerPath.topRole || "Target Role"}
-              />
-            </div>
 
               <div className="grid lg:grid-cols-12 gap-8 mt-8">
                 {/* Simplified Header with Core Strengths & Weaknesses */}
