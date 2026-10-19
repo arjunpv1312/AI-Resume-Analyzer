@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Link2,
   Image as ImageIcon,
+  Sparkles,
 } from "lucide-react";
 
 export interface VerifiedTrustBadgeCardProps {
@@ -31,6 +32,7 @@ export interface VerifiedTrustBadgeCardProps {
   onVerifyNow: () => void;
   onOpenVerificationModal: () => void;
   onShareTrustScore?: () => void;
+  onOpenWalkthrough?: () => void;
 }
 
 type BadgeStyleVariant = "executive" | "compact" | "light";
@@ -49,6 +51,7 @@ export const VerifiedTrustBadgeCard: React.FC<VerifiedTrustBadgeCardProps> = ({
   onVerifyNow,
   onOpenVerificationModal,
   onShareTrustScore,
+  onOpenWalkthrough,
 }) => {
   const [isShareDrawerOpen, setIsShareDrawerOpen] = useState(false);
   const [badgeStyle, setBadgeStyle] = useState<BadgeStyleVariant>("executive");
@@ -848,6 +851,7 @@ Credential URL: ${badgeSvgUrl}`;
           </button>
 
           <button
+            id="share-my-trust-score-btn"
             type="button"
             onClick={() => {
               if (onShareTrustScore) {
@@ -862,6 +866,18 @@ Credential URL: ${badgeSvgUrl}`;
             <Share2 className="w-3.5 h-3.5" />
             <span>Share my Trust Score</span>
           </button>
+
+          {onOpenWalkthrough && (
+            <button
+              type="button"
+              onClick={onOpenWalkthrough}
+              className="px-3 py-2.5 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+              title="Interactive tutorial: how to share and customize your verified trust score card"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+              <span>Tour</span>
+            </button>
+          )}
 
           <button
             type="button"

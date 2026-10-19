@@ -70,6 +70,7 @@ import { LinkedInVerificationModal } from "./components/LinkedInVerificationModa
 import { VerifiedTrustBadgeCard } from "./components/VerifiedTrustBadgeCard";
 import { ShareTrustScoreModal } from "./components/ShareTrustScoreModal";
 import { PdfExportPreviewModal } from "./components/PdfExportPreviewModal";
+import { TrustScoreWalkthroughTooltip } from "./components/TrustScoreWalkthroughTooltip";
 import { ModelTrainingStudio } from "./components/ModelTrainingStudio";
 import { ResumeCanvasTab } from "./components/ResumeCanvasTab";
 import { AnalysisResult } from "./types";
@@ -824,6 +825,7 @@ export default function App() {
   // LinkedIn Verification & Real-Time Trust Score Modal
   const [isLinkedInVerificationModalOpen, setIsLinkedInVerificationModalOpen] = useState(false);
   const [isShareTrustScoreOpen, setIsShareTrustScoreOpen] = useState(false);
+  const [isTrustScoreWalkthroughOpen, setIsTrustScoreWalkthroughOpen] = useState(false);
   const [linkedInTrustScore, setLinkedInTrustScore] = useState<number | null>(null);
   const [linkedInTrustReport, setLinkedInTrustReport] = useState<any | null>(null);
   const [isVerifyingLinkedInTrust, setIsVerifyingLinkedInTrust] = useState(false);
@@ -886,6 +888,16 @@ export default function App() {
         }
         if (!linkedinData && data.synchronizedProfileData) {
           setLinkedinData(data.synchronizedProfileData);
+        }
+
+        // Trigger interactive walkthrough if verification completes for the first time
+        try {
+          const hasSeen = localStorage.getItem("has_seen_trust_score_walkthrough");
+          if (!hasSeen) {
+            setIsTrustScoreWalkthroughOpen(true);
+          }
+        } catch {
+          // ignore
         }
       }
     } catch (err) {
@@ -2591,6 +2603,14 @@ export default function App() {
               setLinkedInTrustScore(trustScore);
               sessionStorage.setItem("current_linkedin_url", url);
               sessionStorage.setItem("current_linkedin_data", data);
+              try {
+                const hasSeen = localStorage.getItem("has_seen_trust_score_walkthrough");
+                if (!hasSeen) {
+                  setIsTrustScoreWalkthroughOpen(true);
+                }
+              } catch {
+                // ignore
+              }
             }}
           />
 
@@ -2632,6 +2652,18 @@ export default function App() {
             candidateName={linkedInTrustReport?.candidateName || (file ? file.name.replace(/\.[^/.]+$/, "") : "Executive Candidate")}
             targetRole={result?.careerPath?.topRole || "Senior Technology Leader"}
             trustFactors={linkedInTrustReport?.trustFactors}
+          />
+
+          {/* Interactive Tooltip & Tutorial Walkthrough for Share my Trust Score */}
+          <TrustScoreWalkthroughTooltip
+            key="trust-score-walkthrough-tooltip"
+            isOpen={isTrustScoreWalkthroughOpen}
+            onClose={() => setIsTrustScoreWalkthroughOpen(false)}
+            onOpenShareModal={() => setIsShareTrustScoreOpen(true)}
+            credibilityScore={linkedInTrustScore}
+            credibilityTier={linkedInTrustReport?.credibilityTier}
+            candidateName={linkedInTrustReport?.candidateName || (file ? file.name.replace(/\.[^/.]+$/, "") : "Alex Mercer")}
+            targetRole={result?.careerPath?.topRole || "Executive Leadership"}
           />
 
           {/* PDF Export Preview & Interactive Section Filter Modal */}
@@ -5503,6 +5535,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 onVerifyNow={() => handleVerifyLinkedInTrust()}
                 onOpenVerificationModal={() => setIsLinkedInVerificationModalOpen(true)}
                 onShareTrustScore={() => setIsShareTrustScoreOpen(true)}
+                onOpenWalkthrough={() => setIsTrustScoreWalkthroughOpen(true)}
               />
 
               {/* Deep Score Reasoning & AI Model Calibration Studio */}
@@ -6010,6 +6043,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         )}
                       </button>
                       <button
+                        id="share-trust-score-linkedin-btn"
                         type="button"
                         onClick={() => setIsShareTrustScoreOpen(true)}
                         className="text-xs text-white bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-teal-500/20 active:scale-95 whitespace-nowrap font-bold"
@@ -6017,6 +6051,15 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       >
                         <Share2 className="w-3.5 h-3.5" />
                         <span>Share my Trust Score</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsTrustScoreWalkthroughOpen(true)}
+                        className="text-xs text-teal-300 hover:text-white bg-teal-500/10 hover:bg-teal-500/20 px-2.5 py-1.5 rounded-xl border border-teal-500/30 transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap font-bold"
+                        title="Interactive guide on how to customize and share your Trust Score card"
+                      >
+                        <Sparkles className="w-3 h-3 text-teal-400" />
+                        <span>Tour</span>
                       </button>
                     </div>
                   </div>
@@ -6257,6 +6300,15 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       >
                         <Share2 className="w-4 h-4" />
                         <span>Share my Trust Score</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsTrustScoreWalkthroughOpen(true)}
+                        className="px-3.5 py-3 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 font-bold text-xs uppercase tracking-wider transition-all border border-teal-500/30 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap"
+                        title="Interactive guide on how to customize and share your Trust Score card"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                        <span>Tour</span>
                       </button>
                       <motion.button
                         whileHover={{ scale: 1.03 }}

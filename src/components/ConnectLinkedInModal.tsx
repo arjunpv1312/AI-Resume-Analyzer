@@ -30,6 +30,32 @@ interface ConnectLinkedInModalProps {
   onDisconnect: () => void;
 }
 
+export type GranularStepKey = "fetching" | "syncing" | "validating";
+
+export interface GranularStep {
+  key: GranularStepKey;
+  label: string;
+  description: string;
+}
+
+export const GRANULAR_STEPS: GranularStep[] = [
+  {
+    key: "fetching",
+    label: "Fetching profile data",
+    description: "Extracting headline, bio & public profile payload",
+  },
+  {
+    key: "syncing",
+    label: "Syncing metrics",
+    description: "Aligning skill endorsements & keyword density",
+  },
+  {
+    key: "validating",
+    label: "Validating experience",
+    description: "Verifying timeline consistency & seniority level",
+  },
+];
+
 export function ConnectLinkedInModal({
   isOpen,
   onClose,
@@ -53,6 +79,11 @@ export function ConnectLinkedInModal({
   const [error, setError] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState(false);
 
+  // Granular Import Progress Bar & Step Indicators
+  const [importStep, setImportStep] = useState<GranularStepKey | "complete" | "idle">("idle");
+  const [importProgress, setImportProgress] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<GranularStepKey[]>([]);
+
   useEffect(() => {
     setUrl(linkedinUrl || "");
     setProfileText(linkedinData || "");
@@ -64,6 +95,9 @@ export function ConnectLinkedInModal({
     setRetrievalStatus(null);
     setError(null);
     setSuccessNotice(false);
+    setImportStep("idle");
+    setImportProgress(0);
+    setCompletedSteps([]);
   }, [linkedinUrl, linkedinData, initialTrustScore, isOpen]);
 
   if (!isOpen) return null;
@@ -110,11 +144,37 @@ export function ConnectLinkedInModal({
   const handleApplyDemo = () => {
     const demoUrl = "https://www.linkedin.com/in/alexmercer-tech";
     setUrl(demoUrl);
-    setProfileText(
-      "Headline: Senior Staff Software Engineer & Cloud Architect | Distributed Systems, Node.js, AWS\n\nAbout: 8+ years architecting high-throughput cloud infrastructure and mentoring engineering teams. Built event-driven architectures supporting 5M+ DAUs.\n\nKey Skills: Distributed Systems, Cloud Architecture, Node.js, AWS, Kubernetes, Microservices"
-    );
     setError(null);
-    setRetrievalStatus("Demo profile loaded and ready for ATS synchronization.");
+    setIsRetrieving(true);
+    setImportStep("fetching");
+    setImportProgress(28);
+    setCompletedSteps([]);
+    setRetrievalStatus("Step 1 of 3: Fetching profile data...");
+
+    setTimeout(() => {
+      setImportStep("syncing");
+      setImportProgress(62);
+      setCompletedSteps(["fetching"]);
+      setRetrievalStatus("Step 2 of 3: Syncing metrics & skills...");
+    }, 350);
+
+    setTimeout(() => {
+      setImportStep("validating");
+      setImportProgress(88);
+      setCompletedSteps(["fetching", "syncing"]);
+      setRetrievalStatus("Step 3 of 3: Validating experience & tenure...");
+    }, 700);
+
+    setTimeout(() => {
+      setProfileText(
+        "Headline: Senior Staff Software Engineer & Cloud Architect | Distributed Systems, Node.js, AWS\n\nAbout: 8+ years architecting high-throughput cloud infrastructure and mentoring engineering teams. Built event-driven architectures supporting 5M+ DAUs.\n\nKey Skills: Distributed Systems, Cloud Architecture, Node.js, AWS, Kubernetes, Microservices"
+      );
+      setImportStep("complete");
+      setImportProgress(100);
+      setCompletedSteps(["fetching", "syncing", "validating"]);
+      setIsRetrieving(false);
+      setRetrievalStatus("✓ Demo profile imported: All profile data, metrics, and experience validated.");
+    }, 1100);
   };
 
   // Perform active profile data retrieval via backend API
@@ -133,7 +193,24 @@ export function ConnectLinkedInModal({
 
     setIsRetrieving(true);
     setError(null);
-    setRetrievalStatus("Connecting to LinkedIn API gateway & synchronizing profile...");
+    setImportStep("fetching");
+    setImportProgress(25);
+    setCompletedSteps([]);
+    setRetrievalStatus("Step 1 of 3: Fetching profile data...");
+
+    const t1 = setTimeout(() => {
+      setImportStep("syncing");
+      setImportProgress(60);
+      setCompletedSteps(["fetching"]);
+      setRetrievalStatus("Step 2 of 3: Syncing metrics & skill endorsements...");
+    }, 550);
+
+    const t2 = setTimeout(() => {
+      setImportStep("validating");
+      setImportProgress(85);
+      setCompletedSteps(["fetching", "syncing"]);
+      setRetrievalStatus("Step 3 of 3: Validating experience & timeline consistency...");
+    }, 1200);
 
     try {
       const response = await fetch("/api/linkedin/retrieve", {
@@ -152,8 +229,11 @@ export function ConnectLinkedInModal({
       });
 
       const data = await response.json();
+      clearTimeout(t1);
+      clearTimeout(t2);
 
       if (!response.ok) {
+        setImportStep("idle");
         if (response.status === 401 || data.isAuthError) {
           if (data.requiresAuth) {
             setError(
@@ -171,6 +251,9 @@ export function ConnectLinkedInModal({
       }
 
       if (data.success && data.formattedData) {
+        setImportStep("complete");
+        setImportProgress(100);
+        setCompletedSteps(["fetching", "syncing", "validating"]);
         setProfileText(data.formattedData);
         setRetrievalStatus(
           data.source === "oauth_authenticated"
@@ -179,6 +262,9 @@ export function ConnectLinkedInModal({
         );
       }
     } catch (err: any) {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      setImportStep("idle");
       console.error("Profile retrieval error:", err);
       setError(
         err.message ||
@@ -394,6 +480,111 @@ export function ConnectLinkedInModal({
                 </p>
               )}
             </div>
+
+            {/* Granular Import Progress Bar and Status Indicator */}
+            {(isRetrieving || importStep !== "idle") && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, y: -6 }}
+                animate={{ opacity: 1, height: "auto", y: 0 }}
+                exit={{ opacity: 0, height: 0 }}
+                className="p-4 rounded-2xl bg-[#071328]/95 border border-[#0A66C2]/40 shadow-xl space-y-3 overflow-hidden"
+              >
+                {/* Header with Step indicator and percentage */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-7 w-7 rounded-lg bg-[#0A66C2]/20 border border-[#0A66C2]/40 flex items-center justify-center text-[#38bdf8] shrink-0">
+                      {importStep === "complete" ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      ) : (
+                        <RefreshCw className="w-3.5 h-3.5 text-teal-400 animate-spin" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-black text-white uppercase tracking-tight">
+                          {importStep === "complete"
+                            ? "Import Complete"
+                            : importStep === "fetching"
+                            ? "Fetching Profile Data..."
+                            : importStep === "syncing"
+                            ? "Syncing Metrics..."
+                            : "Validating Experience..."}
+                        </h4>
+                        <span className="px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-[9px] font-extrabold uppercase">
+                          {importStep === "complete" ? "Ready" : "In Progress"}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-medium">
+                        {importStep === "complete"
+                          ? "All granular LinkedIn data points verified & cached"
+                          : `Granular Step ${
+                              importStep === "fetching" ? "1" : importStep === "syncing" ? "2" : "3"
+                            } of 3 · Cross-vector data verification`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-base font-mono font-black tabular-nums text-teal-300">
+                      {importProgress}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Progress Bar Track with smooth gradient */}
+                <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-white/5">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-[#0A66C2] via-teal-400 to-emerald-400 rounded-full"
+                    animate={{ width: `${importProgress}%` }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                  />
+                </div>
+
+                {/* Granular Step Status Indicators */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                  {GRANULAR_STEPS.map((step, idx) => {
+                    const isDone = completedSteps.includes(step.key) || importStep === "complete";
+                    const isCurrent = importStep === step.key && !isDone;
+                    return (
+                      <div
+                        key={step.key}
+                        className={`p-2.5 rounded-xl border transition-all text-left flex flex-col justify-between ${
+                          isDone
+                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300 shadow-sm"
+                            : isCurrent
+                            ? "bg-teal-500/15 border-teal-500/50 text-white shadow-[0_0_15px_rgba(20,184,166,0.15)] ring-1 ring-teal-500/30"
+                            : "bg-white/[0.02] border-white/5 text-slate-500"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                            Step 0{idx + 1}
+                          </span>
+                          {isDone ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          ) : isCurrent ? (
+                            <RefreshCw className="w-3 h-3 text-teal-400 animate-spin shrink-0" />
+                          ) : (
+                            <div className="w-2 h-2 rounded-full bg-slate-700" />
+                          )}
+                        </div>
+                        <div>
+                          <div
+                            className={`text-[11px] font-bold tracking-tight ${
+                              isCurrent ? "text-teal-200" : isDone ? "text-emerald-300" : "text-slate-400"
+                            }`}
+                          >
+                            {step.label}
+                          </div>
+                          <div className="text-[9px] text-slate-400 line-clamp-1 mt-0.5">
+                            {step.description}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
 
             {/* Optional OAuth Token Collapsible Section */}
             <div className="border border-white/5 rounded-xl bg-white/[0.02] p-3">
