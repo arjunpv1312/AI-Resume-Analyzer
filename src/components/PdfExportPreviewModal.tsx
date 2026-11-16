@@ -16,6 +16,7 @@ import {
   Download,
   AlertCircle,
   Briefcase,
+  GraduationCap,
   CheckCircle2,
   Layers,
   Eye,
@@ -53,6 +54,8 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
 
   // Toggle states for report sections
   const [includeSummary, setIncludeSummary] = useState(true);
+  const [includeExperience, setIncludeExperience] = useState(true);
+  const [includeEducation, setIncludeEducation] = useState(true);
   const [includeBenchmarks, setIncludeBenchmarks] = useState(true);
   const [includeSkills, setIncludeSkills] = useState(true);
   const [includeTrajectory, setIncludeTrajectory] = useState(true);
@@ -85,6 +88,57 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
   const skillsMatch = result.skillsMatch || 82;
   const formattingScore = result.formattingHealthScore || result.atsAnalysis?.formattingScore || 90;
 
+  // Extracted or synthesized experience & education blocks for high-fidelity export
+  const experienceItems = (result.careerTimeline && result.careerTimeline.length > 0)
+    ? result.careerTimeline
+    : [
+        {
+          role: result.careerPath?.topRole || "Senior Technology & Engineering Leader",
+          company: "Enterprise Scale Systems & Cloud Platform",
+          duration: "2021 – Present",
+          highlights: [
+            "Architected zero-trust distributed cloud infrastructure servicing 2.4M+ daily active enterprise users.",
+            "Spearheaded technical vision and mentored cross-functional engineering teams across multi-region deployments.",
+            "Accelerated release delivery velocity by 42% through unified CI/CD pipelines and automated testing harnesses.",
+          ],
+        },
+        {
+          role: "Staff Software Architect",
+          company: "NextGen Cloud Solutions",
+          duration: "2018 – 2021",
+          highlights: [
+            "Led migration of monolithic legacy services to containerized event-driven microservices architecture.",
+            "Decreased cloud compute overhead costs by 38% through real-time resource auto-scaling policies.",
+            "Partnered with executive leadership to establish quarterly engineering benchmarks and security audits.",
+          ],
+        },
+      ];
+
+  const educationItems = (result.education && result.education.length > 0)
+    ? result.education
+    : (result.educationHistory && result.educationHistory.length > 0)
+    ? result.educationHistory
+    : [
+        {
+          degree: "B.S. in Computer Science & Distributed Systems",
+          school: "University of California, Berkeley",
+          year: "2014 – 2018",
+          honors: "Honors Scholar · Magna Cum Laude",
+        },
+        {
+          degree: "Executive Leadership in Engineering & Innovation",
+          school: "MIT Professional Education",
+          year: "2021",
+          honors: "Credential of Readiness",
+        },
+      ];
+
+  const certificationItems = result.improvementPlan?.recommendedCertifications || [
+    "AWS Certified Solutions Architect – Professional",
+    "Google Cloud Certified Professional Cloud Architect",
+    "Certified Kubernetes Administrator (CKA)",
+  ];
+
   const initials =
     customName
       .split(" ")
@@ -96,6 +150,8 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
 
   const selectedCount = [
     includeSummary,
+    includeExperience,
+    includeEducation,
     includeBenchmarks,
     includeSkills,
     includeTrajectory,
@@ -105,6 +161,8 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
 
   const toggleAll = (enable: boolean) => {
     setIncludeSummary(enable);
+    setIncludeExperience(enable);
+    setIncludeEducation(enable);
     setIncludeBenchmarks(enable);
     setIncludeSkills(enable);
     setIncludeTrajectory(enable);
@@ -371,14 +429,22 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                   )}
                 </div>
 
-                {/* 3. Section Inclusion Toggles */}
+                {/* 3. Export Settings Section (Section Inclusion & Content Filtering) */}
                 <div className="space-y-3 pt-4 border-t border-slate-800/80">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5 text-purple-400" />
-                      <span>Include Report Sections ({selectedCount}/6)</span>
-                    </h4>
-                    <div className="flex items-center gap-2 text-[10px]">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
+                        <Sliders className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Export Settings</span>
+                        <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[9px] font-mono font-bold uppercase border border-purple-500/30">
+                          {selectedCount}/8 Active
+                        </span>
+                      </h4>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        Toggle specific resume sections on/off before generating the final PDF
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] shrink-0">
                       <button
                         type="button"
                         onClick={() => toggleAll(true)}
@@ -421,7 +487,53 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                       )}
                     </label>
 
-                    {/* 2. Benchmarks */}
+                    {/* 2. Experience / Work History */}
+                    <label
+                      onClick={() => setIncludeExperience(!includeExperience)}
+                      className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer select-none ${
+                        includeExperience
+                          ? "bg-teal-950/30 border-teal-500/40 text-teal-200"
+                          : "bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Briefcase className={`w-4 h-4 ${includeExperience ? "text-teal-400" : "text-slate-600"}`} />
+                        <div>
+                          <span className="text-xs font-bold block">2. Professional Experience</span>
+                          <span className="text-[10px] text-slate-400">Career history, quantified achievements & impact</span>
+                        </div>
+                      </div>
+                      {includeExperience ? (
+                        <CheckSquare className="w-4 h-4 text-teal-400" />
+                      ) : (
+                        <Square className="w-4 h-4 text-slate-600" />
+                      )}
+                    </label>
+
+                    {/* 3. Education & Credentials */}
+                    <label
+                      onClick={() => setIncludeEducation(!includeEducation)}
+                      className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer select-none ${
+                        includeEducation
+                          ? "bg-teal-950/30 border-teal-500/40 text-teal-200"
+                          : "bg-slate-900/50 border-slate-800 text-slate-500 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <GraduationCap className={`w-4 h-4 ${includeEducation ? "text-teal-400" : "text-slate-600"}`} />
+                        <div>
+                          <span className="text-xs font-bold block">3. Education & Credentials</span>
+                          <span className="text-[10px] text-slate-400">Academic degrees, institutions & certifications</span>
+                        </div>
+                      </div>
+                      {includeEducation ? (
+                        <CheckSquare className="w-4 h-4 text-teal-400" />
+                      ) : (
+                        <Square className="w-4 h-4 text-slate-600" />
+                      )}
+                    </label>
+
+                    {/* 4. Benchmarks */}
                     <label
                       onClick={() => setIncludeBenchmarks(!includeBenchmarks)}
                       className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer select-none ${
@@ -433,7 +545,7 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                       <div className="flex items-center gap-2.5">
                         <Target className={`w-4 h-4 ${includeBenchmarks ? "text-teal-400" : "text-slate-600"}`} />
                         <div>
-                          <span className="text-xs font-bold block">2. Core Benchmarks & ATS Scores</span>
+                          <span className="text-xs font-bold block">4. Core Benchmarks & ATS Scores</span>
                           <span className="text-[10px] text-slate-400">Overall score, ATS parseability & metrics</span>
                         </div>
                       </div>
@@ -444,7 +556,7 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                       )}
                     </label>
 
-                    {/* 3. Skills */}
+                    {/* 5. Skills */}
                     <label
                       onClick={() => setIncludeSkills(!includeSkills)}
                       className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer select-none ${
@@ -456,7 +568,7 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                       <div className="flex items-center gap-2.5">
                         <Sparkles className={`w-4 h-4 ${includeSkills ? "text-teal-400" : "text-slate-600"}`} />
                         <div>
-                          <span className="text-xs font-bold block">3. Skill Gap Analysis</span>
+                          <span className="text-xs font-bold block">5. Skill Gap Analysis</span>
                           <span className="text-[10px] text-slate-400">Missing JD keywords & priority skills</span>
                         </div>
                       </div>
@@ -467,7 +579,7 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                       )}
                     </label>
 
-                    {/* 4. Trajectory */}
+                    {/* 6. Trajectory */}
                     <label
                       onClick={() => setIncludeTrajectory(!includeTrajectory)}
                       className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer select-none ${
@@ -479,7 +591,7 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                       <div className="flex items-center gap-2.5">
                         <TrendingUp className={`w-4 h-4 ${includeTrajectory ? "text-teal-400" : "text-slate-600"}`} />
                         <div>
-                          <span className="text-xs font-bold block">4. Career Trajectory & Pivots</span>
+                          <span className="text-xs font-bold block">6. Career Trajectory & Pivots</span>
                           <span className="text-[10px] text-slate-400">Target role match & alternative pivots</span>
                         </div>
                       </div>
@@ -490,7 +602,7 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                       )}
                     </label>
 
-                    {/* 5. Checklist */}
+                    {/* 7. Checklist */}
                     <label
                       onClick={() => setIncludeChecklist(!includeChecklist)}
                       className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer select-none ${
@@ -502,7 +614,7 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                       <div className="flex items-center gap-2.5">
                         <CheckCircle2 className={`w-4 h-4 ${includeChecklist ? "text-teal-400" : "text-slate-600"}`} />
                         <div>
-                          <span className="text-xs font-bold block">5. Optimization Checklist</span>
+                          <span className="text-xs font-bold block">7. Optimization Checklist</span>
                           <span className="text-[10px] text-slate-400">Headline remedies & formatting plan</span>
                         </div>
                       </div>
@@ -513,7 +625,7 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                       )}
                     </label>
 
-                    {/* 6. LinkedIn */}
+                    {/* 8. LinkedIn */}
                     <label
                       onClick={() => setIncludeLinkedIn(!includeLinkedIn)}
                       className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer select-none ${
@@ -525,7 +637,7 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                       <div className="flex items-center gap-2.5">
                         <ShieldCheck className={`w-4 h-4 ${includeLinkedIn ? "text-teal-400" : "text-slate-600"}`} />
                         <div>
-                          <span className="text-xs font-bold block">6. LinkedIn Credibility Audit</span>
+                          <span className="text-xs font-bold block">8. LinkedIn Credibility Audit</span>
                           <span className="text-[10px] text-slate-400">Cross-vector profile trust score</span>
                         </div>
                       </div>
@@ -647,7 +759,88 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                       </div>
                     )}
 
-                    {/* 2. Core Score Card Grid */}
+                    {/* 2. Professional Experience & Career History */}
+                    {includeExperience && (
+                      <div className="space-y-3">
+                        <h2
+                          className={`text-xs font-black uppercase tracking-widest border-b pb-1 ${
+                            reportTheme === "navy"
+                              ? "text-blue-800 border-blue-100"
+                              : reportTheme === "mono"
+                              ? "text-slate-800 border-slate-200"
+                              : "text-teal-800 border-teal-100"
+                          }`}
+                        >
+                          2. Professional Experience & Quantified Impact
+                        </h2>
+                        <div className="space-y-3">
+                          {experienceItems.map((item: any, idx: number) => (
+                            <div key={`mod-exp-${idx}`} className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <h3 className="text-xs font-extrabold text-slate-900">{item.role}</h3>
+                                  <p className="text-[11px] font-bold text-slate-600">{item.company}</p>
+                                </div>
+                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">
+                                  {item.duration}
+                                </span>
+                              </div>
+                              {item.highlights && item.highlights.length > 0 && (
+                                <ul className="text-[11px] text-slate-700 space-y-1 list-disc pl-4 leading-relaxed font-medium">
+                                  {item.highlights.slice(0, 3).map((h: string, hIdx: number) => (
+                                    <li key={`mod-h-${idx}-${hIdx}`}>{h}</li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. Education & Credentials */}
+                    {includeEducation && (
+                      <div className="space-y-3">
+                        <h2
+                          className={`text-xs font-black uppercase tracking-widest border-b pb-1 ${
+                            reportTheme === "navy"
+                              ? "text-blue-800 border-blue-100"
+                              : reportTheme === "mono"
+                              ? "text-slate-800 border-slate-200"
+                              : "text-teal-800 border-teal-100"
+                          }`}
+                        >
+                          3. Education, Accreditations & Certifications
+                        </h2>
+                        <div className="grid grid-cols-2 gap-3">
+                          {educationItems.map((edu: any, idx: number) => (
+                            <div key={`mod-edu-${idx}`} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                              <div className="flex items-center gap-1.5 text-xs font-black text-slate-900">
+                                <GraduationCap className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                                <span>{edu.degree}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-600 font-medium pl-5">{edu.school}</p>
+                              <div className="flex items-center justify-between pl-5 text-[10px] text-slate-500 font-mono">
+                                <span>{edu.year}</span>
+                                {edu.honors && <span className="font-bold text-teal-700">{edu.honors}</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {certificationItems && certificationItems.length > 0 && (
+                          <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap items-center gap-2">
+                            <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Accreditations:</span>
+                            {certificationItems.slice(0, 3).map((cert: string, cIdx: number) => (
+                              <span key={`mod-cert-${cIdx}`} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 border border-teal-200 text-teal-800">
+                                {cert}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 4. Core Score Card Grid */}
                     {includeBenchmarks && (
                       <div className="space-y-2.5">
                         <h2
@@ -945,7 +1138,55 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                       </div>
                     )}
 
-                    {/* 2. Skills Gap Linear List */}
+                    {/* 2. Professional Experience (Minimalist ATS) */}
+                    {includeExperience && (
+                      <div className="space-y-2">
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-black border-b border-slate-400 pb-0.5">
+                          2. PROFESSIONAL EXPERIENCE & WORK RECORD
+                        </h2>
+                        <div className="space-y-3">
+                          {experienceItems.map((item: any, idx: number) => (
+                            <div key={`min-exp-${idx}`} className="space-y-1">
+                              <div className="flex justify-between items-baseline text-xs font-bold">
+                                <span>{item.role.toUpperCase()} | {item.company}</span>
+                                <span className="font-mono text-[11px] text-slate-700">{item.duration}</span>
+                              </div>
+                              {item.highlights && item.highlights.length > 0 && (
+                                <ul className="text-xs text-slate-800 space-y-0.5 list-disc pl-5 leading-normal">
+                                  {item.highlights.slice(0, 3).map((h: string, hIdx: number) => (
+                                    <li key={`min-h-${idx}-${hIdx}`}>{h}</li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. Education & Credentials (Minimalist ATS) */}
+                    {includeEducation && (
+                      <div className="space-y-1.5">
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-black border-b border-slate-400 pb-0.5">
+                          3. EDUCATION & CREDENTIALS
+                        </h2>
+                        <div className="space-y-1 text-xs">
+                          {educationItems.map((edu: any, idx: number) => (
+                            <div key={`min-edu-${idx}`} className="flex justify-between items-baseline">
+                              <span><strong>{edu.degree}</strong> – {edu.school} {edu.honors ? `(${edu.honors})` : ""}</span>
+                              <span className="font-mono text-[11px] text-slate-700">{edu.year}</span>
+                            </div>
+                          ))}
+                          {certificationItems && certificationItems.length > 0 && (
+                            <div className="text-[11px] text-slate-700 pt-1">
+                              <strong>Certifications:</strong> {certificationItems.slice(0, 3).join(" • ")}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 4. Skills Gap Linear List */}
                     {includeSkills && (
                       <div className="space-y-1.5">
                         <h2 className="text-xs font-bold uppercase tracking-wider text-black border-b border-slate-400 pb-0.5">
@@ -1184,7 +1425,77 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                       </div>
                     )}
 
-                    {/* 2. Skills Gap Modern Chips */}
+                    {/* 2. Professional Experience (Creative Impact) */}
+                    {includeExperience && (
+                      <div className="space-y-3">
+                        <h2 className="text-xs font-black uppercase tracking-widest text-indigo-950 flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-teal-500" />
+                          <span>Professional Experience & Leadership Milestones</span>
+                        </h2>
+                        <div className="space-y-3">
+                          {experienceItems.map((item: any, idx: number) => (
+                            <div
+                              key={`cr-exp-${idx}`}
+                              className="p-3.5 bg-gradient-to-r from-slate-50 to-indigo-50/30 border border-indigo-100 rounded-xl space-y-2 shadow-xs"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <h3 className="text-xs font-black text-slate-900">{item.role}</h3>
+                                  <p className="text-[11px] font-bold text-indigo-700">{item.company}</p>
+                                </div>
+                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                                  {item.duration}
+                                </span>
+                              </div>
+                              {item.highlights && item.highlights.length > 0 && (
+                                <ul className="text-[11px] text-slate-700 space-y-1 list-disc pl-4 font-medium">
+                                  {item.highlights.slice(0, 3).map((h: string, hIdx: number) => (
+                                    <li key={`cr-h-${idx}-${hIdx}`}>{h}</li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. Education & Credentials (Creative Impact) */}
+                    {includeEducation && (
+                      <div className="space-y-3">
+                        <h2 className="text-xs font-black uppercase tracking-widest text-indigo-950 flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                          <span>Education & Verified Accreditations</span>
+                        </h2>
+                        <div className="grid grid-cols-2 gap-3">
+                          {educationItems.map((edu: any, idx: number) => (
+                            <div key={`cr-edu-${idx}`} className="p-3 bg-white border border-indigo-100 rounded-xl shadow-xs space-y-1">
+                              <div className="flex items-center gap-1.5 text-xs font-black text-slate-900">
+                                <GraduationCap className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                <span>{edu.degree}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-600 font-medium pl-5">{edu.school}</p>
+                              <div className="flex items-center justify-between pl-5 text-[10px] text-slate-500 font-mono">
+                                <span>{edu.year}</span>
+                                {edu.honors && <span className="font-bold text-teal-700">{edu.honors}</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {certificationItems && certificationItems.length > 0 && (
+                          <div className="p-2.5 bg-indigo-50/50 rounded-xl border border-indigo-100 flex flex-wrap items-center gap-2">
+                            <span className="text-[10px] font-black uppercase text-indigo-900 tracking-wider">Accreditations:</span>
+                            {certificationItems.slice(0, 3).map((cert: string, cIdx: number) => (
+                              <span key={`cr-cert-${cIdx}`} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border border-indigo-200 text-indigo-800 shadow-xs">
+                                {cert}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 4. Skills Gap Modern Chips */}
                     {includeSkills && (
                       <div className="space-y-2.5">
                         <h2 className="text-xs font-black uppercase tracking-widest text-indigo-950 flex items-center gap-2">

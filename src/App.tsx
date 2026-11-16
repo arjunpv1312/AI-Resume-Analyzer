@@ -54,6 +54,8 @@ import {
   Sun,
   Moon,
   Share2,
+  Users,
+  Sliders,
   Settings
 } from "lucide-react";
 import confetti from "canvas-confetti";
@@ -74,6 +76,7 @@ import { TrustScoreWalkthroughTooltip } from "./components/TrustScoreWalkthrough
 import { ModelTrainingStudio } from "./components/ModelTrainingStudio";
 import { ResumeCanvasTab } from "./components/ResumeCanvasTab";
 import { SkillNetworkGraph } from "./components/SkillNetworkGraph";
+import { LinkedInConnectionNetwork } from "./components/LinkedInConnectionNetwork";
 import { AnalysisResult } from "./types";
 import { exportFullReportToDocx } from "./utils/fullReportExport";
 import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, animate } from "motion/react";
@@ -1391,6 +1394,49 @@ export default function App() {
     'optimization-plan',
     'career-simulator'
   ]);
+
+  // Section expand / collapse state for decluttering dashboard workspace
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem("resume_dashboard_collapsed_sections");
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  const toggleSection = (sectionId: string) => {
+    setCollapsedSections((prev) => {
+      const next = { ...prev, [sectionId]: !prev[sectionId] };
+      try {
+        localStorage.setItem("resume_dashboard_collapsed_sections", JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  };
+
+  const setAllSectionsCollapsed = (collapsed: boolean) => {
+    const allIds = [
+      "executive-summary",
+      "career-progress",
+      "scoring-infrastructure",
+      "career-progression",
+      "skill-vector-engine",
+      "optimization-plan",
+      "linkedin-network",
+    ];
+    const next: Record<string, boolean> = {};
+    allIds.forEach((id) => {
+      next[id] = collapsed;
+    });
+    setCollapsedSections(next);
+    try {
+      localStorage.setItem("resume_dashboard_collapsed_sections", JSON.stringify(next));
+    } catch (e) {}
+  };
+
+  // LinkedIn View Mode: "network" (Referral Connection Graph) or "badge" (Profile Trust Badge)
+  const [linkedInViewTab, setLinkedInViewTab] = useState<"network" | "badge">("network");
   
   const handleDragEnd = (result: any) => {
     if (!result.destination) return;
@@ -5372,35 +5418,159 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 </div>
               )}
               
+              {/* Workspace Declutter & Section Quick Toggle Bar */}
+              {activeStudioTab !== "canvas" && (
+                <div className="mb-6 p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md flex flex-wrap items-center justify-between gap-3 shadow-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-400">
+                      <Layers className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black uppercase tracking-wider text-white">
+                          Workspace Declutter
+                        </span>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-teal-300 border border-teal-500/30">
+                          {Object.values(collapsedSections).filter(Boolean).length} of 6 Sections Collapsed
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        Expand or collapse dashboard modules to keep your analytical workspace focused
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-white/5">
+                      {[
+                        { id: "executive-summary", label: "Executive Summary" },
+                        { id: "scoring-infrastructure", label: "ATS Benchmarks" },
+                        { id: "career-progression", label: "Career Progression" },
+                        { id: "skill-vector-engine", label: "Skill Ecosystem" },
+                        { id: "optimization-plan", label: "Optimization Plan" },
+                        { id: "linkedin-network", label: "LinkedIn Network" },
+                      ].map((sec) => {
+                        const isCollapsed = !!collapsedSections[sec.id];
+                        return (
+                          <button
+                            key={sec.id}
+                            type="button"
+                            onClick={() => toggleSection(sec.id)}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                              isCollapsed
+                                ? "bg-slate-800/80 text-slate-400 border border-slate-700 hover:text-white"
+                                : "bg-teal-500/20 text-teal-300 border border-teal-500/40 shadow-xs"
+                            }`}
+                            title={`Click to ${isCollapsed ? "expand" : "collapse"} ${sec.label}`}
+                          >
+                            <span>{sec.label}</span>
+                            {isCollapsed ? (
+                              <ChevronDown className="w-3 h-3 text-slate-500" />
+                            ) : (
+                              <ChevronUp className="w-3 h-3 text-teal-400" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex items-center gap-1 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setAllSectionsCollapsed(false)}
+                        className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-bold transition-all border border-white/10 cursor-pointer"
+                      >
+                        Expand All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAllSectionsCollapsed(true)}
+                        className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-bold transition-all border border-white/10 cursor-pointer"
+                      >
+                        Collapse All
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {activeStudioTab !== "canvas" && (isExecutiveMode || activeStudioTab === "scorecard" || activeStudioTab === "all" || isPrintFriendly) && (
-                <div className="mb-8">
-                  <GlassCard className="p-8 md:p-12 border-t-4 border-t-amber-500 bg-gradient-to-b from-amber-500/5 to-transparent">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-xl bg-amber-500/20 flex items-center justify-center border border-amber-500/30">
-                          <Briefcase className="h-6 w-6 text-amber-400" />
+                <div className="mb-8" id="executive-summary">
+                  {collapsedSections["executive-summary"] ? (
+                    <GlassCard className="p-4 border-l-4 border-l-amber-500 bg-gradient-to-r from-amber-500/10 via-slate-900/40 to-transparent flex items-center justify-between shadow-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                          <Briefcase className="w-5 h-5" />
                         </div>
                         <div>
-                          <h2 className="text-2xl font-black text-white font-display uppercase tracking-widest">Executive Summary</h2>
-                          <p className="text-amber-400/80 text-xs font-bold uppercase tracking-[0.2em]">High-Level Narrative Analysis</p>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                              Executive Summary
+                            </h3>
+                            <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">
+                              Collapsed
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-300 mt-0.5">
+                            {result.overallScore}% Overall Match · Target Mandate: {result.careerPath?.topRole} · High-Level Narrative Analysis
+                          </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 self-start sm:self-auto">
+                      <div className="flex items-center gap-2">
                         <button
+                          type="button"
                           onClick={() => setIsPdfPreviewOpen(true)}
-                          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-purple-500/20 active:scale-95 cursor-pointer"
-                          title="Preview and toggle sections to include in PDF report"
+                          className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                         >
-                          <Eye className="w-4 h-4" /> PDF Preview
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Preview PDF</span>
                         </button>
                         <button
-                          onClick={handleFullReportPdfPrint}
-                          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer"
+                          type="button"
+                          onClick={() => toggleSection("executive-summary")}
+                          className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                         >
-                          <Printer className="w-4 h-4" /> Direct Print
+                          <span>Expand Section</span>
+                          <ChevronDown className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                    </div>
+                    </GlassCard>
+                  ) : (
+                    <GlassCard className="p-8 md:p-12 border-t-4 border-t-amber-500 bg-gradient-to-b from-amber-500/5 to-transparent">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                        <div className="flex items-center gap-4">
+                          <div className="h-12 w-12 rounded-xl bg-amber-500/20 flex items-center justify-center border border-amber-500/30">
+                            <Briefcase className="h-6 w-6 text-amber-400" />
+                          </div>
+                          <div>
+                            <h2 className="text-2xl font-black text-white font-display uppercase tracking-widest">Executive Summary</h2>
+                            <p className="text-amber-400/80 text-xs font-bold uppercase tracking-[0.2em]">High-Level Narrative Analysis</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 self-start sm:self-auto">
+                          <button
+                            onClick={() => setIsPdfPreviewOpen(true)}
+                            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-purple-500/20 active:scale-95 cursor-pointer"
+                            title="Preview and toggle sections to include in PDF report"
+                          >
+                            <Eye className="w-4 h-4" /> PDF Preview
+                          </button>
+                          <button
+                            onClick={handleFullReportPdfPrint}
+                            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer"
+                          >
+                            <Printer className="w-4 h-4" /> Direct Print
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleSection("executive-summary")}
+                            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
+                            title="Collapse this section to declutter workspace"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
                     
                     <div className="space-y-8">
                       <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
@@ -5453,8 +5623,9 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       </div>
                     </div>
                   </GlassCard>
-                </div>
-              )}
+                )}
+              </div>
+            )}
 
               {activeStudioTab !== "canvas" && !isExecutiveMode && (
                 <div className="flex flex-col">
@@ -5558,20 +5729,135 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 </GlassCard>
               </div>
 
-              {/* Verified Trust Badge Card (Share & Embed in Professional Profile) */}
-              <VerifiedTrustBadgeCard
-                credibilityScore={linkedInTrustScore}
-                credibilityTier={linkedInTrustReport?.credibilityTier}
-                linkedinUrl={linkedinUrl}
-                candidateName={linkedInTrustReport?.candidateName || "Alex Mercer"}
-                targetRole={result.careerPath?.topRole || "Executive Leadership"}
-                trustFactors={linkedInTrustReport?.trustFactors}
-                isVerifying={isVerifyingLinkedInTrust}
-                onVerifyNow={() => handleVerifyLinkedInTrust()}
-                onOpenVerificationModal={() => setIsLinkedInVerificationModalOpen(true)}
-                onShareTrustScore={() => setIsShareTrustScoreOpen(true)}
-                onOpenWalkthrough={() => setIsTrustScoreWalkthroughOpen(true)}
-              />
+              {/* LinkedIn Connection Network & Verified Trust Intelligence Section */}
+              <div id="linkedin-network" className="mb-8">
+                {collapsedSections["linkedin-network"] ? (
+                  <GlassCard className="p-4 border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-500/10 via-teal-500/5 to-transparent flex items-center justify-between shadow-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                            LinkedIn Referral Network & Trust Audit
+                          </h3>
+                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase">
+                            Collapsed
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-300 mt-0.5">
+                          5 Shared Professional Circles · Trust Score {linkedInTrustScore ?? (linkedinUrl ? 86 : 78)}% · Warm Referral Finder
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleSection("linkedin-network")}
+                      className="px-3.5 py-1.5 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <span>Expand Section</span>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                  </GlassCard>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Section Header with Mode Selector and Collapse Toggle */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-[#0A0A15]/60 border border-white/10 backdrop-blur-md">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600/30 to-teal-500/30 border border-blue-500/40 flex items-center justify-center text-blue-400">
+                          <Users className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse" />
+                            <h3 className="text-xs font-black text-white uppercase tracking-[0.25em]">
+                              LinkedIn Network & Credibility Intelligence
+                            </h3>
+                            <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[9px] font-mono font-bold uppercase">
+                              {linkedInViewTab === "network" ? "Referral Graph" : "Trust Badge"}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {linkedInViewTab === "network"
+                              ? "D3 force-directed network mapping common industry contacts, shared professional circles, and warm executive referral pathways"
+                              : "Verified cross-vector LinkedIn trust score card, factor breakdown, and embeddable portfolio credentials"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {/* Tab Switcher */}
+                        <div className="flex items-center p-1 bg-black/40 border border-white/10 rounded-xl text-xs">
+                          <button
+                            type="button"
+                            onClick={() => setLinkedInViewTab("network")}
+                            className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                              linkedInViewTab === "network"
+                                ? "bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md shadow-blue-500/20"
+                                : "text-slate-400 hover:text-white"
+                            }`}
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
+                            <span>Referral Network Graph</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setLinkedInViewTab("badge")}
+                            className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                              linkedInViewTab === "badge"
+                                ? "bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md shadow-blue-500/20"
+                                : "text-slate-400 hover:text-white"
+                            }`}
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            <span>Profile Trust Audit</span>
+                          </button>
+                        </div>
+
+                        {/* Collapse Section Toggle Button */}
+                        <button
+                          type="button"
+                          onClick={() => toggleSection("linkedin-network")}
+                          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
+                          title="Collapse this section to declutter workspace"
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Tab 1: Interactive D3 Force-Directed LinkedIn Connection Network Graph */}
+                    {linkedInViewTab === "network" && (
+                      <LinkedInConnectionNetwork
+                        candidateName={linkedInTrustReport?.candidateName || (file ? file.name.replace(/\.[^/.]+$/, "") : "Alex Mercer")}
+                        targetRole={result.careerPath?.topRole || "Executive Leadership"}
+                        linkedinUrl={linkedinUrl}
+                        trustScore={linkedInTrustScore || 88}
+                        onOpenLinkedInModal={() => setIsLinkedInVerificationModalOpen(true)}
+                        height={540}
+                      />
+                    )}
+
+                    {/* Tab 2: Verified Trust Badge Card */}
+                    {linkedInViewTab === "badge" && (
+                      <VerifiedTrustBadgeCard
+                        credibilityScore={linkedInTrustScore}
+                        credibilityTier={linkedInTrustReport?.credibilityTier}
+                        linkedinUrl={linkedinUrl}
+                        candidateName={linkedInTrustReport?.candidateName || "Alex Mercer"}
+                        targetRole={result.careerPath?.topRole || "Executive Leadership"}
+                        trustFactors={linkedInTrustReport?.trustFactors}
+                        isVerifying={isVerifyingLinkedInTrust}
+                        onVerifyNow={() => handleVerifyLinkedInTrust()}
+                        onOpenVerificationModal={() => setIsLinkedInVerificationModalOpen(true)}
+                        onShareTrustScore={() => setIsShareTrustScoreOpen(true)}
+                        onOpenWalkthrough={() => setIsTrustScoreWalkthroughOpen(true)}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* Deep Score Reasoning & AI Model Calibration Studio */}
               <div id="model-training-studio-section">
@@ -5641,7 +5927,56 @@ AWS Certified Solutions Architect – Associate (2022)`;
               </GlassCard>
 
 {/* Scoring Infrastructure */}
-              <div id="scoring-infrastructure" className="grid md:grid-cols-2 gap-8 mb-8" style={{ order: sectionOrder.indexOf('scoring-infrastructure') }}>
+              <div id="scoring-infrastructure" className="mb-8" style={{ order: sectionOrder.indexOf('scoring-infrastructure') }}>
+                {collapsedSections["scoring-infrastructure"] ? (
+                  <GlassCard className="p-4 border-l-4 border-l-teal-500 bg-gradient-to-r from-teal-500/10 via-slate-900/40 to-transparent flex items-center justify-between shadow-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-400">
+                        <Target className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                            ATS Scoring Infrastructure & Core Benchmarks
+                          </h3>
+                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 uppercase">
+                            Collapsed
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-300 mt-0.5">
+                          Overall Match: {result.overallScore}% · ATS Parseability: {result.atsCompatibility}% · Skills Overlap: {result.skillsMatch}%
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleSection("scoring-infrastructure")}
+                      className="px-3.5 py-1.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 border border-teal-500/40 text-teal-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <span>Expand Section</span>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                  </GlassCard>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between px-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+                        <span className="text-xs font-black uppercase tracking-wider text-slate-300">
+                          Scoring Infrastructure & Core ATS Metrics
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleSection("scoring-infrastructure")}
+                        className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer flex items-center gap-1 text-xs"
+                        title="Collapse section to declutter workspace"
+                      >
+                        <span className="text-[10px] font-bold">Collapse</span>
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
                 <GlassCard className="flex flex-col items-center justify-center py-8 border-t-4 border-t-teal-500 bg-gradient-to-b from-teal-500/5 to-transparent relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4 opacity-50">
                     <CheckCircle2 className="h-6 w-6 text-teal-500" />
@@ -5794,6 +6129,9 @@ AWS Certified Solutions Architect – Associate (2022)`;
                   </GlassCard>
                 </div>
               </div>
+            </div>
+          )}
+        </div>
 
               {/* 4-Quadrant Spider Chart: Resume Health Overview Widget */}
               <div className="mb-8" id="resume-health-overview">
@@ -5806,16 +6144,58 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 />
               </div>
 
-              <GlassCard className="mb-8" id="career-progression" style={{ order: sectionOrder.indexOf('career-progression') }}>
-                <div className="flex justify-between items-center mb-8">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">
-                    Detailed Sub-Metrics
-                  </h3>
-                  <div className="flex items-center gap-2 text-[10px] font-black text-teal-400 uppercase tracking-widest">
-                    <Target className="h-3 w-3" />
-                    Deep Analysis
-                  </div>
-                </div>
+              <div id="career-progression" className="mb-8" style={{ order: sectionOrder.indexOf('career-progression') }}>
+                {collapsedSections["career-progression"] ? (
+                  <GlassCard className="p-4 border-l-4 border-l-indigo-500 bg-gradient-to-r from-indigo-500/10 via-slate-900/40 to-transparent flex items-center justify-between shadow-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                        <TrendingUp className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                            Career Progression & Sub-Metrics
+                          </h3>
+                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase">
+                            Collapsed
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-300 mt-0.5">
+                          Target Mandate: {result.careerPath?.topRole} · Trajectory Confidence {result.careerPath?.confidence || 88}%
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleSection("career-progression")}
+                      className="px-3.5 py-1.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <span>Expand Section</span>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                  </GlassCard>
+                ) : (
+                  <>
+                    <GlassCard className="mb-8">
+                    <div className="flex justify-between items-center mb-8">
+                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">
+                        Detailed Sub-Metrics
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 text-[10px] font-black text-teal-400 uppercase tracking-widest">
+                          <Target className="h-3 w-3" />
+                          Deep Analysis
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleSection("career-progression")}
+                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all cursor-pointer ml-2 flex items-center gap-1 text-xs"
+                          title="Collapse this section to declutter workspace"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
                 <div className="grid sm:grid-cols-3 lg:grid-cols-5 gap-x-8 gap-y-8">
                   {[
                     {
@@ -6404,53 +6784,97 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
               {/* Skill Cloud Visualizer & D3 Force Network Graph */}
               <div id="skill-vector-engine" style={{ order: sectionOrder.indexOf('skill-vector-engine') }} className="space-y-6">
-                {/* Section Header with Segmented View Switcher */}
-                <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-[#0A0A15]/60 border border-white/10 backdrop-blur-md">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse" />
-                      <h3 className="text-xs font-black text-white uppercase tracking-[0.25em]">
-                        Skills Ecosystem & Knowledge Architecture
-                      </h3>
-                      <span className="px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[9px] font-extrabold uppercase">
-                        {skillVisualizationMode === "network" ? "D3 Force Graph" : "Tag Cloud"}
-                      </span>
+                {collapsedSections["skill-vector-engine"] ? (
+                  <GlassCard className="p-4 border-l-4 border-l-teal-500 bg-gradient-to-r from-teal-500/10 via-slate-900/40 to-transparent flex items-center justify-between shadow-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-400">
+                        <Share2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                            Skills Ecosystem & Knowledge Architecture
+                          </h3>
+                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 uppercase">
+                            Collapsed
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-300 mt-0.5">
+                          {result.foundSkills.length} Matched Capabilities · {result.skillGapReport.length} Missing Bridges · Force-Directed Graph
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      {skillVisualizationMode === "network"
-                        ? "Interactive force-directed network visualizing interconnected technologies, domain clusters, and priority ATS skill gap bridges"
-                        : "Distribution of matched capabilities and severity ranking of missing role requirements"}
-                    </p>
-                  </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleSection("skill-vector-engine")}
+                      className="px-3.5 py-1.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 border border-teal-500/40 text-teal-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <span>Expand Section</span>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                  </GlassCard>
+                ) : (
+                  <>
+                    {/* Section Header with Segmented View Switcher */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-[#0A0A15]/60 border border-white/10 backdrop-blur-md">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse" />
+                          <h3 className="text-xs font-black text-white uppercase tracking-[0.25em]">
+                            Skills Ecosystem & Knowledge Architecture
+                          </h3>
+                          <span className="px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[9px] font-extrabold uppercase">
+                            {skillVisualizationMode === "network" ? "D3 Force Graph" : "Tag Cloud"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          {skillVisualizationMode === "network"
+                            ? "Interactive force-directed network visualizing interconnected technologies, domain clusters, and priority ATS skill gap bridges"
+                            : "Distribution of matched capabilities and severity ranking of missing role requirements"}
+                        </p>
+                      </div>
 
-                  {/* Segmented Mode Selector */}
-                  <div className="flex items-center p-1 bg-black/40 border border-white/10 rounded-xl text-xs">
-                    <button
-                      type="button"
-                      onClick={() => setSkillVisualizationMode("network")}
-                      className={`px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer ${
-                        skillVisualizationMode === "network"
-                          ? "bg-gradient-to-r from-teal-500 to-indigo-600 text-white shadow-md shadow-teal-500/20"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      <Share2 className="w-3.5 h-3.5" />
-                      <span>D3 Force Network</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSkillVisualizationMode("cloud")}
-                      className={`px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer ${
-                        skillVisualizationMode === "cloud"
-                          ? "bg-gradient-to-r from-teal-500 to-indigo-600 text-white shadow-md shadow-teal-500/20"
-                          : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      <Tag className="w-3.5 h-3.5" />
-                      <span>Tag Cloud & Bar Chart</span>
-                    </button>
-                  </div>
-                </div>
+                      <div className="flex items-center gap-2">
+                        {/* Segmented Mode Selector */}
+                        <div className="flex items-center p-1 bg-black/40 border border-white/10 rounded-xl text-xs">
+                          <button
+                            type="button"
+                            onClick={() => setSkillVisualizationMode("network")}
+                            className={`px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                              skillVisualizationMode === "network"
+                                ? "bg-gradient-to-r from-teal-500 to-indigo-600 text-white shadow-md shadow-teal-500/20"
+                                : "text-slate-400 hover:text-white"
+                            }`}
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
+                            <span>D3 Force Network</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSkillVisualizationMode("cloud")}
+                            className={`px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                              skillVisualizationMode === "cloud"
+                                ? "bg-gradient-to-r from-teal-500 to-indigo-600 text-white shadow-md shadow-teal-500/20"
+                                : "text-slate-400 hover:text-white"
+                            }`}
+                          >
+                            <Tag className="w-3.5 h-3.5" />
+                            <span>Tag Cloud & Bar Chart</span>
+                          </button>
+                        </div>
+
+                        {/* Collapse Section Button */}
+                        <button
+                          type="button"
+                          onClick={() => toggleSection("skill-vector-engine")}
+                          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
+                          title="Collapse this section to declutter workspace"
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
 
                 {skillVisualizationMode === "network" ? (
                   <div className="space-y-6">
@@ -6904,19 +7328,63 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     </div>
                   </div>
                 </GlassCard>
+              </>
+            )}
+          </div>
 
                 {/* Main Improvement Checklist */}
-                <GlassCard className="lg:col-span-8 p-0 overflow-hidden" id="optimization-plan" style={{ order: sectionOrder.indexOf('optimization-plan') }}>
-                  <div className="p-8 border-b border-white/5 bg-gradient-to-r from-teal-500/5 to-transparent">
-                    <h3 className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-3">
-                      <TrendingUp className="h-5 w-5 text-teal-400" />
-                      Strategic Optimization Plan
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-2 font-medium">
-                      To reach ATS matching perfection and secure the targeted
-                      role, follow these prioritized actions.
-                    </p>
-                  </div>
+                <div id="optimization-plan" className="lg:col-span-8 mb-8" style={{ order: sectionOrder.indexOf('optimization-plan') }}>
+                  {collapsedSections["optimization-plan"] ? (
+                    <GlassCard className="p-4 border-l-4 border-l-teal-500 bg-gradient-to-r from-teal-500/10 via-slate-900/40 to-transparent flex items-center justify-between shadow-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-400">
+                          <TrendingUp className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                              Strategic Optimization Plan
+                            </h3>
+                            <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 uppercase">
+                              Collapsed
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-300 mt-0.5">
+                            Priority Headline Updates, Content Rewrite Suggestions & Missing Skill Remediations
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleSection("optimization-plan")}
+                        className="px-3.5 py-1.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 border border-teal-500/40 text-teal-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <span>Expand Section</span>
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </button>
+                    </GlassCard>
+                  ) : (
+                    <GlassCard className="p-0 overflow-hidden">
+                      <div className="p-8 border-b border-white/5 bg-gradient-to-r from-teal-500/5 to-transparent flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-3">
+                            <TrendingUp className="h-5 w-5 text-teal-400" />
+                            Strategic Optimization Plan
+                          </h3>
+                          <p className="text-xs text-slate-400 mt-2 font-medium">
+                            To reach ATS matching perfection and secure the targeted
+                            role, follow these prioritized actions.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleSection("optimization-plan")}
+                          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer shrink-0"
+                          title="Collapse this section to declutter workspace"
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </button>
+                      </div>
 
                   {/* High Priority Actions */}
                   {result.improvementPlan && (
@@ -7159,6 +7627,8 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       ))}
                   </div>
                 </GlassCard>
+              )}
+            </div>
 
                 {/* Sidebar Details */}
                 <div className="lg:col-span-4 space-y-8">
