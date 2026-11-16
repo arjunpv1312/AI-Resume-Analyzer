@@ -26,6 +26,13 @@ import {
   Layers,
 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
+import { Document, Page, pdfjs } from "react-pdf";
+if (!pdfjs.GlobalWorkerOptions.workerSrc) {
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url,
+  ).toString();
+}
 import { AtsResumeData, exportAtsResumeToDocx } from "../utils/docxExport";
 import {
   AtsBuilderTemplateStyle,
@@ -138,6 +145,8 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfZoom, setPdfZoom] = useState<number>(100);
   const [pdfViewType, setPdfViewType] = useState<"native" | "stage">("native");
+  const [vectorNumPages, setVectorNumPages] = useState<number>(1);
+  const [vectorRenderError, setVectorRenderError] = useState<boolean>(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   // Immediate DOCX Download State
@@ -174,6 +183,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
         setIsGeneratingPdf(true);
         const blob = await generateAtsResumePdfBlob(resumeData, templateStyle);
         if (isMounted) {
+          setVectorRenderError(false);
           const url = URL.createObjectURL(blob);
           setPdfBlobUrl((prev) => {
             if (prev) URL.revokeObjectURL(prev);
@@ -488,7 +498,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xl p-2 sm:p-5 overflow-hidden">
+    <div className="dark dark-studio fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xl p-2 sm:p-5 overflow-hidden">
       <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-[1440px] h-[94vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Top Live ATS Telemetry & Action Bar */}
         <div className="px-5 py-3.5 border-b border-slate-800 bg-slate-950 flex flex-wrap items-center justify-between gap-4 shrink-0">
@@ -874,19 +884,43 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                         <RefreshCcw className="w-7 h-7 text-teal-400 animate-spin" />
                         <span className="text-xs text-slate-300">Compiling PDF...</span>
                       </div>
-                    ) : pdfViewType === "native" && pdfBlobUrl ? (
-                      <div className="w-full h-full min-h-[580px] relative rounded-lg overflow-hidden">
+                    ) : pdfViewType === "native" && pdfBlobUrl && !vectorRenderError ? (
+                      <div className="w-full h-full min-h-[580px] max-h-[68vh] relative rounded-lg overflow-auto flex flex-col items-center py-3 px-2 bg-slate-950">
                         {isGeneratingPdf && (
-                          <div className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-700 text-teal-300 text-[11px] font-medium flex items-center gap-1.5">
+                          <div className="sticky top-2 right-2 self-end z-10 px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-700 text-teal-300 text-[11px] font-medium flex items-center gap-1.5">
                             <RefreshCcw className="w-3 h-3 animate-spin" />
                             <span>Updating PDF...</span>
                           </div>
                         )}
-                        <iframe
-                          src={`${pdfBlobUrl}#toolbar=0&navpanes=0`}
-                          className="w-full h-full min-h-[580px] rounded-lg border border-slate-800 bg-white"
-                          title="Real-Time ATS Resume PDF Preview"
-                        />
+                        <Document
+                          file={pdfBlobUrl}
+                          onLoadSuccess={({ numPages }) => {
+                            setVectorNumPages(Math.max(1, numPages));
+                            setVectorRenderError(false);
+                          }}
+                          onLoadError={() => setVectorRenderError(true)}
+                          loading={
+                            <div className="flex flex-col items-center justify-center py-16 space-y-2">
+                              <RefreshCcw className="w-6 h-6 text-teal-400 animate-spin" />
+                              <span className="text-xs text-slate-300">Rendering PDF canvas...</span>
+                            </div>
+                          }
+                          className="flex flex-col items-center gap-4"
+                        >
+                          {Array.from({ length: vectorNumPages }, (_, pageIdx) => (
+                            <div
+                              key={`vector-page-${pageIdx + 1}`}
+                              className="bg-white rounded shadow-2xl overflow-hidden border border-slate-700"
+                            >
+                              <Page
+                                pageNumber={pageIdx + 1}
+                                scale={(pdfZoom / 100) * 1.05}
+                                renderTextLayer={false}
+                                renderAnnotationLayer={false}
+                              />
+                            </div>
+                          ))}
+                        </Document>
                       </div>
                     ) : (
                       <div

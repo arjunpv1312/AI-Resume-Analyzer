@@ -370,7 +370,7 @@ export function ConnectLinkedInModal({
 
   return (
     <AnimatePresence>
-      <div key="connect-linkedin-backdrop" className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md">
+      <div key="connect-linkedin-backdrop" className="dark dark-studio fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md">
         <motion.div
           initial={{ scale: 0.94, opacity: 0, y: 10 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}

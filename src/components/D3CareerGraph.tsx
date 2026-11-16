@@ -438,7 +438,7 @@ export const D3CareerGraph: React.FC<D3CareerGraphProps> = ({
   }, [confidence, topRole, alternatives, careerTimeline, careerTrajectories, viewMode]);
 
   return (
-    <div className="w-full bg-slate-950/80 border border-purple-500/20 rounded-3xl p-5 space-y-4 shadow-2xl relative overflow-hidden">
+    <div className="dark dark-studio w-full bg-slate-950/80 border border-purple-500/20 rounded-3xl p-5 space-y-4 shadow-2xl relative overflow-hidden">
       {/* Header & Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
         <div className="flex items-center gap-2">

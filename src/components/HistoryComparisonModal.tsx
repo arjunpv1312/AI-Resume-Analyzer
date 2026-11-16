@@ -171,7 +171,7 @@ IMPROVEMENT DELTA:
 
   return (
     <AnimatePresence>
-      <div key="history-comparison-backdrop" className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-2xl overflow-y-auto">
+      <div key="history-comparison-backdrop" className="dark dark-studio fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-2xl overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}

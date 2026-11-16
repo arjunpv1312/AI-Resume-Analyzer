@@ -80,6 +80,8 @@ import { ModelTrainingStudio } from "./components/ModelTrainingStudio";
 import { ResumeCanvasTab } from "./components/ResumeCanvasTab";
 import { SkillNetworkGraph } from "./components/SkillNetworkGraph";
 import { LinkedInConnectionNetwork } from "./components/LinkedInConnectionNetwork";
+import { PanelErrorBoundary } from "./components/AppErrorBoundary";
+import { normalizeAnalysisResult } from "./utils/normalizeAnalysisResult";
 import {
   AnalysisResult,
   AtsChatMessage,
@@ -815,12 +817,19 @@ export default function App() {
   const [isApiKeyError, setIsApiKeyError] = useState(false);
   const [isSessionPurged, setIsSessionPurged] = useState(false);
   const [history, setHistory] = useState<AnalysisHistoryItem[]>([]);
-  const [currentTheme, setCurrentTheme] = useState("canva-light");
+  const [currentTheme, setCurrentTheme] = useState<string>(() => {
+    try {
+      return localStorage.getItem("resume_analyzer_theme") || "canva-light";
+    } catch {
+      return "canva-light";
+    }
+  });
   const [activeStudioTab, setActiveStudioTab] = useState<"scorecard" | "canvas" | "skills" | "career" | "recruiter" | "all">("scorecard");
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [pendingNoteClear, setPendingNoteClear] = useState<"page" | "all" | null>(null);
 
   // Floating Missing Keyword Placement Helper
   const [selectedMissingKeyword, setSelectedMissingKeyword] = useState<string | null>(null);
@@ -979,9 +988,10 @@ export default function App() {
     
     if (savedResult) {
       try {
-        setResult(JSON.parse(savedResult));
+        setResult(normalizeAnalysisResult(JSON.parse(savedResult)) as AnalysisResult);
       } catch (e) {
         console.error("Failed to parse session result", e);
+        sessionStorage.removeItem("current_analysis_result");
       }
     }
     
@@ -1733,27 +1743,39 @@ export default function App() {
   }, []);
 
   React.useEffect(() => {
-    const existingTheme = document.documentElement.getAttribute("data-theme");
-    if (existingTheme) {
-      setCurrentTheme(existingTheme);
+    document.documentElement.setAttribute("data-theme", currentTheme);
+    document.documentElement.classList.toggle("dark", currentTheme === "figma-dark");
+    try {
+      localStorage.setItem("resume_analyzer_theme", currentTheme);
+    } catch {
+      // Ignore storage restrictions
     }
-  }, []);
+  }, [currentTheme]);
 
   // Auto-save feature every 30 seconds
   React.useEffect(() => {
     let interval: NodeJS.Timeout;
     if (result && file) {
       interval = setInterval(() => {
-        const autoSaveData = {
-          result,
-          jobDescription,
-          stickyNotes,
-          highlights,
-          pageSummaries,
-          timestamp: new Date().toISOString()
-        };
-        localStorage.setItem("resume_analysis_autosave", JSON.stringify(autoSaveData));
-        console.log("Auto-saved analysis state");
+        try {
+          const compactResult = result.atsMetadata?.rawText
+            ? {
+                ...result,
+                atsMetadata: { ...result.atsMetadata, rawText: undefined },
+              }
+            : result;
+          const autoSaveData = {
+            result: compactResult,
+            jobDescription,
+            stickyNotes,
+            highlights,
+            pageSummaries,
+            timestamp: new Date().toISOString(),
+          };
+          localStorage.setItem("resume_analysis_autosave", JSON.stringify(autoSaveData));
+        } catch (storageErr) {
+          console.warn("Auto-save skipped due to storage limit:", storageErr);
+        }
       }, 30000);
     }
     return () => {
@@ -1762,6 +1784,28 @@ export default function App() {
   }, [result, file, jobDescription, stickyNotes, highlights, pageSummaries]);
 
   const [snapshotToast, setSnapshotToast] = useState<string | null>(null);
+
+  const persistHistorySafely = (items: AnalysisHistoryItem[]) => {
+    const compacted = items.slice(0, 30).map((item) => {
+      if (!item?.result?.atsMetadata?.rawText) return item;
+      return {
+        ...item,
+        result: {
+          ...item.result,
+          atsMetadata: { ...item.result.atsMetadata, rawText: undefined },
+        },
+      };
+    });
+    try {
+      localStorage.setItem("resume_analysis_history", JSON.stringify(compacted));
+    } catch {
+      try {
+        localStorage.setItem("resume_analysis_history", JSON.stringify(compacted.slice(0, 8)));
+      } catch {
+        // Ignore if localStorage is completely full
+      }
+    }
+  };
 
   const saveToHistory = (
     newResult: AnalysisResult,
@@ -1782,8 +1826,8 @@ export default function App() {
     };
 
     setHistory((prev) => {
-      const updated = [newItem, ...prev].slice(0, 50);
-      localStorage.setItem("resume_analysis_history", JSON.stringify(updated));
+      const updated = [newItem, ...prev].slice(0, 30);
+      persistHistorySafely(updated);
       return updated;
     });
     setActiveVersionId(newItem.id);
@@ -1797,7 +1841,7 @@ export default function App() {
     const target = history.find((h) => h.id === id);
     if (target) {
       setActiveVersionId(id);
-      setResult(target.result);
+      setResult(normalizeAnalysisResult(target.result) as AnalysisResult);
       setJobDescription(target.jobDescription || "");
       setStickyNotes(target.stickyNotes || []);
       setHighlights(target.highlights || []);
@@ -1827,8 +1871,8 @@ export default function App() {
     };
 
     setHistory((prev) => {
-      const updated = [newItem, ...prev].slice(0, 50);
-      localStorage.setItem("resume_analysis_history", JSON.stringify(updated));
+      const updated = [newItem, ...prev].slice(0, 30);
+      persistHistorySafely(updated);
       return updated;
     });
     setActiveVersionId(newItem.id);
@@ -1842,7 +1886,7 @@ export default function App() {
     const updated = history.filter((item) => item.id !== id);
     setHistory(updated);
     setCompareIds((prev) => prev.filter((cid) => cid !== id));
-    localStorage.setItem("resume_analysis_history", JSON.stringify(updated));
+    persistHistorySafely(updated);
   };
 
   const toggleCompare = (id: string, e: React.MouseEvent) => {
@@ -2148,7 +2192,8 @@ export default function App() {
       analysis.bulletPointAnalysis = analysis.bulletPointAnalysis || atsMetadata?.bulletAnalyses || [];
       analysis.modelCalibration = analysis.modelCalibration || atsMetadata?.modelCalibration;
 
-      setResult(analysis);
+      const normalizedAnalysis = normalizeAnalysisResult(analysis) as AnalysisResult;
+      setResult(normalizedAnalysis);
       setSharedResumeData(null);
       setPendingPatchToApply(null);
       setSharedChatMessages([
@@ -2418,7 +2463,7 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-6 py-12">
         <AnimatePresence>
           {isGuideOpen && (
-            <div key="guide-modal" className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm overflow-y-auto">
+            <div key="guide-modal" className="dark dark-studio fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm overflow-y-auto">
               <motion.div
                 initial={{ scale: 0.95, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -2808,16 +2853,18 @@ export default function App() {
           />
 
           {/* PDF Export Preview & Interactive Section Filter Modal */}
-          <PdfExportPreviewModal
-            key="pdf-export-preview-modal"
-            isOpen={isPdfPreviewOpen}
-            onClose={() => setIsPdfPreviewOpen(false)}
-            result={result}
-            fileName={file?.name}
-            linkedinUrl={linkedinUrl}
-            linkedInTrustScore={linkedInTrustScore}
-            candidateName={linkedInTrustReport?.candidateName || (file ? file.name.replace(/\.[^/.]+$/, "") : "Alex Mercer")}
-          />
+          <PanelErrorBoundary compact title="PDF Export Preview">
+            <PdfExportPreviewModal
+              key="pdf-export-preview-modal"
+              isOpen={isPdfPreviewOpen}
+              onClose={() => setIsPdfPreviewOpen(false)}
+              result={result}
+              fileName={file?.name}
+              linkedinUrl={linkedinUrl}
+              linkedInTrustScore={linkedInTrustScore}
+              candidateName={linkedInTrustReport?.candidateName || (file ? file.name.replace(/\.[^/.]+$/, "") : "Alex Mercer")}
+            />
+          </PanelErrorBoundary>
 
           {/* Floating Missing Keyword Sentence Placement Helper */}
           <MissingKeywordHelper
@@ -2838,7 +2885,7 @@ export default function App() {
           />
 
           {isPurgePromptOpen && (
-            <div key="purge-prompt-modal" className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+            <div key="purge-prompt-modal" className="dark dark-studio fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -3299,13 +3346,13 @@ export default function App() {
                 <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="mb-6 inline-flex items-center gap-2 group relative cursor-pointer px-4 py-2 rounded-full bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 text-teal-300 text-[10px] font-black uppercase tracking-[0.3em] shadow-[0_0_15px_rgba(20,184,166,0.2)] transition-colors"
+                  className="mb-6 inline-flex items-center gap-2 group relative cursor-pointer px-4 py-2 rounded-full bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 text-teal-700 dark:text-teal-300 text-[10px] font-black uppercase tracking-[0.3em] shadow-[0_0_15px_rgba(20,184,166,0.2)] transition-colors"
                   onClick={() => setIsSettingsOpen(true)}
                   title="Click to view API Credentials & Security Settings"
                 >
-                  <Lock className="h-3 w-3 text-teal-400" />
+                  <Lock className="h-3 w-3 text-teal-600 dark:text-teal-400" />
                   <span>Privacy-First Architecture • API Keys Masked & Protected</span>
-                  <div className="absolute inset-x-0 bottom-full mb-3 hidden group-hover:block px-4 py-3 bg-[#0A0A15] border border-white/10 text-slate-300 text-[10px] font-medium normal-case tracking-normal rounded-xl shadow-2xl z-50 text-center w-64 mx-auto left-1/2 -translate-x-1/2 transition-all">
+                  <div className="dark dark-studio absolute inset-x-0 bottom-full mb-3 hidden group-hover:block px-4 py-3 bg-[#0A0A15] border border-white/10 text-slate-300 text-[10px] font-medium normal-case tracking-normal rounded-xl shadow-2xl z-50 text-center w-64 mx-auto left-1/2 -translate-x-1/2 transition-all">
                     All parsing and analysis vectors happen locally or via
                     stateless API protocols. We never store your resume files or
                     personal data on our servers.{" "}
@@ -3319,7 +3366,7 @@ export default function App() {
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-                  className="text-6xl md:text-[5rem] lg:text-[6rem] font-black font-display text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 mb-8 tracking-tighter leading-[1.05]"
+                  className="text-5xl md:text-[4.5rem] lg:text-[5.5rem] font-black font-display text-transparent bg-clip-text bg-gradient-to-b from-slate-900 to-slate-700 dark:from-white dark:to-white/75 mb-8 tracking-tighter leading-[1.05]"
                 >
                   Dominate the Executive Search.
                   <br />
@@ -3337,7 +3384,7 @@ export default function App() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
-                  className="text-slate-400 text-lg md:text-xl max-w-3xl mx-auto font-medium leading-relaxed tracking-wide"
+                  className="text-slate-600 dark:text-slate-400 text-lg md:text-xl max-w-3xl mx-auto font-medium leading-relaxed tracking-wide"
                 >
                   Upload your executive brief and target mandate. Our AI
                   assesses your strategic positioning against top-tier search firm
@@ -3350,8 +3397,8 @@ export default function App() {
               <div className="grid md:grid-cols-2 gap-8">
                 <GlassCard delay={0.1}>
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-                      <Layers className="h-4 w-4 text-teal-400" />
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                      <Layers className="h-4 w-4 text-teal-600 dark:text-teal-400" />
                       Resume Upload
                     </h3>
                   </div>
@@ -3360,16 +3407,18 @@ export default function App() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className={`group relative rounded-2xl transition-all cursor-pointer text-center h-[14rem] flex flex-col items-center justify-center overflow-hidden
-                      ${isDragReject ? "bg-rose-500/10 border-rose-500/50" : isDragActive ? "bg-teal-500/10 border-teal-500/50" : "bg-white/[0.02] hover:bg-white/[0.04]"}`}
+                      ${isDragReject ? "bg-rose-500/10 border-rose-500/50" : isDragActive ? "bg-teal-500/10 border-teal-500/50" : "bg-slate-50/70 hover:bg-slate-100/80 dark:bg-white/[0.02] dark:hover:bg-white/[0.04]"}`}
                   >
                     <div
-                      className="absolute inset-0 border-2 border-dashed rounded-2xl opacity-40 transition-colors duration-500 group-hover:border-teal-500/50"
+                      className="absolute inset-0 border-2 border-dashed rounded-2xl opacity-60 transition-colors duration-500 group-hover:border-teal-500/60"
                       style={{
                         borderColor: isDragReject
                           ? "#f43f5e"
                           : isDragActive
                             ? "#14b8a6"
-                            : "rgba(255,255,255,0.15)",
+                            : currentTheme === "figma-dark"
+                              ? "rgba(255,255,255,0.22)"
+                              : "rgba(100,116,139,0.45)",
                       }}
                     />
                     <input {...getInputProps()} />
@@ -3383,12 +3432,12 @@ export default function App() {
                         <div
                           className={`absolute inset-0 blur-xl rounded-full scale-0 group-hover:scale-150 transition-transform duration-700 ${isDragReject ? "bg-rose-500/30" : "bg-teal-500/30"}`}
                         ></div>
-                        <div className="h-16 w-16 rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 flex items-center justify-center border border-white/10 shadow-2xl relative z-10">
+                        <div className="h-16 w-16 rounded-full bg-gradient-to-tr from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center border border-slate-300 dark:border-white/10 shadow-xl relative z-10">
                           {isDragReject ? (
-                            <AlertCircle className="h-7 w-7 transition-colors duration-500 text-rose-400" />
+                            <AlertCircle className="h-7 w-7 transition-colors duration-500 text-rose-500 dark:text-rose-400" />
                           ) : (
                             <Upload
-                              className={`h-7 w-7 transition-colors duration-500 ${isDragActive ? "text-teal-400" : "text-slate-400 group-hover:text-white"}`}
+                              className={`h-7 w-7 transition-colors duration-500 ${isDragActive ? "text-teal-500 dark:text-teal-400" : "text-slate-600 dark:text-slate-400 group-hover:text-teal-600 dark:group-hover:text-white"}`}
                             />
                           )}
                         </div>
@@ -3396,12 +3445,12 @@ export default function App() {
 
                       {file ? (
                         <div className="space-y-1.5 px-6">
-                          <p className="text-teal-400 font-black text-sm uppercase tracking-tight truncate max-w-[250px]">
+                          <p className="text-teal-600 dark:text-teal-400 font-black text-sm uppercase tracking-tight truncate max-w-[250px]">
                             {file.name}
                           </p>
                           <div className="flex items-center justify-center gap-2">
                             <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
-                            <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">
+                            <p className="text-slate-500 dark:text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">
                               Ready For Analysis
                             </p>
                           </div>
@@ -3409,7 +3458,7 @@ export default function App() {
                       ) : (
                         <div className="space-y-4">
                           <p
-                            className={`font-black text-[13px] uppercase tracking-widest transition-colors ${isDragReject ? "text-rose-400" : "text-slate-200"}`}
+                            className={`font-black text-[13px] uppercase tracking-widest transition-colors ${isDragReject ? "text-rose-500 dark:text-rose-400" : "text-slate-700 dark:text-slate-200"}`}
                           >
                             {isDragReject
                               ? "Unsupported Format"
@@ -3909,31 +3958,57 @@ Qualifications:
 
                               {stickyNotes.length > 0 && (
                                 <div className="hidden lg:flex items-center gap-1">
-                                  <button
-                                    onClick={() => {
-                                      const count = stickyNotes.filter(n => n.pageNumber === pageNumber).length;
-                                      if (count === 0) return;
-                                      if (window.confirm(`Clear ${count} sticky note(s) on Page ${pageNumber}?`)) {
-                                        setStickyNotes(prev => prev.filter(n => n.pageNumber !== pageNumber));
-                                      }
-                                    }}
-                                    disabled={stickyNotes.filter(n => n.pageNumber === pageNumber).length === 0}
-                                    className="px-2.5 py-1.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded-md text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 hover:text-rose-300 transition-all disabled:opacity-30 disabled:pointer-events-none"
-                                    title={`Clear ${stickyNotes.filter(n => n.pageNumber === pageNumber).length} sticky note(s) on Page ${pageNumber}`}
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" /> Clear Page ({stickyNotes.filter(n => n.pageNumber === pageNumber).length})
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      if (window.confirm(`Clear ALL ${stickyNotes.length} sticky notes across the document?`)) {
-                                        setStickyNotes([]);
-                                      }
-                                    }}
-                                    className="px-2.5 py-1.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded-md text-rose-300 bg-rose-500/20 border border-rose-500/30 hover:bg-rose-500/30 hover:text-white transition-all"
-                                    title="Clear all sticky notes in current document"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" /> Clear All ({stickyNotes.length})
-                                  </button>
+                                  {pendingNoteClear ? (
+                                    <div className="flex items-center gap-1 bg-rose-500/15 border border-rose-500/40 rounded-md px-2 py-1">
+                                      <span className="text-[10px] font-bold text-rose-200">
+                                        {pendingNoteClear === "page" ? `Clear Page ${pageNumber}?` : `Clear All (${stickyNotes.length})?`}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (pendingNoteClear === "page") {
+                                            setStickyNotes(prev => prev.filter(n => n.pageNumber !== pageNumber));
+                                          } else {
+                                            setStickyNotes([]);
+                                          }
+                                          setPendingNoteClear(null);
+                                        }}
+                                        className="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold cursor-pointer"
+                                      >
+                                        Confirm
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setPendingNoteClear(null)}
+                                        className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold cursor-pointer"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const count = stickyNotes.filter(n => n.pageNumber === pageNumber).length;
+                                          if (count > 0) setPendingNoteClear("page");
+                                        }}
+                                        disabled={stickyNotes.filter(n => n.pageNumber === pageNumber).length === 0}
+                                        className="px-2.5 py-1.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded-md text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 hover:text-rose-300 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                                        title={`Clear ${stickyNotes.filter(n => n.pageNumber === pageNumber).length} sticky note(s) on Page ${pageNumber}`}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" /> Clear Page ({stickyNotes.filter(n => n.pageNumber === pageNumber).length})
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setPendingNoteClear("all")}
+                                        className="px-2.5 py-1.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded-md text-rose-300 bg-rose-500/20 border border-rose-500/30 hover:bg-rose-500/30 hover:text-white transition-all cursor-pointer"
+                                        title="Clear all sticky notes in current document"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" /> Clear All ({stickyNotes.length})
+                                      </button>
+                                    </>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -5114,17 +5189,14 @@ Qualifications:
                 <div className="mt-32 border border-white/10 rounded-3xl overflow-hidden relative shadow-[0_0_50px_rgba(20,184,166,0.1)]">
                   <div className="absolute inset-0 bg-gradient-to-b from-teal-500/5 to-transparent"></div>
                   <div className="p-8 md:p-16 text-center relative z-10">
-                    <div
-                      className="max-w-4xl mx-auto mb-16 mt-8 relative group cursor-pointer"
-                      onClick={() =>
-                        window.open(
-                          "https://interviewcoach-969933961049.asia-southeast1.run.app",
-                          "_blank",
-                        )
-                      }
+                    <a
+                      href="https://interviewcoach-969933961049.asia-southeast1.run.app"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block max-w-4xl mx-auto mb-16 mt-8 relative group cursor-pointer"
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-teal-500/20 via-sky-500/20 to-purple-500/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      <div className="relative bg-[#0A0A15]/80 backdrop-blur-xl border border-white/10 group-hover:border-teal-500/50 p-8 rounded-3xl overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 transition-all duration-500">
+                      <div className="dark dark-studio relative bg-[#0A0A15]/80 backdrop-blur-xl border border-white/10 group-hover:border-teal-500/50 p-8 rounded-3xl overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 transition-all duration-500">
                         <div className="absolute -right-20 -top-20 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl group-hover:bg-teal-500/20 transition-all duration-500"></div>
                         <div className="flex-1 text-left relative z-10">
                           <h4 className="text-xl md:text-3xl font-black text-white uppercase tracking-tighter mb-2 flex items-center gap-3">
@@ -5141,18 +5213,12 @@ Qualifications:
                           </p>
                         </div>
                         <div className="relative z-10">
-                          <a
-                            href="https://interviewcoach-969933961049.asia-southeast1.run.app"
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="btn-primary py-4 px-8 text-sm uppercase flex items-center justify-center gap-3 whitespace-nowrap shadow-[0_0_30px_rgba(20,184,166,0.3)] group-hover:shadow-[0_0_50px_rgba(20,184,166,0.5)] transition-all"
-                          >
+                          <span className="btn-primary py-4 px-8 text-sm uppercase flex items-center justify-center gap-3 whitespace-nowrap shadow-[0_0_30px_rgba(20,184,166,0.3)] group-hover:shadow-[0_0_50px_rgba(20,184,166,0.5)] transition-all">
                             <Zap className="h-5 w-5" /> Start Practice Interview
-                          </a>
+                          </span>
                         </div>
                       </div>
-                    </div>
+                    </a>
 
                     <motion.button
                       whileHover={{ scale: 1.05 }}
@@ -5468,19 +5534,21 @@ AWS Certified Solutions Architect – Associate (2022)`;
               {/* Canva Resume Artboard View */}
               {activeStudioTab === "canvas" && (
                 <div className="mb-12">
-                  <ResumeCanvasTab
-                    result={result}
-                    file={file}
-                    onOpenBuilder={() => setIsResumeBuilderOpen(true)}
-                    onPrint={handleFullReportPdfPrint}
-                    onPreviewPdf={() => setIsPdfPreviewOpen(true)}
-                  />
+                  <PanelErrorBoundary compact title="Resume Canvas View">
+                    <ResumeCanvasTab
+                      result={result}
+                      file={file}
+                      onOpenBuilder={() => setIsResumeBuilderOpen(true)}
+                      onPrint={handleFullReportPdfPrint}
+                      onPreviewPdf={() => setIsPdfPreviewOpen(true)}
+                    />
+                  </PanelErrorBoundary>
                 </div>
               )}
               
               {/* Workspace Declutter & Section Quick Toggle Bar */}
               {activeStudioTab !== "canvas" && (
-                <div className="mb-6 p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md flex flex-wrap items-center justify-between gap-3 shadow-xl">
+                <div className="dark dark-studio mb-6 p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md flex flex-wrap items-center justify-between gap-3 shadow-xl">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-400">
                       <Layers className="w-4 h-4" />
@@ -5889,14 +5957,16 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                     {/* Tab 1: Interactive D3 Force-Directed LinkedIn Connection Network Graph */}
                     {linkedInViewTab === "network" && (
-                      <LinkedInConnectionNetwork
-                        candidateName={linkedInTrustReport?.candidateName || (file ? file.name.replace(/\.[^/.]+$/, "") : "Alex Mercer")}
-                        targetRole={result.careerPath?.topRole || "Executive Leadership"}
-                        linkedinUrl={linkedinUrl}
-                        trustScore={linkedInTrustScore || 88}
-                        onOpenLinkedInModal={() => setIsLinkedInVerificationModalOpen(true)}
-                        height={540}
-                      />
+                      <PanelErrorBoundary compact title="LinkedIn Connection Network">
+                        <LinkedInConnectionNetwork
+                          candidateName={linkedInTrustReport?.candidateName || (file ? file.name.replace(/\.[^/.]+$/, "") : "Alex Mercer")}
+                          targetRole={result.careerPath?.topRole || "Executive Leadership"}
+                          linkedinUrl={linkedinUrl}
+                          trustScore={linkedInTrustScore || 88}
+                          onOpenLinkedInModal={() => setIsLinkedInVerificationModalOpen(true)}
+                          height={540}
+                        />
+                      </PanelErrorBoundary>
                     )}
 
                     {/* Tab 2: Verified Trust Badge Card */}
@@ -6956,13 +7026,15 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 {skillVisualizationMode === "network" ? (
                   <div className="space-y-6">
                     {/* D3 Force-Directed Network Graph */}
-                    <SkillNetworkGraph
-                      foundSkills={result.foundSkills}
-                      missingSkills={result.skillGapReport.map((g) => g.skill)}
-                      skillGapReport={result.skillGapReport}
-                      onSkillClick={handleMissingSkillClick}
-                      height={580}
-                    />
+                    <PanelErrorBoundary compact title="D3 Skill Network Graph">
+                      <SkillNetworkGraph
+                        foundSkills={result.foundSkills || []}
+                        missingSkills={(result.skillGapReport || []).map((g) => g.skill)}
+                        skillGapReport={result.skillGapReport || []}
+                        onSkillClick={handleMissingSkillClick}
+                        height={580}
+                      />
+                    </PanelErrorBoundary>
 
                     {/* Compact Severity & Demand Row */}
                     <div className="grid lg:grid-cols-2 gap-6">
@@ -7227,10 +7299,10 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         </div>
                       </div>
                       <p className="text-sm text-white font-black uppercase mb-3 line-clamp-2">
-                        {result.careerPath.topRole}
+                        {result.careerPath?.topRole || "Target Leadership Role"}
                       </p>
                       <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                        You are a <span className="text-blue-300 font-bold">{Math.round(result.careerPath.confidence * 100)}%</span> match for this trajectory.
+                        You are a <span className="text-blue-300 font-bold">{Math.round(result.careerPath?.confidence ?? 0)}%</span> match for this trajectory.
                       </p>
                     </motion.div>
 
@@ -7247,11 +7319,11 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         </div>
                       </div>
                       <p className="text-sm text-white font-black uppercase mb-3">
-                        {result.atsAnalysis.keywordDensity > 4 ? 'Well Optimized' : 'Under Optimized'}
+                        {(result.atsAnalysis?.keywordDensity ?? 0) > 4 ? 'Well Optimized' : 'Under Optimized'}
                       </p>
                       <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                        Keyword density is <span className="text-purple-300 font-bold">{result.atsAnalysis.keywordDensity.toFixed(1)}%</span>.
-                        {result.atsAnalysis.jobKeywordsFound && result.atsAnalysis.jobKeywordsFound.length > 0 
+                        Keyword density is <span className="text-purple-300 font-bold">{(result.atsAnalysis?.keywordDensity ?? 0).toFixed(1)}%</span>.
+                        {result.atsAnalysis?.jobKeywordsFound && result.atsAnalysis.jobKeywordsFound.length > 0 
                           ? ` Found ${result.atsAnalysis.jobKeywordsFound.length} core terms.` 
                           : ' Need more exact matches.'}
                       </p>
@@ -7306,14 +7378,16 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       Connected D3 visualization showing progression from past experience to your primary & alternative target roles.
                     </p>
 
-                    <D3CareerGraph
-                      currentRole={result.targetRole || "Current Career Stage"}
-                      topRole={result.careerPath.topRole}
-                      confidence={result.careerPath.confidence}
-                      alternatives={result.careerPath.alternatives}
-                      careerTimeline={result.careerTimeline}
-                      careerTrajectories={result.careerTrajectories}
-                    />
+                    <PanelErrorBoundary compact title="D3 Trajectory Graph">
+                      <D3CareerGraph
+                        currentRole={result.targetRole || "Current Career Stage"}
+                        topRole={result.careerPath?.topRole || "Target Role"}
+                        confidence={result.careerPath?.confidence ?? 0}
+                        alternatives={result.careerPath?.alternatives || []}
+                        careerTimeline={result.careerTimeline || []}
+                        careerTrajectories={result.careerTrajectories}
+                      />
+                    </PanelErrorBoundary>
 
                     <div className="relative flex flex-col md:flex-row items-stretch justify-between gap-6 py-4">
                       <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-teal-500/20 via-sky-500/20 to-purple-500/20 -translate-y-1/2 hidden md:block" />
@@ -8203,7 +8277,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
           <button
             type="button"
             onClick={() => setIsCopilotDrawerOpen((prev) => !prev)}
-            className="fixed bottom-6 left-6 z-[180] flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-slate-950/95 hover:bg-slate-900 border border-teal-500/40 text-white shadow-2xl shadow-teal-500/20 transition-all cursor-pointer active:scale-95"
+            className="dark dark-studio fixed bottom-6 left-6 z-[180] flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-slate-950/95 hover:bg-slate-900 border border-teal-500/40 text-white shadow-2xl shadow-teal-500/20 transition-all cursor-pointer active:scale-95"
             title="Open ATS Gap Copilot to inspect what is missing and apply 1-click resume fixes"
           >
             <div className="w-7 h-7 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-400">
@@ -8226,7 +8300,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -24 }}
                 transition={{ duration: 0.2 }}
-                className="fixed bottom-20 left-6 z-[190] w-[420px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-7rem)] rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl overflow-hidden flex flex-col"
+                className="dark dark-studio fixed bottom-20 left-6 z-[190] w-[420px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-7rem)] rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl overflow-hidden flex flex-col"
               >
                 <div className="px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-2 text-xs font-bold text-white">
@@ -8276,31 +8350,33 @@ AWS Certified Solutions Architect – Associate (2022)`;
       )}
 
       {/* Interactive ATS Resume Generator & AI Coach Modal */}
-      <ResumeBuilderModal
-        isOpen={isResumeBuilderOpen}
-        onClose={() => setIsResumeBuilderOpen(false)}
-        rawResumeText={
-          result?.atsMetadata?.rawText ||
-          result?.resumeRewriteDraft ||
-          result?.summary ||
-          result?.executiveSummary ||
-          file?.name ||
-          ""
-        }
-        jobDescription={jobDescription}
-        analysisResult={result}
-        initialSkillToFrame={selectedSkillToFrame}
-        sharedResumeData={sharedResumeData}
-        onSharedResumeDataChange={setSharedResumeData}
-        sharedChatMessages={sharedChatMessages}
-        onSharedChatMessagesChange={setSharedChatMessages}
-        sharedPersona={sharedChatPersona}
-        onSharedPersonaChange={setSharedChatPersona}
-        sharedModelMode={sharedChatModelMode}
-        onSharedModelModeChange={setSharedChatModelMode}
-        pendingPatchToApply={pendingPatchToApply}
-        onClearPendingPatch={() => setPendingPatchToApply(null)}
-      />
+      <PanelErrorBoundary compact title="ATS Resume Studio">
+        <ResumeBuilderModal
+          isOpen={isResumeBuilderOpen}
+          onClose={() => setIsResumeBuilderOpen(false)}
+          rawResumeText={
+            result?.atsMetadata?.rawText ||
+            result?.resumeRewriteDraft ||
+            result?.summary ||
+            result?.executiveSummary ||
+            file?.name ||
+            ""
+          }
+          jobDescription={jobDescription}
+          analysisResult={result}
+          initialSkillToFrame={selectedSkillToFrame}
+          sharedResumeData={sharedResumeData}
+          onSharedResumeDataChange={setSharedResumeData}
+          sharedChatMessages={sharedChatMessages}
+          onSharedChatMessagesChange={setSharedChatMessages}
+          sharedPersona={sharedChatPersona}
+          onSharedPersonaChange={setSharedChatPersona}
+          sharedModelMode={sharedChatModelMode}
+          onSharedModelModeChange={setSharedChatModelMode}
+          pendingPatchToApply={pendingPatchToApply}
+          onClearPendingPatch={() => setPendingPatchToApply(null)}
+        />
+      </PanelErrorBoundary>
 
       {/* Printable Report Component for PDF Export */}
       <FullReportPrintView ref={fullReportPrintRef} result={result} />

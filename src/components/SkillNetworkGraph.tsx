@@ -882,7 +882,7 @@ export const SkillNetworkGraph: React.FC<SkillNetworkGraphProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative rounded-3xl bg-slate-950/90 border border-slate-800 shadow-2xl overflow-hidden flex flex-col ${
+      className={`dark dark-studio relative rounded-3xl bg-slate-950/90 border border-slate-800 shadow-2xl overflow-hidden flex flex-col ${
         isFullscreen
           ? "fixed inset-0 z-[150] rounded-none border-none bg-slate-950 p-6"
           : className

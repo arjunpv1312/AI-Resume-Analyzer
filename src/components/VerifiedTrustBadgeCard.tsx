@@ -722,7 +722,7 @@ Credential URL: ${badgeSvgUrl}`;
   return (
     <div
       id="verified-trust-badge-section"
-      className="mb-8 rounded-3xl bg-slate-900/95 border border-teal-500/35 shadow-xl overflow-hidden transition-all"
+      className="dark dark-studio mb-8 rounded-3xl bg-slate-900/95 border border-teal-500/35 shadow-xl overflow-hidden transition-all"
     >
       {/* Main Verified Trust Badge Banner */}
       <div className="p-6 md:p-7 flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-gradient-to-r from-slate-950 via-slate-900 to-teal-950/30">

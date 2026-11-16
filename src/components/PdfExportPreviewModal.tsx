@@ -172,7 +172,7 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[140] flex items-center justify-center p-3 md:p-6 bg-slate-950/85 backdrop-blur-md overflow-hidden">
+      <div className="dark dark-studio fixed inset-0 z-[140] flex items-center justify-center p-3 md:p-6 bg-slate-950/85 backdrop-blur-md overflow-hidden">
         <motion.div
           initial={{ scale: 0.95, opacity: 0, y: 15 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}

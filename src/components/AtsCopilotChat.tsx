@@ -234,7 +234,7 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-950/70 text-slate-100 overflow-hidden">
+    <div className="dark dark-studio flex flex-col h-full bg-slate-950/70 text-slate-100 overflow-hidden">
       {/* Top Role & Model Bar */}
       <div className="p-3 border-b border-slate-800 bg-slate-900/90 space-y-2.5 shrink-0">
         <div className="flex items-center justify-between gap-2">

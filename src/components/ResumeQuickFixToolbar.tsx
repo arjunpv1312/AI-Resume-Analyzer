@@ -72,7 +72,7 @@ export const ResumeQuickFixToolbar: React.FC<ResumeQuickFixToolbarProps> = ({
       <motion.div
         initial={{ y: -10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="rounded-2xl bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur-xl border border-indigo-500/35 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_24px_rgba(99,102,241,0.18)] p-2.5 sm:p-3 text-white"
+        className="dark dark-studio rounded-2xl bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur-xl border border-indigo-500/35 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_24px_rgba(99,102,241,0.18)] p-2.5 sm:p-3 text-white"
       >
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           {/* Left Title & Status Badge */}

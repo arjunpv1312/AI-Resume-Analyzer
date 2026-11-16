@@ -258,7 +258,7 @@ export const ModelTrainingStudio: React.FC<ModelTrainingStudioProps> = ({
   const strongCount = scoreReasons.filter((r) => r.status === "strong").length;
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl mb-10">
+    <div className="dark dark-studio bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl mb-10">
       {/* Top Header Bar */}
       <div className="p-6 md:p-8 border-b border-slate-800 bg-gradient-to-r from-slate-900 via-indigo-950/30 to-slate-900">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">

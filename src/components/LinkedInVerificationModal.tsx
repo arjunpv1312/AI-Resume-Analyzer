@@ -724,7 +724,7 @@ ${verificationResult.auditChecks
     <AnimatePresence>
       <div
         key="linkedin-verification-backdrop"
-        className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-2xl overflow-y-auto"
+        className="dark dark-studio fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-2xl overflow-y-auto"
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}

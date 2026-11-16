@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="figma-dark"], [data-theme="figma-dark"] *));
 
 @theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
@@ -44,7 +45,8 @@
 
   /* Theme: Figma Slate Dark */
   :root[data-theme="figma-dark"],
-  :root[data-theme="cosmic"] {
+  :root[data-theme="cosmic"],
+  html.dark {
     --brand-deep: #0f172a;
     --brand-base: #1e293b;
     --brand-surface: #1e293b;
@@ -61,7 +63,7 @@
     font-family: var(--font-sans);
     background-color: var(--brand-deep);
     color: var(--brand-text-main);
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.25s ease, color 0.25s ease;
     min-height: 100vh;
     letter-spacing: -0.01em;
   }
@@ -114,76 +116,84 @@
 }
 
 :root:not([data-theme="figma-dark"]) body {
-  @apply bg-slate-50 text-slate-700;
+  background-color: #f8fafc;
+  color: #1e293b;
 }
 
-:root:not([data-theme="figma-dark"]) h1,
-:root:not([data-theme="figma-dark"]) h2,
-:root:not([data-theme="figma-dark"]) h3,
-:root:not([data-theme="figma-dark"]) h4 {
+/* Scope light-mode contrast adjustments ONLY to light surfaces (.glass-card, .glass-panel, light-adaptive containers),
+   never overriding intentionally dark-themed studio modals/drawers (.dark-studio) or dark surfaces. */
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) :where(h1, h2, h3, h4) {
   color: #0f172a;
 }
 
-:root:not([data-theme="figma-dark"]) .text-white:not(.keep-white) {
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) .text-white:not(.keep-white) {
   color: #0f172a;
 }
 
-:root:not([data-theme="figma-dark"]) button.bg-indigo-600,
-:root:not([data-theme="figma-dark"]) button.bg-purple-600,
-:root:not([data-theme="figma-dark"]) button.bg-teal-600,
-:root:not([data-theme="figma-dark"]) button.bg-emerald-600,
-:root:not([data-theme="figma-dark"]) button.bg-gradient-to-r,
-:root:not([data-theme="figma-dark"]) .btn-primary {
-  color: #ffffff !important;
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) .text-slate-200 {
+  color: #334155;
 }
 
-:root:not([data-theme="figma-dark"]) button.bg-indigo-600 *,
-:root:not([data-theme="figma-dark"]) button.bg-purple-600 *,
-:root:not([data-theme="figma-dark"]) button.bg-teal-600 *,
-:root:not([data-theme="figma-dark"]) button.bg-emerald-600 *,
-:root:not([data-theme="figma-dark"]) button.bg-gradient-to-r *,
-:root:not([data-theme="figma-dark"]) .btn-primary * {
-  color: #ffffff !important;
-}
-
-:root:not([data-theme="figma-dark"]) .text-slate-300,
-:root:not([data-theme="figma-dark"]) .text-slate-400 {
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) .text-slate-300,
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) .text-slate-400 {
   color: #475569;
 }
 
-:root:not([data-theme="figma-dark"]) .text-slate-500 {
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) .text-slate-500 {
   color: #64748b;
 }
 
-:root:not([data-theme="figma-dark"]) .bg-white\/5,
-:root:not([data-theme="figma-dark"]) .bg-white\/\[0\.02\],
-:root:not([data-theme="figma-dark"]) .bg-white\/\[0\.05\] {
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel) .bg-white\/5,
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel) .bg-white\/\[0\.02\],
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel) .bg-white\/\[0\.05\] {
   background-color: #f8fafc;
 }
 
-:root:not([data-theme="figma-dark"]) .border-white\/10,
-:root:not([data-theme="figma-dark"]) .border-white\/5,
-:root:not([data-theme="figma-dark"]) .border-white\/\[0\.05\] {
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel) .border-white\/10,
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel) .border-white\/5,
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel) .border-white\/\[0\.05\] {
   border-color: #e2e8f0;
 }
 
-:root:not([data-theme="figma-dark"]) .bg-\[\#0A0A15\],
-:root:not([data-theme="figma-dark"]) .bg-\[\#030308\],
-:root:not([data-theme="figma-dark"]) .bg-slate-900 {
-  background-color: #ffffff;
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel) :where(.bg-\[\#0A0A15\]\/80, .bg-\[\#0A0A15\]\/60, .bg-\[\#0A0A15\]) {
+  background-color: #f8fafc;
   color: #0f172a;
 }
 
-:root:not([data-theme="figma-dark"]) .bg-\[\#0A0A15\]\/80,
-:root:not([data-theme="figma-dark"]) .bg-\[\#0A0A15\]\/60 {
-  background-color: rgba(255, 255, 255, 0.95);
+/* Preserve white text inside solid colored CTA buttons even inside light cards */
+:root:not([data-theme="figma-dark"]) button:where(.bg-indigo-600, .bg-purple-600, .bg-teal-600, .bg-emerald-600, .bg-blue-600, .bg-rose-600, .bg-gradient-to-r, .btn-primary),
+:root:not([data-theme="figma-dark"]) button:where(.bg-indigo-600, .bg-purple-600, .bg-teal-600, .bg-emerald-600, .bg-blue-600, .bg-rose-600, .bg-gradient-to-r, .btn-primary) * {
+  color: #ffffff;
 }
 
-:root:not([data-theme="figma-dark"]) .border-slate-800 {
-  border-color: #e2e8f0;
+/* Protect intentionally dark studios, drawers, and modals from light-mode text inversion */
+:root:not([data-theme="figma-dark"]) :where(.dark-studio, .dark-studio *) {
+  color-scheme: dark;
+}
+:root:not([data-theme="figma-dark"]) .dark-studio .text-white {
+  color: #ffffff;
+}
+:root:not([data-theme="figma-dark"]) .dark-studio .text-slate-100 {
+  color: #f1f5f9;
+}
+:root:not([data-theme="figma-dark"]) .dark-studio .text-slate-200 {
+  color: #e2e8f0;
+}
+:root:not([data-theme="figma-dark"]) .dark-studio .text-slate-300 {
+  color: #cbd5e1;
+}
+:root:not([data-theme="figma-dark"]) .dark-studio .text-slate-400 {
+  color: #94a3b8;
+}
+:root:not([data-theme="figma-dark"]) .dark-studio :where(h1, h2, h3, h4) {
+  color: inherit;
 }
 
 /* Dark Figma Mode Overrides */
+[data-theme="figma-dark"] {
+  color-scheme: dark;
+}
+
 [data-theme="figma-dark"] .glass-panel {
   @apply bg-slate-900/95 border-slate-800 shadow-2xl;
 }
