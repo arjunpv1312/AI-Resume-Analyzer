@@ -1,16 +1,39 @@
 import { useState, useEffect, useRef } from "react";
 import { AtsResumeData } from "../utils/docxExport";
 
+export interface SectionStrengthMetric {
+  id: "contact" | "summary" | "experience" | "skills" | "education";
+  label: string;
+  score: number;
+  status: "strong" | "moderate" | "needs-work";
+  diagnostic: string;
+}
+
 export interface AtsEngineResult {
   liveScore: number;
   rulesScore: number;
   formattingScore: number;
   bulletQualityScore: number;
+  keywordCoveragePct: number;
   flags: string[];
+  weakPhrasesDetected: string[];
+  sectionMetrics: SectionStrengthMetric[];
   jobKeywordsFound: string[];
   jobKeywordsMissing: string[];
   isCalculating: boolean;
 }
+
+const WEAK_ACTION_PATTERNS = [
+  "responsible for",
+  "worked on",
+  "helped with",
+  "assisted in",
+  "tasked with",
+  "participated in",
+  "duties included",
+  "handled",
+  "involved in",
+];
 
 /**
  * Converts structured AtsResumeData into formatted plain text
@@ -78,6 +101,97 @@ export function serializeResumeDataToText(data: AtsResumeData | null): string {
   return lines.join("\n");
 }
 
+function computeSectionStrengths(
+  resumeData: AtsResumeData | null,
+  quantifiedCount: number,
+  totalBullets: number,
+  weakCount: number
+): SectionStrengthMetric[] {
+  if (!resumeData) return [];
+
+  const contactFilled = [
+    resumeData.name,
+    resumeData.contact?.email,
+    resumeData.contact?.phone,
+    resumeData.contact?.linkedin,
+  ].filter((x) => Boolean(x && x.trim())).length;
+  const contactScore = Math.min(100, contactFilled * 25);
+
+  const summaryWords = (resumeData.summary || "").trim().split(/\s+/).filter(Boolean).length;
+  const summaryHasMetric = /\d+%|\$\d+|\d+\+/.test(resumeData.summary || "");
+  const summaryScore =
+    summaryWords === 0
+      ? 20
+      : Math.min(100, (summaryWords >= 28 && summaryWords <= 90 ? 80 : 60) + (summaryHasMetric ? 20 : 0));
+
+  const metricRatio = totalBullets > 0 ? quantifiedCount / totalBullets : 0;
+  const expScore =
+    totalBullets === 0
+      ? 30
+      : Math.min(100, Math.max(35, Math.round(50 + metricRatio * 50 - weakCount * 8)));
+
+  const totalSkills = Object.values(resumeData.skills || {}).flat().filter(Boolean).length;
+  const skillsScore = Math.min(100, totalSkills >= 10 ? 96 : totalSkills >= 5 ? 78 : Math.max(30, totalSkills * 14));
+
+  const eduCount = resumeData.education?.length || 0;
+  const eduScore = eduCount > 0 ? 95 : 40;
+
+  const toStatus = (s: number): "strong" | "moderate" | "needs-work" =>
+    s >= 82 ? "strong" : s >= 65 ? "moderate" : "needs-work";
+
+  return [
+    {
+      id: "contact",
+      label: "Header & Contact",
+      score: contactScore,
+      status: toStatus(contactScore),
+      diagnostic:
+        contactFilled >= 4
+          ? "Complete ATS contact header with email, phone & LinkedIn."
+          : `${4 - contactFilled} key header field(s) missing (add email, phone, LinkedIn).`,
+    },
+    {
+      id: "summary",
+      label: "Executive Summary",
+      score: summaryScore,
+      status: toStatus(summaryScore),
+      diagnostic:
+        summaryWords === 0
+          ? "Summary is empty — add a 3-line target value proposition."
+          : summaryHasMetric
+          ? `${summaryWords} words with impact proof.`
+          : `${summaryWords} words — add 1–2 quantified proof metrics.`,
+    },
+    {
+      id: "experience",
+      label: "Experience & Impact",
+      score: expScore,
+      status: toStatus(expScore),
+      diagnostic:
+        totalBullets === 0
+          ? "No experience bullets detected."
+          : `${quantifiedCount} of ${totalBullets} bullets quantified${weakCount > 0 ? ` · ${weakCount} passive phrase(s)` : ""}.`,
+    },
+    {
+      id: "skills",
+      label: "Skills Taxonomy",
+      score: skillsScore,
+      status: toStatus(skillsScore),
+      diagnostic:
+        totalSkills >= 10
+          ? `${totalSkills} structured skills indexed for ATS matching.`
+          : `Only ${totalSkills} skills listed — inject missing JD skills.`,
+    },
+    {
+      id: "education",
+      label: "Education & Certs",
+      score: eduScore,
+      status: toStatus(eduScore),
+      diagnostic: eduCount > 0 ? `${eduCount} verified credential(s) formatted.` : "Add degree or certification.",
+    },
+  ];
+}
+
 /**
  * Hook calling the ATS analyzer engine whenever the resume text content is modified,
  * ensuring the live ATS score updates seamlessly without refreshing the entire analysis results.
@@ -87,18 +201,22 @@ export function useAtsScoreEngine({
   jobDescription,
   initialScore = 75,
   initialKeywordsMissing = [],
+  initialKeywordsFound = [],
 }: {
   resumeData: AtsResumeData | null;
   jobDescription: string;
   initialScore?: number;
   initialKeywordsMissing?: string[];
+  initialKeywordsFound?: string[];
 }): AtsEngineResult {
   const [liveScore, setLiveScore] = useState<number>(initialScore);
   const [rulesScore, setRulesScore] = useState<number>(initialScore);
   const [formattingScore, setFormattingScore] = useState<number>(85);
   const [bulletQualityScore, setBulletQualityScore] = useState<number>(75);
   const [flags, setFlags] = useState<string[]>([]);
-  const [jobKeywordsFound, setJobKeywordsFound] = useState<string[]>([]);
+  const [weakPhrasesDetected, setWeakPhrasesDetected] = useState<string[]>([]);
+  const [sectionMetrics, setSectionMetrics] = useState<SectionStrengthMetric[]>([]);
+  const [jobKeywordsFound, setJobKeywordsFound] = useState<string[]>(initialKeywordsFound);
   const [jobKeywordsMissing, setJobKeywordsMissing] = useState<string[]>(initialKeywordsMissing);
   const [isCalculating, setIsCalculating] = useState<boolean>(false);
 
@@ -109,48 +227,69 @@ export function useAtsScoreEngine({
     if (!resumeData) return;
 
     const currentText = serializeResumeDataToText(resumeData);
-    if (!currentText.trim() || currentText === lastAnalyzedTextRef.current) {
-      return;
-    }
+    if (!currentText.trim()) return;
 
-    // 1. Instant local optimistic calculation (0ms latency for smooth typing)
     const lowerText = currentText.toLowerCase();
-    let instantBonus = 0;
-    let localFound: string[] = [];
-    let localMissing: string[] = [];
+    const allTrackedKeywords = Array.from(
+      new Set([...(initialKeywordsFound || []), ...(initialKeywordsMissing || [])])
+    ).filter(Boolean);
 
-    if (initialKeywordsMissing && initialKeywordsMissing.length > 0) {
-      initialKeywordsMissing.forEach((kw) => {
-        if (kw && lowerText.includes(kw.toLowerCase())) {
-          localFound.push(kw);
-          instantBonus += 2.5;
-        } else if (kw) {
-          localMissing.push(kw);
+    const localFound: string[] = [];
+    const localMissing: string[] = [];
+    let newlyMatchedCount = 0;
+
+    allTrackedKeywords.forEach((kw) => {
+      if (lowerText.includes(kw.toLowerCase())) {
+        localFound.push(kw);
+        if ((initialKeywordsMissing || []).some((m) => m.toLowerCase() === kw.toLowerCase())) {
+          newlyMatchedCount++;
         }
-      });
-    }
+      } else {
+        localMissing.push(kw);
+      }
+    });
 
-    // Quantified bullets bonus
+    // Quantified bullets & weak verb detection
     const bullets = resumeData.experience?.flatMap((e) => e.bulletPoints || []) || [];
     let quantifiedCount = 0;
+    const foundWeak: string[] = [];
+
     bullets.forEach((b) => {
-      if (/\d+%|\$\d+|\d+\s*(k|m|million|billion|users|clients|team|x|hrs|%)|\b(increased|reduced|grew|saved|generated)\b/i.test(b)) {
+      if (/\d+%|\$\d+|\d+\s*(k|m|million|billion|users|clients|team|x|hrs|%)|\b(increased|reduced|grew|saved|generated|accelerated|slashed|improved)\b/i.test(b)) {
         quantifiedCount++;
       }
+      const lowerB = b.toLowerCase();
+      WEAK_ACTION_PATTERNS.forEach((pat) => {
+        if (lowerB.includes(pat) && !foundWeak.includes(pat)) {
+          foundWeak.push(pat);
+        }
+      });
     });
 
     const metricRatio = bullets.length > 0 ? quantifiedCount / bullets.length : 0;
     const instantBulletScore = Math.round(metricRatio * 100);
-    const instantMetricBonus = Math.round(metricRatio * 12);
+    const instantMetricBonus = Math.round(metricRatio * 10);
+    const instantBonus = newlyMatchedCount * 2.5;
+
+    setSectionMetrics(
+      computeSectionStrengths(resumeData, quantifiedCount, bullets.length, foundWeak.length)
+    );
+    setWeakPhrasesDetected(foundWeak);
+    setBulletQualityScore(instantBulletScore);
+    if (allTrackedKeywords.length > 0) {
+      setJobKeywordsFound(localFound);
+      setJobKeywordsMissing(localMissing);
+    }
 
     const calculatedInstantScore = Math.min(
       99,
-      Math.max(55, Math.round(initialScore + instantBonus + instantMetricBonus - 3))
+      Math.max(55, Math.round(initialScore + instantBonus + instantMetricBonus - foundWeak.length * 1.5))
     );
     setLiveScore(calculatedInstantScore);
-    setBulletQualityScore(instantBulletScore);
-    if (localFound.length > 0) setJobKeywordsFound(localFound);
-    if (localMissing.length > 0) setJobKeywordsMissing(localMissing);
+
+    if (currentText === lastAnalyzedTextRef.current) {
+      return;
+    }
 
     // 2. Debounced asynchronous ATS simulation engine query
     if (debounceTimerRef.current) {
@@ -175,7 +314,7 @@ export function useAtsScoreEngine({
         if (res.ok) {
           const data = await res.json();
           if (typeof data.overallAtsScore === "number") {
-            setLiveScore(data.overallAtsScore);
+            setLiveScore(Math.max(data.overallAtsScore, calculatedInstantScore));
           }
           if (typeof data.rulesScore === "number") setRulesScore(data.rulesScore);
           if (typeof data.formattingScore === "number") setFormattingScore(data.formattingScore);
@@ -183,29 +322,43 @@ export function useAtsScoreEngine({
             setBulletQualityScore(data.bulletPointQualityScore);
           }
           if (Array.isArray(data.flags)) setFlags(data.flags);
-          if (Array.isArray(data.jobKeywordsFound)) setJobKeywordsFound(data.jobKeywordsFound);
-          if (Array.isArray(data.jobKeywordsMissing)) setJobKeywordsMissing(data.jobKeywordsMissing);
+          if (Array.isArray(data.jobKeywordsFound) && data.jobKeywordsFound.length > 0) {
+            setJobKeywordsFound(Array.from(new Set([...localFound, ...data.jobKeywordsFound])));
+          }
+          if (Array.isArray(data.jobKeywordsMissing) && data.jobKeywordsMissing.length > 0) {
+            // Filter out terms that are visibly present in currentText
+            const trulyMissing = data.jobKeywordsMissing.filter(
+              (k: string) => !lowerText.includes(k.toLowerCase())
+            );
+            setJobKeywordsMissing(trulyMissing);
+          }
         }
       } catch (err) {
         console.warn("Live ATS engine background calculation error:", err);
       } finally {
         setIsCalculating(false);
       }
-    }, 400);
+    }, 350);
 
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [resumeData, jobDescription, initialScore, initialKeywordsMissing]);
+  }, [resumeData, jobDescription, initialScore, initialKeywordsMissing, initialKeywordsFound]);
+
+  const totalKw = jobKeywordsFound.length + jobKeywordsMissing.length;
+  const keywordCoveragePct = totalKw > 0 ? Math.round((jobKeywordsFound.length / totalKw) * 100) : 100;
 
   return {
     liveScore,
     rulesScore,
     formattingScore,
     bulletQualityScore,
+    keywordCoveragePct,
     flags,
+    weakPhrasesDetected,
+    sectionMetrics,
     jobKeywordsFound,
     jobKeywordsMissing,
     isCalculating,

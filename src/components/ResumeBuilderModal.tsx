@@ -1,17 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   X,
-  Send,
-  Sparkles,
   Download,
   Printer,
   FileText,
-  Bot,
-  User,
-  Zap,
   Target,
   Edit3,
-  CheckCircle2,
   Plus,
   Trash2,
   Eye,
@@ -21,17 +15,31 @@ import {
   ChevronUp,
   ZoomIn,
   ZoomOut,
-  Maximize2,
   Check,
-  ArrowRight,
-  Sliders,
   FileCheck,
   Wand2,
+  RotateCcw,
+  Flame,
+  AlertTriangle,
+  Sparkles,
+  CheckCircle2,
+  Layers,
 } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import { AtsResumeData, exportAtsResumeToDocx } from "../utils/docxExport";
-import { generateAtsResumePdfBlob, downloadAtsResumePdf } from "../utils/pdfExport";
+import {
+  AtsBuilderTemplateStyle,
+  generateAtsResumePdfBlob,
+  downloadAtsResumePdf,
+} from "../utils/pdfExport";
 import { useAtsScoreEngine } from "../hooks/useAtsScoreEngine";
+import { AtsCopilotChat } from "./AtsCopilotChat";
+import {
+  AtsChatMessage,
+  AtsChatModelMode,
+  AtsChatPersona,
+  AtsResumePatch,
+} from "../types";
 
 interface ResumeBuilderModalProps {
   isOpen: boolean;
@@ -40,13 +48,16 @@ interface ResumeBuilderModalProps {
   jobDescription: string;
   analysisResult: any;
   initialSkillToFrame?: string | null;
-}
-
-interface ChatMessage {
-  id: string;
-  sender: "user" | "coach";
-  text: string;
-  timestamp: string;
+  sharedResumeData?: AtsResumeData | null;
+  onSharedResumeDataChange?: React.Dispatch<React.SetStateAction<AtsResumeData | null>>;
+  sharedChatMessages?: AtsChatMessage[];
+  onSharedChatMessagesChange?: React.Dispatch<React.SetStateAction<AtsChatMessage[]>>;
+  sharedPersona?: AtsChatPersona;
+  onSharedPersonaChange?: (p: AtsChatPersona) => void;
+  sharedModelMode?: AtsChatModelMode;
+  onSharedModelModeChange?: (m: AtsChatModelMode) => void;
+  pendingPatchToApply?: { patch: AtsResumePatch; messageId: string } | null;
+  onClearPendingPatch?: () => void;
 }
 
 export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
@@ -56,24 +67,71 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
   jobDescription,
   analysisResult,
   initialSkillToFrame,
+  sharedResumeData,
+  onSharedResumeDataChange,
+  sharedChatMessages,
+  onSharedChatMessagesChange,
+  sharedPersona,
+  onSharedPersonaChange,
+  sharedModelMode,
+  onSharedModelModeChange,
+  pendingPatchToApply,
+  onClearPendingPatch,
 }) => {
-  const [resumeData, setResumeData] = useState<AtsResumeData | null>(null);
-  const [activeTab, setActiveTab] = useState<"pdf" | "preview" | "editor" | "export">("pdf");
-  const [isGeneratingInitial, setIsGeneratingInitial] = useState(false);
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const [userInput, setUserInput] = useState("");
-  const [isCoachingLoading, setIsCoachingLoading] = useState(false);
-  const [openAccordion, setOpenAccordion] = useState<string>("summary");
+  // Support both controlled shared state (synced with App.tsx) and standalone local state
+  const [localResumeData, setLocalResumeData] = useState<AtsResumeData | null>(null);
+  const resumeData = sharedResumeData !== undefined ? sharedResumeData : localResumeData;
+  const setResumeData = onSharedResumeDataChange || setLocalResumeData;
 
-  // Real-Time ATS Analyzer Engine Hook (updates seamlessly on any text change without refreshing overall analysis)
+  const [localChatMessages, setLocalChatMessages] = useState<AtsChatMessage[]>([
+    {
+      id: "copilot_init",
+      role: "model",
+      text: "I scanned your resume against the target role. Ask what is missing for a crisp breakdown, or click any quick gap check to get one-click resume fixes.",
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      persona: "scanner",
+      modelUsed: "gemini-4-hydrogen",
+      followUpPrompts: [
+        "Find what is missing for this job",
+        "Fix my weakest bullets",
+      ],
+    },
+  ]);
+  const chatMessages = sharedChatMessages !== undefined ? sharedChatMessages : localChatMessages;
+  const setChatMessages = onSharedChatMessagesChange || setLocalChatMessages;
+
+  const [localPersona, setLocalPersona] = useState<AtsChatPersona>("scanner");
+  const persona = sharedPersona !== undefined ? sharedPersona : localPersona;
+  const setPersona = onSharedPersonaChange || setLocalPersona;
+
+  const [localModelMode, setLocalModelMode] = useState<AtsChatModelMode>("auto");
+  const modelMode = sharedModelMode !== undefined ? sharedModelMode : localModelMode;
+  const setModelMode = onSharedModelModeChange || setLocalModelMode;
+
+  const [activeTab, setActiveTab] = useState<"pdf" | "heatmap" | "preview" | "editor" | "export">("pdf");
+  const [templateStyle, setTemplateStyle] = useState<AtsBuilderTemplateStyle>("classic-executive");
+  const [isGeneratingInitial, setIsGeneratingInitial] = useState(false);
+
+  // Undo history & toast notifications
+  const [undoStack, setUndoStack] = useState<AtsResumeData[]>([]);
+  const [appliedNotification, setAppliedNotification] = useState<string | null>(null);
+  const [externalPromptRequest, setExternalPromptRequest] = useState<{
+    id: number;
+    prompt: string;
+  } | null>(null);
+
+  // Real-Time ATS Analyzer Engine Hook
   const atsEngine = useAtsScoreEngine({
     resumeData,
     jobDescription,
     initialScore: analysisResult?.overallScore || 75,
     initialKeywordsMissing: analysisResult?.atsAnalysis?.jobKeywordsMissing || [],
+    initialKeywordsFound: analysisResult?.atsAnalysis?.jobKeywordsFound || [],
   });
 
   const activeScore = atsEngine.liveScore;
+  const baselineScore = analysisResult?.overallScore || 75;
+  const scoreDelta = activeScore - baselineScore;
 
   // Real-Time PDF Previewer State
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
@@ -86,7 +144,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
   const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
   const [docxDownloaded, setDocxDownloaded] = useState(false);
 
-  // "Improve Bullet" Action State in Chat Panel
+  // Specific Bullet Metric Improver Drawer
   const [isBulletImproverOpen, setIsBulletImproverOpen] = useState(false);
   const [selectedExpKey, setSelectedExpKey] = useState<string>("");
   const [isImprovingBullet, setIsImprovingBullet] = useState(false);
@@ -96,21 +154,25 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
     metricsAdded: string[];
     explanation: string;
   } | null>(null);
-  const [appliedBulletNotification, setAppliedBulletNotification] = useState<string | null>(null);
 
   const printPreviewRef = useRef<HTMLDivElement>(null);
   const handlePdfPrint = useReactToPrint({
     contentRef: printPreviewRef,
   });
 
-  // Real-time PDF Blob generation whenever resumeData changes
+  const triggerToast = (msg: string) => {
+    setAppliedNotification(msg);
+    setTimeout(() => setAppliedNotification(null), 3200);
+  };
+
+  // Real-time PDF Blob generation whenever resumeData or templateStyle changes
   useEffect(() => {
     if (!resumeData) return;
     let isMounted = true;
     const timer = setTimeout(async () => {
       try {
         setIsGeneratingPdf(true);
-        const blob = await generateAtsResumePdfBlob(resumeData);
+        const blob = await generateAtsResumePdfBlob(resumeData, templateStyle);
         if (isMounted) {
           const url = URL.createObjectURL(blob);
           setPdfBlobUrl((prev) => {
@@ -123,15 +185,15 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
       } finally {
         if (isMounted) setIsGeneratingPdf(false);
       }
-    }, 350);
+    }, 320);
 
     return () => {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [resumeData]);
+  }, [resumeData, templateStyle]);
 
-  // Set default selected bullet when improver opens
+  // Default selected bullet
   useEffect(() => {
     if (resumeData?.experience && resumeData.experience.length > 0 && !selectedExpKey) {
       const firstExp = resumeData.experience[0];
@@ -141,7 +203,168 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
     }
   }, [resumeData, selectedExpKey]);
 
-  // Handle immediate DOCX download ensuring all ATS-compliant content is preserved
+  const lastFramedSkillRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen && !resumeData && !isGeneratingInitial) {
+      generateInitialAtsResume();
+    }
+  }, [isOpen]);
+
+  // Auto-trigger skill framing if initialSkillToFrame is passed
+  useEffect(() => {
+    if (isOpen && initialSkillToFrame && lastFramedSkillRef.current !== initialSkillToFrame) {
+      lastFramedSkillRef.current = initialSkillToFrame;
+      setExternalPromptRequest({
+        id: Date.now(),
+        prompt: `How can I naturally add the missing skill "${initialSkillToFrame}" to my resume for this ${
+          analysisResult?.careerPath?.topRole || analysisResult?.targetRole || "target"
+        } role? Give me a short diagnosis and a 1-click patch.`,
+      });
+    }
+  }, [isOpen, initialSkillToFrame, analysisResult]);
+
+  // Handle pending patch triggered from global Copilot Drawer
+  useEffect(() => {
+    if (isOpen && pendingPatchToApply && resumeData) {
+      handleApplyChatPatch(pendingPatchToApply.patch, pendingPatchToApply.messageId);
+      onClearPendingPatch?.();
+    }
+  }, [isOpen, pendingPatchToApply, resumeData]);
+
+  const generateInitialAtsResume = async () => {
+    setIsGeneratingInitial(true);
+    try {
+      const res = await fetch("/api/generate-ats-resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resumeText: rawResumeText,
+          jobDescription,
+          analysisResult,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.name) {
+        setResumeData(data);
+      } else {
+        const fallback: AtsResumeData = {
+          name: "Candidate Name",
+          title: analysisResult?.careerPath?.topRole || analysisResult?.targetRole || "Professional",
+          contact: { email: "", phone: "", location: "" },
+          summary: rawResumeText ? rawResumeText.slice(0, 260) : "Results-driven professional.",
+          experience: [
+            {
+              id: "exp_1",
+              company: "Previous Organization",
+              position: analysisResult?.targetRole || "Specialist",
+              duration: "2021 - Present",
+              bulletPoints: [
+                "Spearheaded key initiatives delivering measurable improvements across core deliverables.",
+                "Collaborated cross-functionally to execute high-priority product milestones.",
+              ],
+            },
+          ],
+          education: [
+            {
+              id: "edu_1",
+              degree: "Bachelor's Degree",
+              institution: "University",
+              year: "2020",
+            },
+          ],
+          skills: {
+            core: analysisResult?.atsAnalysis?.jobKeywordsFound || ["Leadership", "System Design"],
+          },
+          estimatedAtsScore: analysisResult?.overallScore || 75,
+        };
+        setResumeData(fallback);
+      }
+    } catch (err) {
+      console.error("Initial ATS resume structuring error:", err);
+    } finally {
+      setIsGeneratingInitial(false);
+    }
+  };
+
+  // Apply structured AI patch cleanly with Undo snapshot
+  const handleApplyChatPatch = (patch: AtsResumePatch, messageId: string) => {
+    if (!resumeData) return;
+
+    const snapshot: AtsResumeData = JSON.parse(JSON.stringify(resumeData));
+    setUndoStack((prev) => [...prev.slice(-14), snapshot]);
+
+    setResumeData((prev) => {
+      if (!prev) return prev;
+      const next: AtsResumeData = JSON.parse(JSON.stringify(prev));
+
+      if (patch.targetSection === "title") {
+        next.title = patch.afterText;
+      } else if (patch.targetSection === "summary") {
+        next.summary = patch.afterText;
+      } else if (patch.targetSection === "skills") {
+        const existingCore = next.skills?.core || [];
+        const toAdd =
+          patch.skillsToAdd && patch.skillsToAdd.length > 0
+            ? patch.skillsToAdd
+            : patch.afterText
+                .replace(/^adds?:\s*/i, "")
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean);
+        const merged = Array.from(new Set([...existingCore, ...toAdd]));
+        next.skills = { ...(next.skills || {}), core: merged };
+      } else if (patch.targetSection === "experience") {
+        if (!next.experience || next.experience.length === 0) {
+          next.experience = [
+            {
+              id: `exp_${Date.now()}`,
+              company: "Target Organization",
+              position: next.title || "Lead Engineer",
+              duration: "Present",
+              bulletPoints: [patch.afterText],
+            },
+          ];
+        } else {
+          const eIdx = Math.min(Math.max(0, patch.expIndex ?? 0), next.experience.length - 1);
+          const bullets = [...(next.experience[eIdx].bulletPoints || [])];
+          if (
+            typeof patch.bulletIndex === "number" &&
+            patch.bulletIndex >= 0 &&
+            patch.bulletIndex < bullets.length
+          ) {
+            bullets[patch.bulletIndex] = patch.afterText;
+          } else {
+            bullets.push(patch.afterText);
+          }
+          next.experience[eIdx] = { ...next.experience[eIdx], bulletPoints: bullets };
+        }
+      }
+      return next;
+    });
+
+    setChatMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId
+          ? {
+              ...m,
+              patches: m.patches?.map((p) => (p.id === patch.id ? { ...p, applied: true } : p)),
+            }
+          : m
+      )
+    );
+
+    triggerToast(`Applied: ${patch.label}`);
+  };
+
+  const handleUndoLastPatch = () => {
+    if (undoStack.length === 0) return;
+    const lastState = undoStack[undoStack.length - 1];
+    setUndoStack((prev) => prev.slice(0, -1));
+    setResumeData(lastState);
+    triggerToast("Reverted last edit");
+  };
+
   const handleImmediateDocxDownload = async () => {
     if (!resumeData) return;
     try {
@@ -156,12 +379,11 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
     }
   };
 
-  // Handle immediate PDF download
   const handleImmediatePdfDownload = async () => {
     if (!resumeData) return;
     try {
       setIsDownloadingPdf(true);
-      await downloadAtsResumePdf(resumeData);
+      await downloadAtsResumePdf(resumeData, templateStyle);
     } catch (err) {
       console.error("PDF download failed:", err);
     } finally {
@@ -169,14 +391,12 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
     }
   };
 
-  // Handle opening the Bullet Improver directly for a given bullet
   const handleOpenBulletImprover = (expId: string, bpIdx: number) => {
     setSelectedExpKey(`${expId}:${bpIdx}`);
     setIsBulletImproverOpen(true);
     setBulletImprovementResult(null);
   };
 
-  // Execute the Gemini "Improve Bullet" action
   const handleExecuteImproveBullet = async () => {
     if (!resumeData || !selectedExpKey) return;
     const [expId, bpIdxStr] = selectedExpKey.split(":");
@@ -207,12 +427,11 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
       if (res.ok && data.improvedBullet) {
         setBulletImprovementResult(data);
       } else {
-        // Fallback with quantified metrics if network error
         setBulletImprovementResult({
           improvedBullet: `Spearheaded key initiatives at ${exp.company}, accelerating performance by 35% and delivering measurable impact across cross-functional teams.`,
           variations: [
             `Engineered strategic process improvements, slashing operational overhead by 25% while expanding throughput.`,
-            `Orchestrated project delivery for ${exp.position} initiatives, boosting client satisfaction by 40% and saving 15+ hours weekly.`,
+            `Orchestrated delivery for ${exp.position} initiatives, boosting reliability by 40% and saving 15+ hours weekly.`,
           ],
           metricsAdded: ["+35% performance gain", "25% overhead reduction", "15+ hours saved weekly"],
           explanation: "Injected quantifiable metrics and active executive power verbs.",
@@ -225,11 +444,12 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
     }
   };
 
-  // Apply the quantified bullet into resumeData
   const handleApplyImprovedBullet = (newBullet: string) => {
     if (!resumeData || !selectedExpKey) return;
     const [expId, bpIdxStr] = selectedExpKey.split(":");
     const bpIdx = parseInt(bpIdxStr, 10);
+
+    setUndoStack((prev) => [...prev.slice(-14), JSON.parse(JSON.stringify(resumeData))]);
 
     let expCompany = "";
     setResumeData((prev) => {
@@ -246,382 +466,184 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
       return { ...prev, experience: updatedExperience };
     });
 
-    // Notify user in chat
-    const coachConfirmation: ChatMessage = {
-      id: `applied_${Date.now()}`,
-      sender: "coach",
-      text: `✨ Successfully updated bullet point in **${expCompany || "Experience"}** with quantified metrics:\n\n> "${newBullet}"\n\nYour live ATS score has updated automatically!`,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-    setChatHistory((prev) => [...prev, coachConfirmation]);
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        id: `applied_${Date.now()}`,
+        role: "model",
+        text: `Updated bullet in ${expCompany || "Experience"} with quantified impact metrics. Your live ATS score updated automatically.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        persona,
+        modelUsed: "XYZ Optimizer",
+      },
+    ]);
 
-    setAppliedBulletNotification(`Applied to ${expCompany || "Experience"}!`);
-    setTimeout(() => setAppliedBulletNotification(null), 3000);
+    triggerToast(`Applied bullet to ${expCompany || "Experience"}`);
   };
 
-  const lastFramedSkillRef = useRef<string | null>(null);
-
-  // Generate initial ATS resume JSON on modal open if not generated yet
-  useEffect(() => {
-    if (isOpen && !resumeData && !isGeneratingInitial) {
-      generateInitialAtsResume();
-    }
-  }, [isOpen]);
-
-  // Auto-trigger skill framing if initialSkillToFrame is provided
-  useEffect(() => {
-    if (isOpen && initialSkillToFrame && lastFramedSkillRef.current !== initialSkillToFrame) {
-      lastFramedSkillRef.current = initialSkillToFrame;
-      const prompt = `How can I frame the missing skill "${initialSkillToFrame}" in the context of my previous work experience for a ${analysisResult?.careerPath?.topRole || analysisResult?.targetRole || 'target'} position? Provide 2-3 tailored bullet points I can add directly.`;
-      handleSendMessage(prompt, `Frame "${initialSkillToFrame}"`);
-    }
-  }, [isOpen, initialSkillToFrame, analysisResult]);
-
-  const generateInitialAtsResume = async () => {
-    setIsGeneratingInitial(true);
-    try {
-      const res = await fetch("/api/generate-ats-resume", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          resumeText: rawResumeText,
-          jobDescription,
-          analysisResult,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.name) {
-        setResumeData(data);
-        setChatHistory([
-          {
-            id: "msg_init",
-            sender: "coach",
-            text: `👋 Hello! I am your AI ATS Resume Coach. I've structured your resume into a 100% ATS-compliant 1-column layout. We're starting at a **${data.estimatedAtsScore || 90}% ATS Compatibility Score**. Click any Quick Action Chip below or ask me to optimize specific sections!`,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          },
-        ]);
-      } else {
-        // Fallback default structure
-        const fallback: AtsResumeData = {
-          name: "Candidate Name",
-          title: analysisResult?.targetRole || "Professional",
-          contact: { email: "", phone: "", location: "" },
-          summary: rawResumeText.slice(0, 250) + "...",
-          experience: [
-            {
-              id: "exp_1",
-              company: "Previous Organization",
-              position: analysisResult?.targetRole || "Specialist",
-              duration: "2021 - Present",
-              bulletPoints: [
-                "Spearheaded key initiatives delivering measurable results.",
-                "Collaborated cross-functionally to achieve business objectives.",
-              ],
-            },
-          ],
-          education: [
-            {
-              id: "edu_1",
-              degree: "Bachelor's Degree",
-              institution: "University",
-              year: "2020",
-            },
-          ],
-          skills: {
-            core: analysisResult?.atsAnalysis?.jobKeywordsFound || ["Leadership"],
-          },
-          estimatedAtsScore: analysisResult?.overallScore || 75,
-        };
-        setResumeData(fallback);
-      }
-    } catch (err) {
-      console.error("Initial ATS resume structuring error:", err);
-    } finally {
-      setIsGeneratingInitial(false);
-    }
-  };
-
-  const handleSendMessage = async (promptText?: string, actionName?: string) => {
-    const textToSend = promptText || userInput;
-    if (!textToSend.trim() || isCoachingLoading) return;
-
-    const userMsg: ChatMessage = {
-      id: `user_${Date.now()}`,
-      sender: "user",
-      text: actionName ? `[Quick Action] ${actionName}: ${textToSend}` : textToSend,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-
-    setChatHistory((prev) => [...prev, userMsg]);
-    if (!promptText) setUserInput("");
-    setIsCoachingLoading(true);
-
-    try {
-      const res = await fetch("/api/resume-coach", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          resumeText: rawResumeText,
-          jobDescription,
-          analysisResult,
-          currentResumeData: resumeData,
-          chatHistory: chatHistory.map((m) => ({
-            role: m.sender === "user" ? "user" : "model",
-            text: m.text,
-          })),
-          userPrompt: textToSend,
-          quickAction: actionName,
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.reply) {
-        const coachMsg: ChatMessage = {
-          id: `coach_${Date.now()}`,
-          sender: "coach",
-          text: data.reply,
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        };
-        setChatHistory((prev) => [...prev, coachMsg]);
-
-        if (data.updatedResume && data.updatedResume.name) {
-          setResumeData(data.updatedResume);
-        }
-      } else {
-        setChatHistory((prev) => [
-          ...prev,
-          {
-            id: `err_${Date.now()}`,
-            sender: "coach",
-            text: data.error || "Sorry, I had trouble processing that request. Please try again.",
-            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          },
-        ]);
-      }
-    } catch (err) {
-      console.error("Coach message error:", err);
-    } finally {
-      setIsCoachingLoading(false);
-    }
+  const askCopilotFromStudio = (prompt: string) => {
+    setExternalPromptRequest({ id: Date.now(), prompt });
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xl p-3 sm:p-6 overflow-hidden animate-fadeIn">
-      <div className="bg-slate-900 border border-purple-500/30 rounded-3xl w-full max-w-7xl h-[92vh] flex flex-col shadow-2xl overflow-hidden">
-        {/* Header Bar */}
-        <div className="px-6 py-4 border-b border-white/10 bg-slate-950/80 flex flex-wrap items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30">
-              <Sparkles className="w-6 h-6 text-purple-400" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xl p-2 sm:p-5 overflow-hidden">
+      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-[1440px] h-[94vh] flex flex-col shadow-2xl overflow-hidden">
+        {/* Top Live ATS Telemetry & Action Bar */}
+        <div className="px-5 py-3.5 border-b border-slate-800 bg-slate-950 flex flex-wrap items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-400 shrink-0">
+              <Sparkles className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-black font-display text-white">
-                  ATS Resume Generator & AI Coach
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h3 className="text-base font-bold font-display text-white whitespace-nowrap">
+                  ATS Resume Studio & Gap Copilot
                 </h3>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" /> 100% ATS Compliant
+                <span className="text-xs text-slate-400 hidden sm:inline">
+                  1-Column ATS Verified · Live Auto-Rescoring
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
-                Co-create, re-score, and export ATS-optimized Word DOCX and PDF documents
-              </p>
+              {appliedNotification && (
+                <p className="text-xs text-emerald-400 font-medium flex items-center gap-1 mt-0.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> {appliedNotification}
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Real-Time ATS Score Badge with engine indicator */}
-            <div className="px-4 py-2 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center gap-2">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
-                ATS Score:
-              </span>
-              <span className="text-base font-black text-purple-300 flex items-center gap-1.5">
-                {activeScore}%
-                {atsEngine.isCalculating && (
-                  <span title="ATS Engine recalculating live score...">
-                    <RefreshCcw className="w-3 h-3 text-purple-400 animate-spin" />
+          {/* Live Telemetry Metrics + Exports */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-4 px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-400">ATS Score</span>
+                <span className="font-mono font-bold tabular-nums text-white text-sm">
+                  {activeScore}%
+                </span>
+                {scoreDelta !== 0 && (
+                  <span
+                    className={`font-mono font-semibold tabular-nums text-[11px] ${
+                      scoreDelta > 0 ? "text-emerald-400" : "text-amber-400"
+                    }`}
+                  >
+                    {scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta}
                   </span>
                 )}
-              </span>
+                {atsEngine.isCalculating && (
+                  <RefreshCcw className="w-3 h-3 text-teal-400 animate-spin" />
+                )}
+              </div>
+
+              <span className="h-3.5 w-px bg-slate-700" aria-hidden="true" />
+
+              <div className="hidden md:flex items-center gap-1.5">
+                <span className="text-slate-400">Keywords</span>
+                <span className="font-mono font-bold tabular-nums text-teal-300">
+                  {atsEngine.keywordCoveragePct}%
+                </span>
+              </div>
+
+              <span className="h-3.5 w-px bg-slate-700 hidden md:block" aria-hidden="true" />
+
+              <div className="hidden md:flex items-center gap-1.5">
+                <span className="text-slate-400">Quantified</span>
+                <span className="font-mono font-bold tabular-nums text-indigo-300">
+                  {atsEngine.bulletQualityScore}%
+                </span>
+              </div>
             </div>
 
-            {/* Immediate DOCX Download Button */}
-            {resumeData && (
+            {undoStack.length > 0 && (
               <button
-                onClick={handleImmediateDocxDownload}
-                disabled={isDownloadingDocx}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20"
-                title="Immediately download generated ATS resume in DOCX format"
+                type="button"
+                onClick={handleUndoLastPatch}
+                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
               >
-                {isDownloadingDocx ? (
-                  <>
-                    <RefreshCcw className="w-4 h-4 animate-spin" />
-                    <span>Generating DOCX...</span>
-                  </>
-                ) : docxDownloaded ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-300" />
-                    <span>DOCX Downloaded!</span>
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4" />
-                    <span>Download DOCX</span>
-                  </>
-                )}
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Undo ({undoStack.length})</span>
               </button>
             )}
 
-            {/* Real-Time PDF Download */}
             {resumeData && (
-              <button
-                onClick={handleImmediatePdfDownload}
-                disabled={isDownloadingPdf}
-                className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-lg shadow-purple-500/20"
-                title="Immediately download ATS-optimized PDF"
-              >
-                {isDownloadingPdf ? (
-                  <>
-                    <RefreshCcw className="w-4 h-4 animate-spin" />
-                    <span>Compiling PDF...</span>
-                  </>
-                ) : (
-                  <>
-                    <FileText className="w-4 h-4" />
-                    <span>Download PDF</span>
-                  </>
-                )}
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleImmediateDocxDownload}
+                  disabled={isDownloadingDocx}
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 disabled:opacity-50 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                >
+                  {isDownloadingDocx ? (
+                    <RefreshCcw className="w-3.5 h-3.5 animate-spin" />
+                  ) : docxDownloaded ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5 text-blue-400" />
+                  )}
+                  <span>{docxDownloaded ? "DOCX Saved" : "DOCX"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleImmediatePdfDownload}
+                  disabled={isDownloadingPdf}
+                  className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                >
+                  {isDownloadingPdf ? (
+                    <RefreshCcw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <FileText className="w-3.5 h-3.5" />
+                  )}
+                  <span>Download PDF</span>
+                </button>
+              </>
             )}
 
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Close Studio"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Modal Main Content Area */}
+        {/* Main 12-Col Split Workspace */}
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
-          {/* Left Column: AI Resume Coach Panel (5 cols) */}
-          <div className="lg:col-span-5 border-r border-white/10 bg-slate-950/40 flex flex-col overflow-hidden">
-            {/* Coach Panel Header */}
-            <div className="p-4 border-b border-white/10 bg-black/20 flex items-center justify-between">
-              <span className="text-xs font-black text-purple-300 uppercase tracking-widest flex items-center gap-2">
-                <Bot className="w-4 h-4 text-purple-400" /> Interactive AI Coach
-              </span>
-              <span className="text-[10px] text-slate-400 font-medium">
-                Powered by Gemini 2.5
-              </span>
-            </div>
-
-            {/* Quick Action Chips Bar */}
-            <div className="p-3 border-b border-white/10 bg-purple-500/5 space-y-1.5 shrink-0">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                  ⚡ Quick Action Prompts:
-                </span>
-                {appliedBulletNotification && (
-                  <span className="text-[10px] font-bold text-emerald-400 animate-fadeIn flex items-center gap-1">
-                    <Check className="w-3 h-3" /> {appliedBulletNotification}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {/* Improve Bullet Action Button */}
-                <button
-                  onClick={() => {
-                    setIsBulletImproverOpen((prev) => !prev);
-                    setBulletImprovementResult(null);
-                  }}
-                  className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold transition-all flex items-center gap-1.5 shadow-sm ${
-                    isBulletImproverOpen
-                      ? "bg-emerald-500 text-white border-emerald-400 shadow-emerald-500/20"
-                      : "bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25"
-                  }`}
-                  title="Select and automatically inject quantified metrics into bullet points"
-                >
+          {/* Left Column (5 cols): Multi-Turn Gemini Gap Copilot + Optional Single Bullet Enhancer */}
+          <div className="lg:col-span-5 border-r border-slate-800 flex flex-col overflow-hidden bg-slate-950">
+            {/* Collapsible Single-Bullet XYZ Enhancer Strip */}
+            <div className="border-b border-slate-800 bg-slate-900/60 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBulletImproverOpen((prev) => !prev);
+                  setBulletImprovementResult(null);
+                }}
+                className="w-full px-3.5 py-2 flex items-center justify-between text-xs font-semibold text-emerald-300 hover:bg-slate-900 transition-colors cursor-pointer"
+              >
+                <span className="flex items-center gap-2">
                   <Wand2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Improve Bullet</span>
-                  {isBulletImproverOpen ? (
-                    <ChevronUp className="w-3 h-3" />
-                  ) : (
-                    <ChevronDown className="w-3 h-3" />
-                  )}
-                </button>
+                  Targeted Bullet XYZ Metric Enhancer
+                </span>
+                {isBulletImproverOpen ? (
+                  <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                )}
+              </button>
 
-                <button
-                  onClick={() =>
-                    handleSendMessage(
-                      "Review my current experience bullet points and add quantitative metrics (percentages %, revenue $, team size, performance multipliers) to maximize ATS impact.",
-                      "Quantify Metrics"
-                    )
-                  }
-                  disabled={isCoachingLoading}
-                  className="px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/30 text-purple-300 text-[10px] font-bold hover:bg-purple-500/20 transition-all flex items-center gap-1"
-                >
-                  <Zap className="w-3 h-3 text-purple-400" /> Quantify All
-                </button>
-
-                <button
-                  onClick={() =>
-                    handleSendMessage(
-                      "Seamlessly incorporate all missing high-impact job keywords into my work experience and summary without keyword stuffing.",
-                      "Inject Keywords"
-                    )
-                  }
-                  disabled={isCoachingLoading}
-                  className="px-2.5 py-1 rounded-lg bg-pink-500/10 border border-pink-500/30 text-pink-300 text-[10px] font-bold hover:bg-pink-500/20 transition-all flex items-center gap-1"
-                >
-                  <Target className="w-3 h-3 text-pink-400" /> Inject Keywords
-                </button>
-
-                <button
-                  onClick={() =>
-                    handleSendMessage(
-                      "Rewrite my professional summary into a high-impact, 3-line executive value proposition tailored to the target role.",
-                      "Rewrite Summary"
-                    )
-                  }
-                  disabled={isCoachingLoading}
-                  className="px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-300 text-[10px] font-bold hover:bg-blue-500/20 transition-all flex items-center gap-1"
-                >
-                  <Edit3 className="w-3 h-3 text-blue-400" /> Elevate Summary
-                </button>
-              </div>
-            </div>
-
-            {/* Interactive 'Improve Bullet' Metric Optimization Drawer */}
-            {isBulletImproverOpen && (
-              <div className="p-3.5 border-b border-emerald-500/30 bg-emerald-950/20 space-y-3 shrink-0 animate-fadeIn">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-emerald-300 flex items-center gap-1.5 uppercase tracking-wider">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                    AI Bullet Point Metric Enhancer
-                  </span>
-                  <button
-                    onClick={() => setIsBulletImproverOpen(false)}
-                    className="text-slate-400 hover:text-white p-1 rounded hover:bg-white/10"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-300 block">
-                    1. Select Bullet Point to Optimize:
-                  </label>
+              {isBulletImproverOpen && (
+                <div className="p-3.5 border-t border-slate-800 bg-slate-950 space-y-2.5">
                   <select
                     value={selectedExpKey}
                     onChange={(e) => {
                       setSelectedExpKey(e.target.value);
                       setBulletImprovementResult(null);
                     }}
-                    className="w-full bg-slate-900 border border-emerald-500/40 rounded-lg p-2 text-xs text-white focus:ring-1 focus:ring-emerald-400 outline-none"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white outline-none focus:border-emerald-500"
                   >
                     {resumeData?.experience?.flatMap((exp, expIdx) =>
                       exp.bulletPoints?.map((bp, bpIdx) => (
@@ -629,381 +651,266 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                           key={`bullet-opt-${exp.id || expIdx}-${bpIdx}`}
                           value={`${exp.id || `exp_${expIdx}`}:${bpIdx}`}
                         >
-                          {exp.company} ({exp.position}): "{bp.slice(0, 55)}..."
+                          {exp.company} ({exp.position}): "{bp.slice(0, 50)}..."
                         </option>
                       )) || []
                     )}
                   </select>
-                </div>
 
-                {/* Selected Bullet Preview */}
-                {selectedExpKey && (
-                  <div className="p-2.5 rounded-lg bg-black/40 border border-white/10 space-y-1">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">
-                      Original Text:
-                    </span>
-                    <p className="text-xs text-slate-300 italic">
-                      {(() => {
-                        const [expId, bpIdxStr] = selectedExpKey.split(":");
-                        const exp = resumeData?.experience?.find(
-                          (e, idx) => (e.id || `exp_${idx}`) === expId
-                        );
-                        return exp?.bulletPoints?.[parseInt(bpIdxStr, 10)] || "Select a bullet";
-                      })()}
-                    </p>
-                  </div>
-                )}
+                  <button
+                    type="button"
+                    onClick={handleExecuteImproveBullet}
+                    disabled={isImprovingBullet || !selectedExpKey}
+                    className="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {isImprovingBullet ? (
+                      <>
+                        <RefreshCcw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Injecting Quantified XYZ Metrics...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="w-3.5 h-3.5" />
+                        <span>Rewrite Selected Bullet with Metrics</span>
+                      </>
+                    )}
+                  </button>
 
-                {/* Action Trigger */}
-                <button
-                  onClick={handleExecuteImproveBullet}
-                  disabled={isImprovingBullet || !selectedExpKey}
-                  className="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20"
-                >
-                  {isImprovingBullet ? (
-                    <>
-                      <RefreshCcw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Gemini Injecting Quantified Metrics...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-3.5 h-3.5" />
-                      <span>Inject Quantified Metrics with Gemini</span>
-                    </>
-                  )}
-                </button>
-
-                {/* Improvement Results Card */}
-                {bulletImprovementResult && (
-                  <div className="p-3 rounded-xl bg-slate-900 border border-emerald-500/40 space-y-2.5 shadow-lg">
-                    <div>
-                      <span className="text-[9px] font-black text-emerald-400 uppercase tracking-wider block mb-1">
-                        ⭐ Recommended High-Impact Bullet:
-                      </span>
-                      <p className="text-xs text-white font-medium bg-black/40 p-2.5 rounded-lg border border-white/10 leading-relaxed">
+                  {bulletImprovementResult && (
+                    <div className="p-3 rounded-xl bg-slate-900 border border-emerald-500/30 space-y-2">
+                      <p className="text-xs text-white leading-relaxed">
                         {bulletImprovementResult.improvedBullet}
                       </p>
-                    </div>
-
-                    {/* Injected Metrics Badges */}
-                    {bulletImprovementResult.metricsAdded?.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {bulletImprovementResult.metricsAdded.map((metric, mIdx) => (
-                          <span
-                            key={`metric-badge-${mIdx}`}
-                            className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold flex items-center gap-1"
-                          >
-                            <Check className="w-2.5 h-2.5 text-emerald-400" /> {metric}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-[10px] text-slate-400 italic">
-                        {bulletImprovementResult.explanation || "Applies Google XYZ impact framework"}
-                      </span>
-                      <button
-                        onClick={() =>
-                          handleApplyImprovedBullet(bulletImprovementResult.improvedBullet)
-                        }
-                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-md shadow-emerald-500/20"
-                      >
-                        <Check className="w-3.5 h-3.5" /> Apply to Resume
-                      </button>
-                    </div>
-
-                    {/* Variations */}
-                    {bulletImprovementResult.variations?.length > 0 && (
-                      <div className="pt-2 border-t border-white/10 space-y-2">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
-                          Alternative Angle Variations:
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] text-slate-400 truncate">
+                          {bulletImprovementResult.explanation}
                         </span>
-                        {bulletImprovementResult.variations.map((variation, vIdx) => (
-                          <div
-                            key={`var-${vIdx}`}
-                            className="p-2 rounded-lg bg-black/30 border border-white/5 flex items-start justify-between gap-2"
-                          >
-                            <p className="text-[11px] text-slate-300 leading-snug flex-1">
-                              {variation}
-                            </p>
-                            <button
-                              onClick={() => handleApplyImprovedBullet(variation)}
-                              className="px-2 py-1 rounded bg-slate-800 hover:bg-emerald-700 text-white text-[10px] font-bold shrink-0 transition-all"
-                            >
-                              Apply
-                            </button>
-                          </div>
-                        ))}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleApplyImprovedBullet(bulletImprovementResult.improvedBullet)
+                          }
+                          className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shrink-0 cursor-pointer"
+                        >
+                          Apply
+                        </button>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Chat History Message Stream */}
-            <div className="flex-1 p-4 overflow-y-auto space-y-4">
-              {chatHistory.map((msg, msgIdx) => (
-                <div
-                  key={`chat-msg-${msg.id || msgIdx}-${msgIdx}`}
-                  className={`flex items-start gap-3 ${
-                    msg.sender === "user" ? "flex-row-reverse" : ""
-                  }`}
-                >
-                  <div
-                    className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
-                      msg.sender === "user"
-                        ? "bg-purple-600 text-white"
-                        : "bg-purple-500/20 text-purple-300 border border-purple-500/40"
-                    }`}
-                  >
-                    {msg.sender === "user" ? (
-                      <User className="w-4 h-4" />
-                    ) : (
-                      <Bot className="w-4 h-4" />
-                    )}
-                  </div>
-
-                  <div
-                    className={`max-w-[82%] p-3.5 rounded-2xl text-xs leading-relaxed space-y-1 ${
-                      msg.sender === "user"
-                        ? "bg-purple-600 text-white rounded-tr-none shadow-lg"
-                        : "bg-slate-900 border border-white/10 text-slate-200 rounded-tl-none shadow-md"
-                    }`}
-                  >
-                    <p className="whitespace-pre-wrap">{msg.text}</p>
-                    <div
-                      className={`text-[9px] text-right font-medium ${
-                        msg.sender === "user" ? "text-purple-200" : "text-slate-500"
-                      }`}
-                    >
-                      {msg.timestamp}
                     </div>
-                  </div>
-                </div>
-              ))}
-
-              {isCoachingLoading && (
-                <div className="flex items-center gap-3 text-purple-300 text-xs font-medium p-3 rounded-2xl bg-purple-500/10 border border-purple-500/20 animate-pulse">
-                  <RefreshCcw className="w-4 h-4 animate-spin text-purple-400" />
-                  AI Coach is optimizing your resume...
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Chat Input Field */}
-            <div className="p-3 border-t border-white/10 bg-slate-950/80">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Ask coach to rewrite a bullet, add skills, or re-frame role..."
-                  value={userInput}
-                  onChange={(e) => setUserInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSendMessage();
-                  }}
-                  disabled={isCoachingLoading}
-                  className="w-full bg-black/60 border border-purple-500/30 rounded-xl pl-4 pr-12 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400"
-                />
-                <button
-                  onClick={() => handleSendMessage()}
-                  disabled={!userInput.trim() || isCoachingLoading}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white transition-all"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                </button>
-              </div>
+            {/* Multi-Turn Gemini Gap Copilot */}
+            <div className="flex-1 overflow-hidden">
+              <AtsCopilotChat
+                messages={chatMessages}
+                onMessagesChange={setChatMessages}
+                persona={persona}
+                onPersonaChange={setPersona}
+                modelMode={modelMode}
+                onModelModeChange={setModelMode}
+                resumeText={rawResumeText}
+                jobDescription={jobDescription}
+                analysisResult={analysisResult}
+                currentResumeData={resumeData}
+                onApplyPatch={handleApplyChatPatch}
+                onUndoLastPatch={handleUndoLastPatch}
+                canUndo={undoStack.length > 0}
+                externalPromptRequest={externalPromptRequest}
+              />
             </div>
           </div>
 
-          {/* Right Column: Live ATS Preview & Section Editor (7 cols) */}
+          {/* Right Column (7 cols): Live Preview, JD Heatmap, Section Grader, Editor & Export */}
           <div className="lg:col-span-7 flex flex-col overflow-hidden bg-slate-900">
-            {/* View Mode Toggle Switch */}
-            <div className="p-3 border-b border-white/10 bg-slate-950/60 flex flex-wrap items-center justify-between gap-2 shrink-0">
-              <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-white/10">
+            {/* Navigation Tabs & Template Preset Switcher */}
+            <div className="px-4 py-2.5 border-b border-slate-800 bg-slate-950/70 flex flex-wrap items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 overflow-x-auto">
                 <button
+                  type="button"
                   onClick={() => setActiveTab("pdf")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === "pdf"
-                      ? "bg-purple-600 text-white shadow-md"
+                      ? "bg-teal-600 text-white"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  <FileCheck className="w-3.5 h-3.5" /> Real-Time PDF Preview
+                  <FileCheck className="w-3.5 h-3.5" /> Live PDF
                 </button>
                 <button
+                  type="button"
+                  onClick={() => setActiveTab("heatmap")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === "heatmap"
+                      ? "bg-teal-600 text-white"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <Flame className="w-3.5 h-3.5" /> JD Gap Heatmap
+                  {atsEngine.jobKeywordsMissing.length > 0 && (
+                    <span className="font-mono text-[10px] opacity-90 tabular-nums">
+                      ({atsEngine.jobKeywordsMissing.length})
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
                   onClick={() => setActiveTab("preview")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === "preview"
-                      ? "bg-purple-600 text-white shadow-md"
+                      ? "bg-teal-600 text-white"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  <Eye className="w-3.5 h-3.5" /> ATS HTML Layout
+                  <Eye className="w-3.5 h-3.5" /> HTML View
                 </button>
                 <button
+                  type="button"
                   onClick={() => setActiveTab("editor")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === "editor"
-                      ? "bg-purple-600 text-white shadow-md"
+                      ? "bg-teal-600 text-white"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  <Edit3 className="w-3.5 h-3.5" /> Interactive Section Editor
+                  <Edit3 className="w-3.5 h-3.5" /> Section Editor
                 </button>
                 <button
+                  type="button"
                   onClick={() => setActiveTab("export")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === "export"
-                      ? "bg-purple-600 text-white shadow-md"
+                      ? "bg-teal-600 text-white"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  <Download className="w-3.5 h-3.5" /> Export Options
+                  <Download className="w-3.5 h-3.5" /> Export
                 </button>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> ATS Standard 1-Col
-                </span>
+              {/* Template Style Selector */}
+              <div className="flex items-center gap-1.5 text-[11px]">
+                <Layers className="w-3.5 h-3.5 text-slate-400" />
+                <select
+                  value={templateStyle}
+                  onChange={(e) => setTemplateStyle(e.target.value as AtsBuilderTemplateStyle)}
+                  className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 font-medium outline-none focus:border-teal-500 cursor-pointer"
+                  title="Select ATS layout preset"
+                >
+                  <option value="classic-executive">Classic Executive</option>
+                  <option value="modern-minimalist">Modern Minimalist</option>
+                  <option value="compact-technical">Compact Technical</option>
+                </select>
               </div>
             </div>
 
-            {/* Main Content Pane */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-950/20">
+            {/* Right Pane Body */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-950/30">
               {isGeneratingInitial ? (
-                <div className="h-full flex flex-col items-center justify-center space-y-4">
-                  <RefreshCcw className="w-10 h-10 text-purple-400 animate-spin" />
-                  <p className="text-sm font-bold text-slate-300">
-                    Formatting resume into 100% ATS-compliant structure...
+                <div className="h-full flex flex-col items-center justify-center space-y-3">
+                  <RefreshCcw className="w-8 h-8 text-teal-400 animate-spin" />
+                  <p className="text-sm font-semibold text-slate-300">
+                    Structuring your resume into a clean ATS layout...
                   </p>
                 </div>
               ) : activeTab === "pdf" ? (
-                /* REAL-TIME PDF PREVIEWER */
-                <div className="h-full flex flex-col space-y-4 max-w-4xl mx-auto">
-                  {/* PDF Viewer Verification Toolbar */}
-                  <div className="p-3 rounded-2xl bg-slate-900 border border-white/10 flex flex-wrap items-center justify-between gap-3 shadow-lg shrink-0">
-                    {/* ATS Verification Pills */}
-                    <div className="flex flex-wrap items-center gap-2 text-[10px]">
-                      <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold flex items-center gap-1">
-                        <Check className="w-3 h-3 text-emerald-400" /> Standard Letter (8.5 × 11")
-                      </span>
-                      <span className="px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 font-bold flex items-center gap-1">
-                        <Check className="w-3 h-3 text-purple-400" /> 40pt Margins
-                      </span>
-                      <span className="px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-300 font-bold flex items-center gap-1">
-                        <Check className="w-3 h-3 text-blue-400" /> Helvetica Vector Text
-                      </span>
+                <div className="h-full flex flex-col space-y-3 max-w-4xl mx-auto">
+                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-2 shrink-0">
+                    <div className="text-[11px] text-slate-400 flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <span>8.5 × 11" Letter · Vector Helvetica · 1-Column Safe</span>
                     </div>
 
-                    {/* Zoom & View Controls */}
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center bg-black/40 rounded-xl border border-white/10 p-0.5">
+                      <div className="flex items-center bg-slate-950 rounded-lg border border-slate-800 p-0.5">
                         <button
+                          type="button"
                           onClick={() => setPdfZoom((z) => Math.max(60, z - 10))}
                           disabled={pdfZoom <= 60}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-white disabled:opacity-30"
-                          title="Zoom Out"
+                          className="p-1 text-slate-400 hover:text-white disabled:opacity-30 cursor-pointer"
                         >
                           <ZoomOut className="w-3.5 h-3.5" />
                         </button>
-                        <span className="px-2 text-[11px] font-bold text-slate-200">
+                        <span className="px-2 text-[11px] font-mono tabular-nums text-slate-200">
                           {pdfZoom}%
                         </span>
                         <button
+                          type="button"
                           onClick={() => setPdfZoom((z) => Math.min(150, z + 10))}
                           disabled={pdfZoom >= 150}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-white disabled:opacity-30"
-                          title="Zoom In"
+                          className="p-1 text-slate-400 hover:text-white disabled:opacity-30 cursor-pointer"
                         >
                           <ZoomIn className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          onClick={() => setPdfZoom(100)}
-                          className="px-2 py-1 text-[10px] text-slate-400 hover:text-purple-300 font-bold border-l border-white/10"
-                        >
-                          Reset
-                        </button>
                       </div>
 
-                      {/* View Engine Toggle */}
-                      <div className="flex items-center bg-black/40 rounded-xl border border-white/10 p-0.5">
+                      <div className="flex items-center bg-slate-950 rounded-lg border border-slate-800 p-0.5 text-[11px]">
                         <button
+                          type="button"
                           onClick={() => setPdfViewType("native")}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                            pdfViewType === "native"
-                              ? "bg-purple-600 text-white"
-                              : "text-slate-400 hover:text-white"
+                          className={`px-2.5 py-1 rounded-md font-medium cursor-pointer ${
+                            pdfViewType === "native" ? "bg-teal-600 text-white" : "text-slate-400 hover:text-white"
                           }`}
                         >
-                          PDF Viewer
+                          PDF Vector
                         </button>
                         <button
+                          type="button"
                           onClick={() => setPdfViewType("stage")}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                            pdfViewType === "stage"
-                              ? "bg-purple-600 text-white"
-                              : "text-slate-400 hover:text-white"
+                          className={`px-2.5 py-1 rounded-md font-medium cursor-pointer ${
+                            pdfViewType === "stage" ? "bg-teal-600 text-white" : "text-slate-400 hover:text-white"
                           }`}
                         >
-                          Document Stage
+                          Paper Stage
                         </button>
                       </div>
-
-                      {/* Download Buttons in Toolbar */}
-                      <button
-                        onClick={handleImmediatePdfDownload}
-                        className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-purple-500/20"
-                      >
-                        <Download className="w-3.5 h-3.5" /> PDF
-                      </button>
-                      <button
-                        onClick={handleImmediateDocxDownload}
-                        className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-blue-500/20"
-                      >
-                        <Download className="w-3.5 h-3.5" /> DOCX
-                      </button>
                     </div>
                   </div>
 
-                  {/* PDF Document Container */}
-                  <div className="flex-1 min-h-[620px] rounded-2xl overflow-hidden relative flex items-center justify-center bg-slate-950/60 border border-white/10 p-2 sm:p-4">
+                  <div className="flex-1 min-h-[580px] rounded-xl overflow-hidden relative flex items-center justify-center bg-slate-950 border border-slate-800 p-2 sm:p-4">
                     {isGeneratingPdf && !pdfBlobUrl ? (
-                      <div className="flex flex-col items-center justify-center space-y-3 p-8">
-                        <RefreshCcw className="w-8 h-8 text-purple-400 animate-spin" />
-                        <p className="text-xs font-bold text-slate-300">
-                          Compiling real-time ATS PDF document...
-                        </p>
+                      <div className="flex flex-col items-center space-y-2">
+                        <RefreshCcw className="w-7 h-7 text-teal-400 animate-spin" />
+                        <span className="text-xs text-slate-300">Compiling PDF...</span>
                       </div>
                     ) : pdfViewType === "native" && pdfBlobUrl ? (
-                      <div className="w-full h-full min-h-[620px] relative rounded-xl overflow-hidden shadow-2xl">
+                      <div className="w-full h-full min-h-[580px] relative rounded-lg overflow-hidden">
                         {isGeneratingPdf && (
-                          <div className="absolute top-3 right-3 z-10 px-3 py-1 rounded-full bg-black/80 backdrop-blur border border-purple-500/40 text-purple-300 text-[10px] font-bold flex items-center gap-1.5 shadow-lg animate-pulse">
-                            <RefreshCcw className="w-3 h-3 animate-spin text-purple-400" />
-                            Live Updating...
+                          <div className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-700 text-teal-300 text-[11px] font-medium flex items-center gap-1.5">
+                            <RefreshCcw className="w-3 h-3 animate-spin" />
+                            <span>Updating PDF...</span>
                           </div>
                         )}
                         <iframe
                           src={`${pdfBlobUrl}#toolbar=0&navpanes=0`}
-                          className="w-full h-full min-h-[620px] rounded-xl border border-slate-700 bg-white"
+                          className="w-full h-full min-h-[580px] rounded-lg border border-slate-800 bg-white"
                           title="Real-Time ATS Resume PDF Preview"
                         />
                       </div>
                     ) : (
-                      /* High-Fidelity Paper Stage Mode */
                       <div
-                        className="transition-transform duration-200 origin-top flex justify-center py-4"
+                        className="transition-transform duration-150 origin-top flex justify-center py-2"
                         style={{ transform: `scale(${pdfZoom / 100})` }}
                       >
-                        <div className="w-[816px] min-h-[1056px] bg-white text-slate-900 p-12 shadow-2xl font-sans text-xs leading-normal border border-slate-300 space-y-5 rounded-sm">
-                          {/* Header / Contact */}
-                          <div className="text-center space-y-1 pb-3 border-b border-slate-300">
+                        <div
+                          className={`w-[816px] min-h-[1056px] bg-white text-slate-900 shadow-2xl font-sans text-xs leading-normal border border-slate-300 ${
+                            templateStyle === "compact-technical" ? "p-8 space-y-3.5" : "p-12 space-y-5"
+                          }`}
+                        >
+                          <div
+                            className={`space-y-1 pb-3 border-b border-slate-300 ${
+                              templateStyle === "modern-minimalist" ? "text-left" : "text-center"
+                            }`}
+                          >
                             <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-900">
                               {resumeData?.name || "Candidate Name"}
                             </h1>
-                            <p className="text-sm font-semibold text-slate-700">
+                            <p
+                              className={`text-sm font-semibold ${
+                                templateStyle === "modern-minimalist" ? "text-teal-700" : "text-slate-700"
+                              }`}
+                            >
                               {resumeData?.title || "Target Professional Title"}
                             </p>
                             <p className="text-[11px] text-slate-600">
@@ -1019,10 +926,15 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                             </p>
                           </div>
 
-                          {/* Summary */}
                           {resumeData?.summary && (
                             <div className="space-y-1">
-                              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-0.5">
+                              <h2
+                                className={`text-xs font-bold uppercase tracking-wider border-b pb-0.5 ${
+                                  templateStyle === "modern-minimalist"
+                                    ? "text-teal-800 border-teal-600"
+                                    : "text-slate-900 border-slate-300"
+                                }`}
+                              >
                                 Professional Summary
                               </h2>
                               <p className="text-slate-800 leading-relaxed text-[11px]">
@@ -1031,14 +943,19 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                             </div>
                           )}
 
-                          {/* Experience */}
                           {resumeData?.experience && resumeData.experience.length > 0 && (
                             <div className="space-y-3">
-                              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-0.5">
+                              <h2
+                                className={`text-xs font-bold uppercase tracking-wider border-b pb-0.5 ${
+                                  templateStyle === "modern-minimalist"
+                                    ? "text-teal-800 border-teal-600"
+                                    : "text-slate-900 border-slate-300"
+                                }`}
+                              >
                                 Professional Work Experience
                               </h2>
                               {resumeData.experience.map((exp, idx) => (
-                                <div key={`prev-exp-${exp.id || idx}-${idx}`} className="space-y-1">
+                                <div key={`stage-exp-${exp.id || idx}`} className="space-y-1">
                                   <div className="flex justify-between items-baseline font-bold text-slate-900 text-[11px]">
                                     <span>
                                       {exp.position}{" "}
@@ -1046,14 +963,14 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                         — {exp.company}
                                       </span>
                                     </span>
-                                    <span className="text-slate-600 text-[10px]">
+                                    <span className="text-slate-600 text-[10px] font-mono tabular-nums">
                                       {exp.duration}
                                     </span>
                                   </div>
                                   <ul className="list-disc list-inside space-y-1 text-slate-800 text-[11px] pl-1">
                                     {exp.bulletPoints?.map((bp, bIdx) => (
-                                      <li key={`prev-exp-bp-${idx}-${bIdx}`} className="leading-snug">
-                                        <span className="align-top">{bp}</span>
+                                      <li key={`stage-bp-${idx}-${bIdx}`} className="leading-snug">
+                                        {bp}
                                       </li>
                                     ))}
                                   </ul>
@@ -1062,19 +979,22 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                             </div>
                           )}
 
-                          {/* Skills */}
                           {resumeData?.skills && (
                             <div className="space-y-1">
-                              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-0.5">
+                              <h2
+                                className={`text-xs font-bold uppercase tracking-wider border-b pb-0.5 ${
+                                  templateStyle === "modern-minimalist"
+                                    ? "text-teal-800 border-teal-600"
+                                    : "text-slate-900 border-slate-300"
+                                }`}
+                              >
                                 Core Competencies & Technical Skills
                               </h2>
                               <div className="space-y-0.5 text-[11px]">
-                                {Object.entries(resumeData.skills).map(([category, list], catIdx) =>
+                                {Object.entries(resumeData.skills).map(([cat, list]) =>
                                   list && list.length > 0 ? (
-                                    <p key={`prev-skill-${category}-${catIdx}`} className="text-slate-800">
-                                      <strong className="capitalize text-slate-900">
-                                        {category}:{" "}
-                                      </strong>
+                                    <p key={`stage-sk-${cat}`} className="text-slate-800">
+                                      <strong className="capitalize text-slate-900">{cat}: </strong>
                                       {list.join(", ")}
                                     </p>
                                   ) : null
@@ -1083,15 +1003,20 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                             </div>
                           )}
 
-                          {/* Education */}
                           {resumeData?.education && resumeData.education.length > 0 && (
                             <div className="space-y-1">
-                              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-0.5">
-                                Education & Certifications
+                              <h2
+                                className={`text-xs font-bold uppercase tracking-wider border-b pb-0.5 ${
+                                  templateStyle === "modern-minimalist"
+                                    ? "text-teal-800 border-teal-600"
+                                    : "text-slate-900 border-slate-300"
+                                }`}
+                              >
+                                Education & Credentials
                               </h2>
                               {resumeData.education.map((edu, idx) => (
                                 <div
-                                  key={`prev-edu-${edu.id || idx}-${idx}`}
+                                  key={`stage-edu-${edu.id || idx}`}
                                   className="flex justify-between text-[11px] text-slate-800"
                                 >
                                   <span>
@@ -1108,115 +1033,300 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                     )}
                   </div>
                 </div>
-              ) : activeTab === "preview" ? (
-                /* LIVE 1-COLUMN ATS PRINT PREVIEW */
-                <div className="max-w-3xl mx-auto bg-white text-slate-900 p-8 sm:p-12 rounded-xl shadow-2xl font-sans text-xs leading-normal border border-slate-300 space-y-5" ref={printPreviewRef}>
-                  {/* Name & Title */}
-                  <div className="text-center space-y-1 pb-3 border-b border-slate-300">
-                    <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-900">
-                      {resumeData?.name || "Candidate Name"}
-                    </h1>
-                    <p className="text-sm font-semibold text-slate-700">
-                      {resumeData?.title || "Target Professional Title"}
-                    </p>
-                    <p className="text-[11px] text-slate-600">
-                      {[
-                        resumeData?.contact?.phone,
-                        resumeData?.contact?.email,
-                        resumeData?.contact?.location,
-                        resumeData?.contact?.linkedin,
-                        resumeData?.contact?.portfolio,
-                      ]
-                        .filter(Boolean)
-                        .join("  |  ")}
-                    </p>
+              ) : activeTab === "heatmap" ? (
+                /* ULTRA-LEVEL TAB: JD KEYWORD GAP HEATMAP + SECTION STRENGTH GRADER */
+                <div className="max-w-4xl mx-auto space-y-6">
+                  {/* Section Strength Grader */}
+                  <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                      <div>
+                        <h4 className="text-sm font-bold text-white">Section Strength Grader</h4>
+                        <p className="text-xs text-slate-400">
+                          Click Fix via Copilot on any section below 85% to get a ready-to-apply upgrade.
+                        </p>
+                      </div>
+                      <span className="text-xs font-mono tabular-nums text-teal-400 font-semibold">
+                        Overall Live Match: {activeScore}%
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {atsEngine.sectionMetrics.map((sec) => {
+                        const statusColor =
+                          sec.status === "strong"
+                            ? "text-emerald-400"
+                            : sec.status === "moderate"
+                            ? "text-amber-400"
+                            : "text-rose-400";
+                        const barColor =
+                          sec.status === "strong"
+                            ? "bg-emerald-500"
+                            : sec.status === "moderate"
+                            ? "bg-amber-500"
+                            : "bg-rose-500";
+                        return (
+                          <div
+                            key={sec.id}
+                            className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-semibold text-white">{sec.label}</span>
+                              <span className={`text-xs font-mono font-bold tabular-nums ${statusColor}`}>
+                                {sec.score}%
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+                                style={{ width: `${sec.score}%` }}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-2 pt-0.5">
+                              <p className="text-[11px] text-slate-400">{sec.diagnostic}</p>
+                              {sec.score < 90 && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    askCopilotFromStudio(
+                                      `Fix my "${sec.label}" section (${sec.score}%): ${sec.diagnostic}. Give me a 1-click patch.`
+                                    )
+                                  }
+                                  className="px-2.5 py-1 rounded-lg bg-teal-600/20 hover:bg-teal-600 text-teal-300 hover:text-white border border-teal-500/30 text-[11px] font-semibold shrink-0 transition-colors cursor-pointer whitespace-nowrap"
+                                >
+                                  Fix via Copilot
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  {/* Summary Section */}
-                  {resumeData?.summary && (
-                    <div className="space-y-1">
-                      <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-0.5">
-                        Professional Summary
-                      </h2>
-                      <p className="text-slate-800 leading-relaxed text-[11px]">
-                        {resumeData.summary}
+                  {/* Missing JD Keywords Action Matrix */}
+                  <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                      <div>
+                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                          <Target className="w-4 h-4 text-rose-400" />
+                          Missing Job Description Keywords ({atsEngine.jobKeywordsMissing.length})
+                        </h4>
+                        <p className="text-xs text-slate-400">
+                          Click any missing term to ask Gemini Copilot for a 1-click skill or bullet insertion.
+                        </p>
+                      </div>
+                      {atsEngine.jobKeywordsMissing.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            askCopilotFromStudio(
+                              `Weave these top missing JD keywords into my summary, core skills, and experience bullets cleanly: ${atsEngine.jobKeywordsMissing
+                                .slice(0, 5)
+                                .join(", ")}`
+                            )
+                          }
+                          className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap"
+                        >
+                          Inject Top Missing Keywords
+                        </button>
+                      )}
+                    </div>
+
+                    {atsEngine.jobKeywordsMissing.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {atsEngine.jobKeywordsMissing.map((kw) => (
+                          <button
+                            key={kw}
+                            type="button"
+                            onClick={() =>
+                              askCopilotFromStudio(
+                                `Give me a short 1-click patch adding the missing keyword "${kw}" naturally into my resume.`
+                              )
+                            }
+                            className="px-3 py-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/40 text-rose-200 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                            title="Click to ask Copilot where to place this keyword"
+                          >
+                            <span>+ {kw}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>All tracked target keywords are now present in your resume!</span>
+                      </div>
+                    )}
+
+                    {/* Matched Keywords */}
+                    {atsEngine.jobKeywordsFound.length > 0 && (
+                      <div className="pt-3 border-t border-slate-800 space-y-2">
+                        <span className="text-xs font-semibold text-emerald-400 block">
+                          Matched in Resume ({atsEngine.jobKeywordsFound.length})
+                        </span>
+                        <div className="flex flex-wrap gap-2 text-xs text-slate-300">
+                          {atsEngine.jobKeywordsFound.map((kw) => (
+                            <span
+                              key={kw}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-emerald-300 text-[11px] font-medium"
+                            >
+                              {kw}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Weak Verbs Warning */}
+                    {atsEngine.weakPhrasesDetected.length > 0 && (
+                      <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                        <div className="text-xs text-amber-300 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 shrink-0" />
+                          <span>
+                            Weak passive phrases detected:{" "}
+                            <strong className="font-mono">
+                              {atsEngine.weakPhrasesDetected.join(", ")}
+                            </strong>
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            askCopilotFromStudio(
+                              `Replace weak passive phrases (${atsEngine.weakPhrasesDetected.join(
+                                ", "
+                              )}) in my experience bullets with executive action verbs and XYZ metrics.`
+                            )
+                          }
+                          className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold cursor-pointer whitespace-nowrap"
+                        >
+                          Fix Weak Verbs
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : activeTab === "preview" ? (
+                /* LIVE 1-COLUMN ATS HTML VIEW + PRINT */
+                <div className="max-w-3xl mx-auto space-y-3">
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => handlePdfPrint()}
+                      className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-white flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Printer className="w-3.5 h-3.5" /> Print HTML Preview
+                    </button>
+                  </div>
+                  <div
+                    className="bg-white text-slate-900 p-8 sm:p-12 rounded-xl shadow-2xl font-sans text-xs leading-normal border border-slate-300 space-y-5"
+                    ref={printPreviewRef}
+                  >
+                    <div className="text-center space-y-1 pb-3 border-b border-slate-300">
+                      <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-900">
+                        {resumeData?.name || "Candidate Name"}
+                      </h1>
+                      <p className="text-sm font-semibold text-slate-700">
+                        {resumeData?.title || "Target Professional Title"}
+                      </p>
+                      <p className="text-[11px] text-slate-600">
+                        {[
+                          resumeData?.contact?.phone,
+                          resumeData?.contact?.email,
+                          resumeData?.contact?.location,
+                          resumeData?.contact?.linkedin,
+                          resumeData?.contact?.portfolio,
+                        ]
+                          .filter(Boolean)
+                          .join("  |  ")}
                       </p>
                     </div>
-                  )}
 
-                  {/* Work Experience Section */}
-                  {resumeData?.experience && resumeData.experience.length > 0 && (
-                    <div className="space-y-3">
-                      <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-0.5">
-                        Professional Work Experience
-                      </h2>
-                      {resumeData.experience.map((exp, idx) => (
-                        <div key={`print-exp-${exp.id || idx}-${idx}`} className="space-y-1">
-                          <div className="flex justify-between items-baseline font-bold text-slate-900 text-[11px]">
-                            <span>
-                              {exp.position} <span className="font-normal text-slate-700">— {exp.company}</span>
-                            </span>
-                            <span className="text-slate-600 text-[10px]">{exp.duration}</span>
-                          </div>
-                          <ul className="list-disc list-inside space-y-1 text-slate-800 text-[11px] pl-1">
-                            {exp.bulletPoints?.map((bp, bIdx) => (
-                              <li key={`print-exp-bp-${idx}-${bIdx}`} className="leading-snug">
-                                <span className="align-top">{bp}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Skills Section */}
-                  {resumeData?.skills && (
-                    <div className="space-y-1">
-                      <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-0.5">
-                        Core Competencies & Technical Skills
-                      </h2>
-                      <div className="space-y-0.5 text-[11px]">
-                        {Object.entries(resumeData.skills).map(([category, list], catIdx) =>
-                          list && list.length > 0 ? (
-                            <p key={`print-skill-${category}-${catIdx}`} className="text-slate-800">
-                              <strong className="capitalize text-slate-900">{category}: </strong>
-                              {list.join(", ")}
-                            </p>
-                          ) : null
-                        )}
+                    {resumeData?.summary && (
+                      <div className="space-y-1">
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-0.5">
+                          Professional Summary
+                        </h2>
+                        <p className="text-slate-800 leading-relaxed text-[11px]">
+                          {resumeData.summary}
+                        </p>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Education Section */}
-                  {resumeData?.education && resumeData.education.length > 0 && (
-                    <div className="space-y-1">
-                      <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-0.5">
-                        Education & Certifications
-                      </h2>
-                      {resumeData.education.map((edu, idx) => (
-                        <div key={`print-edu-${edu.id || idx}-${idx}`} className="flex justify-between text-[11px] text-slate-800">
-                          <span>
-                            <strong className="text-slate-900">{edu.degree}</strong>, {edu.institution}
-                          </span>
-                          <span className="text-slate-600 text-[10px]">{edu.year}</span>
+                    {resumeData?.experience && resumeData.experience.length > 0 && (
+                      <div className="space-y-3">
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-0.5">
+                          Professional Work Experience
+                        </h2>
+                        {resumeData.experience.map((exp, idx) => (
+                          <div key={`print-exp-${exp.id || idx}`} className="space-y-1">
+                            <div className="flex justify-between items-baseline font-bold text-slate-900 text-[11px]">
+                              <span>
+                                {exp.position}{" "}
+                                <span className="font-normal text-slate-700">— {exp.company}</span>
+                              </span>
+                              <span className="text-slate-600 text-[10px]">{exp.duration}</span>
+                            </div>
+                            <ul className="list-disc list-inside space-y-1 text-slate-800 text-[11px] pl-1">
+                              {exp.bulletPoints?.map((bp, bIdx) => (
+                                <li key={`print-exp-bp-${idx}-${bIdx}`} className="leading-snug">
+                                  {bp}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {resumeData?.skills && (
+                      <div className="space-y-1">
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-0.5">
+                          Core Competencies & Technical Skills
+                        </h2>
+                        <div className="space-y-0.5 text-[11px]">
+                          {Object.entries(resumeData.skills).map(([cat, list]) =>
+                            list && list.length > 0 ? (
+                              <p key={`print-skill-${cat}`} className="text-slate-800">
+                                <strong className="capitalize text-slate-900">{cat}: </strong>
+                                {list.join(", ")}
+                              </p>
+                            ) : null
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      </div>
+                    )}
+
+                    {resumeData?.education && resumeData.education.length > 0 && (
+                      <div className="space-y-1">
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-0.5">
+                          Education & Certifications
+                        </h2>
+                        {resumeData.education.map((edu, idx) => (
+                          <div
+                            key={`print-edu-${edu.id || idx}`}
+                            className="flex justify-between text-[11px] text-slate-800"
+                          >
+                            <span>
+                              <strong className="text-slate-900">{edu.degree}</strong>,{" "}
+                              {edu.institution}
+                            </span>
+                            <span className="text-slate-600 text-[10px]">{edu.year}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : activeTab === "editor" ? (
-                /* INTERACTIVE SECTION EDITOR MODE */
+                /* INTERACTIVE SECTION EDITOR */
                 <div className="max-w-3xl mx-auto space-y-4">
-                  {/* Contact Info Editor */}
-                  <div className="p-4 rounded-2xl bg-slate-900 border border-white/10 space-y-3">
-                    <h4 className="text-xs font-black text-purple-300 uppercase tracking-widest">
-                      Personal & Contact Information
+                  <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+                    <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider">
+                      Header & Contact Details
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[10px] text-slate-400 font-bold block mb-1">
+                        <label className="text-[11px] text-slate-400 font-medium block mb-1">
                           Full Name
                         </label>
                         <input
@@ -1227,11 +1337,11 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               prev ? { ...prev, name: e.target.value } : null
                             )
                           }
-                          className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white"
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] text-slate-400 font-bold block mb-1">
+                        <label className="text-[11px] text-slate-400 font-medium block mb-1">
                           Target Title
                         </label>
                         <input
@@ -1242,11 +1352,11 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               prev ? { ...prev, title: e.target.value } : null
                             )
                           }
-                          className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white"
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] text-slate-400 font-bold block mb-1">
+                        <label className="text-[11px] text-slate-400 font-medium block mb-1">
                           Email Address
                         </label>
                         <input
@@ -1262,11 +1372,11 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                 : null
                             )
                           }
-                          className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white"
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] text-slate-400 font-bold block mb-1">
+                        <label className="text-[11px] text-slate-400 font-medium block mb-1">
                           Phone Number
                         </label>
                         <input
@@ -1282,17 +1392,30 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                 : null
                             )
                           }
-                          className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Summary Editor */}
-                  <div className="p-4 rounded-2xl bg-slate-900 border border-white/10 space-y-2">
-                    <h4 className="text-xs font-black text-purple-300 uppercase tracking-widest">
-                      Professional Summary
-                    </h4>
+                  <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider">
+                        Professional Summary
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          askCopilotFromStudio(
+                            "Rewrite my Professional Summary into a tight 3-line executive hook with missing JD keywords."
+                          )
+                        }
+                        className="text-[11px] font-semibold text-teal-300 hover:text-white cursor-pointer"
+                      >
+                        Improve with Copilot
+                      </button>
+                    </div>
                     <textarea
                       rows={3}
                       value={resumeData?.summary || ""}
@@ -1301,24 +1424,27 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                           prev ? { ...prev, summary: e.target.value } : null
                         )
                       }
-                      className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-xs text-white leading-relaxed"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-white leading-relaxed"
                     />
                   </div>
 
-                  {/* Work Experience Editor */}
-                  <div className="p-4 rounded-2xl bg-slate-900 border border-white/10 space-y-4">
+                  {/* Experience Editor */}
+                  <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-black text-purple-300 uppercase tracking-widest">
+                      <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider">
                         Work Experience ({resumeData?.experience?.length || 0})
                       </h4>
                       <button
+                        type="button"
                         onClick={() => {
                           const newExp = {
                             id: `exp_${Date.now()}`,
-                            company: "New Company",
+                            company: "Organization Name",
                             position: "Role Title",
-                            duration: "Year - Present",
-                            bulletPoints: ["Achieved X by implementing Y, resulting in Z% improvement."],
+                            duration: "2022 - Present",
+                            bulletPoints: [
+                              "Spearheaded core architecture delivering 35% performance improvement.",
+                            ],
                           };
                           setResumeData((prev) =>
                             prev
@@ -1326,16 +1452,16 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               : null
                           );
                         }}
-                        className="px-2.5 py-1 rounded-lg bg-purple-500/20 text-purple-300 text-[10px] font-bold hover:bg-purple-500 hover:text-white transition-all flex items-center gap-1"
+                        className="px-2.5 py-1 rounded-lg bg-teal-600/20 hover:bg-teal-600 text-teal-300 hover:text-white text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
                       >
-                        <Plus className="w-3 h-3" /> Add Position
+                        <Plus className="w-3.5 h-3.5" /> Add Role
                       </button>
                     </div>
 
                     {resumeData?.experience?.map((exp, expIdx) => (
                       <div
-                        key={`edit-exp-${exp.id || expIdx}-${expIdx}`}
-                        className="p-3.5 rounded-xl bg-black/40 border border-white/10 space-y-3"
+                        key={`edit-exp-${exp.id || expIdx}`}
+                        className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-3"
                       >
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <input
@@ -1346,52 +1472,48 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               const val = e.target.value;
                               setResumeData((prev) => {
                                 if (!prev) return null;
-                                const updatedExp = [...prev.experience];
-                                updatedExp[expIdx].position = val;
-                                return { ...prev, experience: updatedExp };
+                                const updated = [...prev.experience];
+                                updated[expIdx] = { ...updated[expIdx], position: val };
+                                return { ...prev, experience: updated };
                               });
                             }}
-                            className="bg-black/60 border border-white/10 rounded p-1.5 text-xs text-white font-bold"
+                            className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white font-semibold"
                           />
                           <input
                             type="text"
-                            placeholder="Company Name"
+                            placeholder="Company"
                             value={exp.company}
                             onChange={(e) => {
                               const val = e.target.value;
                               setResumeData((prev) => {
                                 if (!prev) return null;
-                                const updatedExp = [...prev.experience];
-                                updatedExp[expIdx].company = val;
-                                return { ...prev, experience: updatedExp };
+                                const updated = [...prev.experience];
+                                updated[expIdx] = { ...updated[expIdx], company: val };
+                                return { ...prev, experience: updated };
                               });
                             }}
-                            className="bg-black/60 border border-white/10 rounded p-1.5 text-xs text-white"
+                            className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white"
                           />
                           <input
                             type="text"
-                            placeholder="Duration (e.g. 2021-Present)"
+                            placeholder="Duration"
                             value={exp.duration}
                             onChange={(e) => {
                               const val = e.target.value;
                               setResumeData((prev) => {
                                 if (!prev) return null;
-                                const updatedExp = [...prev.experience];
-                                updatedExp[expIdx].duration = val;
-                                return { ...prev, experience: updatedExp };
+                                const updated = [...prev.experience];
+                                updated[expIdx] = { ...updated[expIdx], duration: val };
+                                return { ...prev, experience: updated };
                               });
                             }}
-                            className="bg-black/60 border border-white/10 rounded p-1.5 text-xs text-white"
+                            className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white"
                           />
                         </div>
 
-                        {/* Bullet points editor */}
-                        <div className="space-y-1.5 pt-1">
-                          <label className="text-[10px] text-slate-400 font-bold block">
-                            Bullet Points ({exp.bulletPoints?.length || 0}):
-                          </label>
+                        <div className="space-y-2">
                           {exp.bulletPoints?.map((bp, bpIdx) => (
-                            <div key={`edit-exp-bp-${expIdx}-${bpIdx}`} className="flex items-center gap-2">
+                            <div key={`edit-bp-${expIdx}-${bpIdx}`} className="flex items-center gap-2">
                               <input
                                 type="text"
                                 value={bp}
@@ -1399,63 +1521,74 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                   const val = e.target.value;
                                   setResumeData((prev) => {
                                     if (!prev) return null;
-                                    const updatedExp = [...prev.experience];
-                                    updatedExp[expIdx].bulletPoints[bpIdx] = val;
-                                    return { ...prev, experience: updatedExp };
+                                    const updated = [...prev.experience];
+                                    const bps = [...updated[expIdx].bulletPoints];
+                                    bps[bpIdx] = val;
+                                    updated[expIdx] = { ...updated[expIdx], bulletPoints: bps };
+                                    return { ...prev, experience: updated };
                                   });
                                 }}
-                                className="flex-1 bg-black/80 border border-white/10 rounded p-1.5 text-xs text-slate-200"
+                                className="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200"
                               />
                               <button
+                                type="button"
                                 onClick={() => handleOpenBulletImprover(exp.id || `exp_${expIdx}`, bpIdx)}
-                                title="Improve with Quantified Metrics using Gemini"
-                                className="px-2 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold flex items-center gap-1 transition-all shrink-0"
+                                className="px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-[11px] font-semibold flex items-center gap-1 shrink-0 cursor-pointer transition-colors"
                               >
-                                <Wand2 className="w-3 h-3 text-emerald-400" />
-                                <span className="hidden sm:inline">Improve</span>
+                                <Wand2 className="w-3 h-3" />
+                                <span className="hidden sm:inline">Quantify</span>
                               </button>
                               <button
+                                type="button"
                                 onClick={() => {
                                   setResumeData((prev) => {
                                     if (!prev) return null;
-                                    const updatedExp = [...prev.experience];
-                                    updatedExp[expIdx].bulletPoints.splice(bpIdx, 1);
-                                    return { ...prev, experience: updatedExp };
+                                    const updated = [...prev.experience];
+                                    const bps = updated[expIdx].bulletPoints.filter((_, i) => i !== bpIdx);
+                                    updated[expIdx] = { ...updated[expIdx], bulletPoints: bps };
+                                    return { ...prev, experience: updated };
                                   });
                                 }}
-                                className="text-rose-400 hover:text-rose-300 p-1"
+                                className="text-rose-400 hover:text-rose-300 p-1.5 cursor-pointer"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           ))}
                           <button
+                            type="button"
                             onClick={() => {
                               setResumeData((prev) => {
                                 if (!prev) return null;
-                                const updatedExp = [...prev.experience];
-                                updatedExp[expIdx].bulletPoints.push("Increased efficiency by X% through strategic optimization.");
-                                return { ...prev, experience: updatedExp };
+                                const updated = [...prev.experience];
+                                updated[expIdx] = {
+                                  ...updated[expIdx],
+                                  bulletPoints: [
+                                    ...(updated[expIdx].bulletPoints || []),
+                                    "Increased efficiency by X% through strategic optimization.",
+                                  ],
+                                };
+                                return { ...prev, experience: updated };
                               });
                             }}
-                            className="text-[10px] text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 pt-1"
+                            className="text-xs text-teal-400 hover:text-teal-300 font-semibold flex items-center gap-1 pt-1 cursor-pointer"
                           >
-                            <Plus className="w-3 h-3" /> Add Bullet Point
+                            <Plus className="w-3.5 h-3.5" /> Add Bullet
                           </button>
                         </div>
                       </div>
                     ))}
                   </div>
 
-                  {/* Skills & Competencies Editor */}
-                  <div className="p-4 rounded-2xl bg-slate-900 border border-white/10 space-y-3">
-                    <h4 className="text-xs font-black text-purple-300 uppercase tracking-widest">
-                      Skills & Technical Competencies
+                  {/* Skills Editor */}
+                  <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+                    <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider">
+                      Skills & Competencies
                     </h4>
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       <div>
-                        <label className="text-[10px] text-slate-400 font-bold block mb-1">
-                          Core Technical Skills (comma separated)
+                        <label className="text-[11px] text-slate-400 font-medium block mb-1">
+                          Core Skills (comma separated)
                         </label>
                         <input
                           type="text"
@@ -1463,16 +1596,14 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                           onChange={(e) => {
                             const arr = e.target.value.split(",").map((s) => s.trim()).filter(Boolean);
                             setResumeData((prev) =>
-                              prev
-                                ? { ...prev, skills: { ...prev.skills, core: arr } }
-                                : null
+                              prev ? { ...prev, skills: { ...prev.skills, core: arr } } : null
                             );
                           }}
-                          className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white"
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] text-slate-400 font-bold block mb-1">
+                        <label className="text-[11px] text-slate-400 font-medium block mb-1">
                           Tools & Frameworks (comma separated)
                         </label>
                         <input
@@ -1481,44 +1612,51 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                           onChange={(e) => {
                             const arr = e.target.value.split(",").map((s) => s.trim()).filter(Boolean);
                             setResumeData((prev) =>
-                              prev
-                                ? { ...prev, skills: { ...prev.skills, tools: arr } }
-                                : null
+                              prev ? { ...prev, skills: { ...prev.skills, tools: arr } } : null
                             );
                           }}
-                          className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Education Editor */}
-                  <div className="p-4 rounded-2xl bg-slate-900 border border-white/10 space-y-3">
+                  <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-black text-purple-300 uppercase tracking-widest">
-                        Education & Academic Credentials
+                      <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider">
+                        Education & Credentials
                       </h4>
                       <button
+                        type="button"
                         onClick={() => {
-                          const newEdu = {
-                            id: `edu_${Date.now()}`,
-                            degree: "Bachelor of Science",
-                            institution: "University Name",
-                            year: "2020",
-                          };
                           setResumeData((prev) =>
                             prev
-                              ? { ...prev, education: [...(prev.education || []), newEdu] }
+                              ? {
+                                  ...prev,
+                                  education: [
+                                    ...(prev.education || []),
+                                    {
+                                      id: `edu_${Date.now()}`,
+                                      degree: "Bachelor of Science",
+                                      institution: "University",
+                                      year: "2020",
+                                    },
+                                  ],
+                                }
                               : null
                           );
                         }}
-                        className="px-2.5 py-1 rounded-lg bg-purple-500/20 text-purple-300 text-[10px] font-bold hover:bg-purple-500 hover:text-white transition-all flex items-center gap-1"
+                        className="px-2.5 py-1 rounded-lg bg-teal-600/20 hover:bg-teal-600 text-teal-300 hover:text-white text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
                       >
-                        <Plus className="w-3 h-3" /> Add Education
+                        <Plus className="w-3.5 h-3.5" /> Add Education
                       </button>
                     </div>
                     {resumeData?.education?.map((edu, eduIdx) => (
-                      <div key={`edit-edu-${edu.id || eduIdx}-${eduIdx}`} className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-2.5 rounded-xl bg-black/40 border border-white/10">
+                      <div
+                        key={`edit-edu-${edu.id || eduIdx}`}
+                        className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-2.5 rounded-xl bg-slate-950 border border-slate-800"
+                      >
                         <input
                           type="text"
                           placeholder="Degree"
@@ -1527,12 +1665,12 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                             const val = e.target.value;
                             setResumeData((prev) => {
                               if (!prev) return null;
-                              const updatedEdu = [...prev.education];
-                              updatedEdu[eduIdx].degree = val;
-                              return { ...prev, education: updatedEdu };
+                              const updated = [...prev.education];
+                              updated[eduIdx] = { ...updated[eduIdx], degree: val };
+                              return { ...prev, education: updated };
                             });
                           }}
-                          className="bg-black/60 border border-white/10 rounded p-1.5 text-xs text-white font-bold"
+                          className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white font-semibold"
                         />
                         <input
                           type="text"
@@ -1542,12 +1680,12 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                             const val = e.target.value;
                             setResumeData((prev) => {
                               if (!prev) return null;
-                              const updatedEdu = [...prev.education];
-                              updatedEdu[eduIdx].institution = val;
-                              return { ...prev, education: updatedEdu };
+                              const updated = [...prev.education];
+                              updated[eduIdx] = { ...updated[eduIdx], institution: val };
+                              return { ...prev, education: updated };
                             });
                           }}
-                          className="bg-black/60 border border-white/10 rounded p-1.5 text-xs text-white"
+                          className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white"
                         />
                         <div className="flex items-center gap-2">
                           <input
@@ -1558,23 +1696,25 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               const val = e.target.value;
                               setResumeData((prev) => {
                                 if (!prev) return null;
-                                const updatedEdu = [...prev.education];
-                                updatedEdu[eduIdx].year = val;
-                                return { ...prev, education: updatedEdu };
+                                const updated = [...prev.education];
+                                updated[eduIdx] = { ...updated[eduIdx], year: val };
+                                return { ...prev, education: updated };
                               });
                             }}
-                            className="flex-1 bg-black/60 border border-white/10 rounded p-1.5 text-xs text-white"
+                            className="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white"
                           />
                           <button
+                            type="button"
                             onClick={() => {
                               setResumeData((prev) => {
                                 if (!prev) return null;
-                                const updatedEdu = [...prev.education];
-                                updatedEdu.splice(eduIdx, 1);
-                                return { ...prev, education: updatedEdu };
+                                return {
+                                  ...prev,
+                                  education: prev.education.filter((_, i) => i !== eduIdx),
+                                };
                               });
                             }}
-                            className="text-rose-400 hover:text-rose-300 p-1"
+                            className="text-rose-400 hover:text-rose-300 p-1.5 cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -1584,137 +1724,63 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                   </div>
                 </div>
               ) : (
-                /* DEDICATED EXPORT OPTIONS SECTION */
-                <div className="max-w-3xl mx-auto space-y-6 py-2">
-                  <div className="p-6 rounded-3xl bg-slate-900/90 border border-white/10 shadow-2xl space-y-6">
-                    <div className="flex items-center justify-between pb-4 border-b border-white/10">
-                      <div className="flex items-center gap-3">
-                        <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30 text-purple-400">
-                          <Download className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-black text-white">Dedicated Export Options</h3>
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[10px] font-black uppercase tracking-wider">
-                              ATS Verified
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            Download the current edited resume as a PDF and DOCX directly into production formats
-                          </p>
-                        </div>
-                      </div>
+                /* DEDICATED EXPORT OPTIONS */
+                <div className="max-w-3xl mx-auto space-y-5">
+                  <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-6">
+                    <div className="border-b border-slate-800 pb-4">
+                      <h3 className="text-base font-bold text-white">Export Optimized Resume</h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        All AI-applied patches and template presets are immediately included in both exports.
+                      </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      {/* PDF Export Card */}
-                      <div className="p-5 rounded-2xl bg-black/40 border border-purple-500/30 flex flex-col justify-between space-y-4 hover:border-purple-500/60 transition-all group">
-                        <div className="space-y-2.5">
-                          <div className="flex items-center justify-between">
-                            <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-black uppercase tracking-wider border border-purple-500/30">
-                              ATS Standard
-                            </span>
-                            <span className="text-[10px] font-mono text-slate-500">.PDF</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col justify-between space-y-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs text-teal-400 font-semibold">
+                            <span>ATS Vector PDF</span>
+                            <span className="font-mono text-slate-500">.PDF</span>
                           </div>
-                          <h4 className="text-base font-black text-white flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-purple-400" />
-                            PDF Resume Export
-                          </h4>
                           <p className="text-xs text-slate-300 leading-relaxed">
-                            Standard single-column layout formatted with 40pt margins, 8.5 × 11" Letter geometry, and pure Helvetica vector text.
+                            Single-column Letter layout using clean Helvetica text streams verified for Workday, Greenhouse, and Lever.
                           </p>
-                          <ul className="text-[11px] text-slate-400 space-y-1.5 pt-1">
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                              <span>Workday & Greenhouse machine parser compliant</span>
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                              <span>100% selectable vector font streams</span>
-                            </li>
-                          </ul>
                         </div>
-
                         <button
+                          type="button"
                           onClick={handleImmediatePdfDownload}
                           disabled={isDownloadingPdf || !resumeData}
-                          className="w-full py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-500/25 active:scale-95 cursor-pointer"
+                          className="w-full py-2.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
                         >
-                          {isDownloadingPdf ? (
-                            <>
-                              <RefreshCcw className="w-4 h-4 animate-spin" />
-                              <span>Compiling Vector PDF...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Download className="w-4 h-4" />
-                              <span>Download PDF Resume</span>
-                            </>
-                          )}
+                          <Download className="w-4 h-4" />
+                          <span>{isDownloadingPdf ? "Compiling PDF..." : "Download PDF Resume"}</span>
                         </button>
                       </div>
 
-                      {/* DOCX Export Card */}
-                      <div className="p-5 rounded-2xl bg-black/40 border border-blue-500/30 flex flex-col justify-between space-y-4 hover:border-blue-500/60 transition-all group">
-                        <div className="space-y-2.5">
-                          <div className="flex items-center justify-between">
-                            <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-black uppercase tracking-wider border border-blue-500/30">
-                              100% Editable Word
-                            </span>
-                            <span className="text-[10px] font-mono text-slate-500">.DOCX</span>
+                      <div className="p-5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col justify-between space-y-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs text-blue-400 font-semibold">
+                            <span>Editable Word Document</span>
+                            <span className="font-mono text-slate-500">.DOCX</span>
                           </div>
-                          <h4 className="text-base font-black text-white flex items-center gap-2">
-                            <FileCheck className="w-4 h-4 text-blue-400" />
-                            Microsoft Word (DOCX)
-                          </h4>
                           <p className="text-xs text-slate-300 leading-relaxed">
-                            Native Word document preserving all structured headings, bold competencies, tab stops, and bullet point hierarchies.
+                            Structured Microsoft Word file preserving Heading styles, bullet lists, and clean section breaks.
                           </p>
-                          <ul className="text-[11px] text-slate-400 space-y-1.5 pt-1">
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                              <span>Google Docs & Word compatible format</span>
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                              <span>Preserves ATS Heading 1 & Heading 2 styles</span>
-                            </li>
-                          </ul>
                         </div>
-
                         <button
+                          type="button"
                           onClick={handleImmediateDocxDownload}
                           disabled={isDownloadingDocx || !resumeData}
-                          className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 active:scale-95 cursor-pointer"
+                          className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
                         >
-                          {isDownloadingDocx ? (
-                            <>
-                              <RefreshCcw className="w-4 h-4 animate-spin" />
-                              <span>Building Word Document...</span>
-                            </>
-                          ) : docxDownloaded ? (
-                            <>
-                              <Check className="w-4 h-4 text-emerald-300" />
-                              <span>DOCX Downloaded!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Download className="w-4 h-4" />
-                              <span>Download DOCX Resume</span>
-                            </>
-                          )}
+                          <Download className="w-4 h-4" />
+                          <span>
+                            {isDownloadingDocx
+                              ? "Generating DOCX..."
+                              : docxDownloaded
+                              ? "DOCX Downloaded"
+                              : "Download DOCX Resume"}
+                          </span>
                         </button>
-                      </div>
-                    </div>
-
-                    {/* ATS Verification Checklist Footer */}
-                    <div className="p-4 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-start gap-3 text-xs text-teal-200">
-                      <ShieldCheck className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" />
-                      <div className="space-y-1">
-                        <span className="font-bold text-teal-300">Live ATS Compliance & Parsing Verification</span>
-                        <p className="text-[11px] text-teal-300/80 leading-relaxed">
-                          Both PDF and DOCX files invoke direct client-side synthesis engines configured to bypass ATS rejection filters. All contact coordinates, bullet point metrics, and section sequences are formatted to rank in the 99th percentile of applicant sorting engines.
-                        </p>
                       </div>
                     </div>
                   </div>

@@ -56,12 +56,15 @@ import {
   Share2,
   Users,
   Sliders,
-  Settings
+  Settings,
+  Bot
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { SettingsModal } from "./components/SettingsModal";
 import { maskApiKey } from "./utils/masking";
 import { ResumeBuilderModal } from "./components/ResumeBuilderModal";
+import { AtsCopilotChat } from "./components/AtsCopilotChat";
+import { AtsResumeData } from "./utils/docxExport";
 import { D3CareerGraph } from "./components/D3CareerGraph";
 import { FullReportPrintView } from "./components/FullReportPrintView";
 import { ConnectLinkedInModal } from "./components/ConnectLinkedInModal";
@@ -77,7 +80,13 @@ import { ModelTrainingStudio } from "./components/ModelTrainingStudio";
 import { ResumeCanvasTab } from "./components/ResumeCanvasTab";
 import { SkillNetworkGraph } from "./components/SkillNetworkGraph";
 import { LinkedInConnectionNetwork } from "./components/LinkedInConnectionNetwork";
-import { AnalysisResult } from "./types";
+import {
+  AnalysisResult,
+  AtsChatMessage,
+  AtsChatModelMode,
+  AtsChatPersona,
+  AtsResumePatch,
+} from "./types";
 import { exportFullReportToDocx } from "./utils/fullReportExport";
 import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, animate } from "motion/react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
@@ -1075,6 +1084,38 @@ export default function App() {
   const [isBatchSuggestOpen, setIsBatchSuggestOpen] = useState(false);
   const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
   const [isResumeBuilderOpen, setIsResumeBuilderOpen] = useState(false);
+  const [isCopilotDrawerOpen, setIsCopilotDrawerOpen] = useState(false);
+  const [sharedResumeData, setSharedResumeData] = useState<AtsResumeData | null>(null);
+  const [sharedChatMessages, setSharedChatMessages] = useState<AtsChatMessage[]>([
+    {
+      id: "copilot_init",
+      role: "model",
+      text: "I scanned your resume against the target role. Ask what is missing for a crisp breakdown, or click any quick gap check to get one-click resume fixes.",
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      persona: "scanner",
+      modelUsed: "gemini-4-hydrogen",
+      followUpPrompts: [
+        "Find what is missing for this job",
+        "Fix my weakest bullets",
+      ],
+    },
+  ]);
+  const [sharedChatPersona, setSharedChatPersona] = useState<AtsChatPersona>("scanner");
+  const [sharedChatModelMode, setSharedChatModelMode] = useState<AtsChatModelMode>("auto");
+  const [pendingPatchToApply, setPendingPatchToApply] = useState<{
+    patch: AtsResumePatch;
+    messageId: string;
+  } | null>(null);
+  const [copilotExternalPrompt, setCopilotExternalPrompt] = useState<{
+    id: number;
+    prompt: string;
+  } | null>(null);
+
+  const handleApplyPatchFromDrawer = (patch: AtsResumePatch, messageId: string) => {
+    setPendingPatchToApply({ patch, messageId });
+    setIsCopilotDrawerOpen(false);
+    setIsResumeBuilderOpen(true);
+  };
 
   const togglePrintFriendlyTheme = () => {
     setIsPrintFriendly((prev) => {
@@ -1823,6 +1864,9 @@ export default function App() {
     setResult(null);
     setJobDescription("");
     setError(null);
+    setSharedResumeData(null);
+    setPendingPatchToApply(null);
+    setIsCopilotDrawerOpen(false);
     setIsSessionPurged(true);
     setIsPurgePromptOpen(false);
 
@@ -2105,6 +2149,22 @@ export default function App() {
       analysis.modelCalibration = analysis.modelCalibration || atsMetadata?.modelCalibration;
 
       setResult(analysis);
+      setSharedResumeData(null);
+      setPendingPatchToApply(null);
+      setSharedChatMessages([
+        {
+          id: `copilot_init_${Date.now()}`,
+          role: "model",
+          text: `ATS Audit complete (${analysis.overallScore}% match). Ask what is missing for a crisp gap breakdown, or click any quick fix prompt to get 1-click resume patches.`,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          persona: "scanner",
+          modelUsed: "gemini-4-hydrogen",
+          followUpPrompts: [
+            "Find what is missing for this job",
+            "Fix my weakest bullets",
+          ],
+        },
+      ]);
       if (analysis.overallScore >= 75) {
         confetti({
           particleCount: 150,
@@ -5916,6 +5976,20 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                   <button
                     onClick={() => {
+                      setIsCopilotDrawerOpen(true);
+                      setCopilotExternalPrompt({
+                        id: Date.now(),
+                        prompt:
+                          "Give me a short, crystal-clear breakdown of what is missing from my resume for this job and the best quick fixes I can apply.",
+                      });
+                    }}
+                    className="px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-teal-500/40 text-teal-300 hover:text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+                  >
+                    <Bot className="w-4 h-4 text-teal-400" /> Ask Copilot What&apos;s Missing
+                  </button>
+
+                  <button
+                    onClick={() => {
                       setSelectedSkillToFrame(null);
                       setIsResumeBuilderOpen(true);
                     }}
@@ -6781,6 +6855,9 @@ AWS Certified Solutions Architect – Associate (2022)`;
                   )}
                 </GlassCard>
               )}
+                  </>
+                )}
+              </div>
 
               {/* Skill Cloud Visualizer & D3 Force Network Graph */}
               <div id="skill-vector-engine" style={{ order: sectionOrder.indexOf('skill-vector-engine') }} className="space-y-6">
@@ -7075,6 +7152,8 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 <SkillDemandTrend
                   role={result.careerPath.topRole || "Target Role"}
                 />
+                  </>
+                )}
               </div>
 
               <div className="grid lg:grid-cols-12 gap-8 mt-8">
@@ -7328,9 +7407,6 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     </div>
                   </div>
                 </GlassCard>
-              </>
-            )}
-          </div>
 
                 {/* Main Improvement Checklist */}
                 <div id="optimization-plan" className="lg:col-span-8 mb-8" style={{ order: sectionOrder.indexOf('optimization-plan') }}>
@@ -8121,11 +8197,90 @@ AWS Certified Solutions Architect – Associate (2022)`;
         </a>
       </div>
 
+      {/* Floating ATS Gap Copilot Trigger & Synchronized Slide-Over Drawer */}
+      {result && !isResumeBuilderOpen && (
+        <>
+          <button
+            type="button"
+            onClick={() => setIsCopilotDrawerOpen((prev) => !prev)}
+            className="fixed bottom-6 left-6 z-[180] flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-slate-950/95 hover:bg-slate-900 border border-teal-500/40 text-white shadow-2xl shadow-teal-500/20 transition-all cursor-pointer active:scale-95"
+            title="Open ATS Gap Copilot to inspect what is missing and apply 1-click resume fixes"
+          >
+            <div className="w-7 h-7 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-400">
+              <Bot className="w-4 h-4" />
+            </div>
+            <div className="text-left">
+              <div className="text-xs font-bold leading-tight text-white">
+                ATS Gap Copilot
+              </div>
+              <div className="text-[10px] font-mono tabular-nums text-teal-400">
+                Score {result.overallScore}% · Quick Fixes
+              </div>
+            </div>
+          </button>
+
+          <AnimatePresence>
+            {isCopilotDrawerOpen && (
+              <motion.div
+                initial={{ opacity: 0, x: -24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                transition={{ duration: 0.2 }}
+                className="fixed bottom-20 left-6 z-[190] w-[420px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-7rem)] rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl overflow-hidden flex flex-col"
+              >
+                <div className="px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2 text-xs font-bold text-white">
+                    <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                    <span>Synchronized ATS Gap Copilot</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsCopilotDrawerOpen(false)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                    aria-label="Close ATS Gap Copilot Drawer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex-1 min-h-0">
+                  <AtsCopilotChat
+                    compact
+                    messages={sharedChatMessages}
+                    onMessagesChange={setSharedChatMessages}
+                    persona={sharedChatPersona}
+                    onPersonaChange={setSharedChatPersona}
+                    modelMode={sharedChatModelMode}
+                    onModelModeChange={setSharedChatModelMode}
+                    resumeText={
+                      result?.atsMetadata?.rawText ||
+                      result?.resumeRewriteDraft ||
+                      result?.summary ||
+                      result?.executiveSummary ||
+                      ""
+                    }
+                    jobDescription={jobDescription}
+                    analysisResult={result}
+                    currentResumeData={sharedResumeData}
+                    onApplyPatch={handleApplyPatchFromDrawer}
+                    onOpenBuilder={() => {
+                      setIsCopilotDrawerOpen(false);
+                      setIsResumeBuilderOpen(true);
+                    }}
+                    externalPromptRequest={copilotExternalPrompt}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
+      )}
+
       {/* Interactive ATS Resume Generator & AI Coach Modal */}
       <ResumeBuilderModal
         isOpen={isResumeBuilderOpen}
         onClose={() => setIsResumeBuilderOpen(false)}
         rawResumeText={
+          result?.atsMetadata?.rawText ||
           result?.resumeRewriteDraft ||
           result?.summary ||
           result?.executiveSummary ||
@@ -8135,6 +8290,16 @@ AWS Certified Solutions Architect – Associate (2022)`;
         jobDescription={jobDescription}
         analysisResult={result}
         initialSkillToFrame={selectedSkillToFrame}
+        sharedResumeData={sharedResumeData}
+        onSharedResumeDataChange={setSharedResumeData}
+        sharedChatMessages={sharedChatMessages}
+        onSharedChatMessagesChange={setSharedChatMessages}
+        sharedPersona={sharedChatPersona}
+        onSharedPersonaChange={setSharedChatPersona}
+        sharedModelMode={sharedChatModelMode}
+        onSharedModelModeChange={setSharedChatModelMode}
+        pendingPatchToApply={pendingPatchToApply}
+        onClearPendingPatch={() => setPendingPatchToApply(null)}
       />
 
       {/* Printable Report Component for PDF Export */}

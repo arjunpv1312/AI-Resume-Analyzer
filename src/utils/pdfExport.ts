@@ -1,25 +1,36 @@
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { AtsResumeData } from "./docxExport";
 
+export type AtsBuilderTemplateStyle =
+  | "classic-executive"
+  | "modern-minimalist"
+  | "compact-technical";
+
 /**
  * Generates an ATS-compliant, standard 1-column PDF document
  * with standard 0.5-0.75 in margins, parseable vector text,
  * standard fonts (Helvetica / Helvetica-Bold), and consistent spacing.
  */
-export async function generateAtsResumePdfBlob(data: AtsResumeData): Promise<Blob> {
+export async function generateAtsResumePdfBlob(
+  data: AtsResumeData,
+  templateStyle: AtsBuilderTemplateStyle = "classic-executive"
+): Promise<Blob> {
   const pdfDoc = await PDFDocument.create();
 
   // Standard US Letter (612 x 792 points)
   const pageWidth = 612;
   const pageHeight = 792;
-  const marginX = 40;
-  const marginTop = 42;
-  const marginBottom = 42;
+  const isCompact = templateStyle === "compact-technical";
+  const isModern = templateStyle === "modern-minimalist";
+  const marginX = isCompact ? 34 : 40;
+  const marginTop = isCompact ? 34 : 42;
+  const marginBottom = isCompact ? 34 : 42;
   const contentWidth = pageWidth - marginX * 2;
+  const accentColor = isModern ? rgb(0.05, 0.45, 0.45) : rgb(0.08, 0.12, 0.2);
 
   const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const obliqueFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+  await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
 
   let currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
   let currentY = pageHeight - marginTop;
@@ -72,29 +83,29 @@ export async function generateAtsResumePdfBlob(data: AtsResumeData): Promise<Blo
   // Helper to draw a section header (e.g. "PROFESSIONAL SUMMARY", "WORK EXPERIENCE")
   const drawSectionHeader = (title: string) => {
     ensureSpace(24);
-    currentY -= 6;
+    currentY -= isCompact ? 4 : 6;
     currentPage.drawText(title.toUpperCase(), {
       x: marginX,
       y: currentY,
-      size: 10.5,
+      size: isCompact ? 10 : 10.5,
       font: boldFont,
-      color: rgb(0.08, 0.12, 0.2),
+      color: accentColor,
     });
     currentY -= 4;
     currentPage.drawLine({
       start: { x: marginX, y: currentY },
       end: { x: pageWidth - marginX, y: currentY },
-      thickness: 0.6,
-      color: rgb(0.8, 0.85, 0.9),
+      thickness: isModern ? 1.0 : 0.6,
+      color: isModern ? accentColor : rgb(0.8, 0.85, 0.9),
     });
     currentY -= 8;
   };
 
-  // 1. Candidate Name (Centered, Bold, 17pt)
+  // 1. Candidate Name (Centered or Left-aligned for Modern Minimalist, Bold, 17pt)
   const nameText = (data.name || "Candidate Name").trim();
-  const nameSize = 17;
+  const nameSize = isCompact ? 16 : 17;
   const nameWidth = boldFont.widthOfTextAtSize(nameText, nameSize);
-  const nameX = Math.max(marginX, (pageWidth - nameWidth) / 2);
+  const nameX = isModern ? marginX : Math.max(marginX, (pageWidth - nameWidth) / 2);
 
   currentPage.drawText(nameText, {
     x: nameX,
@@ -105,19 +116,19 @@ export async function generateAtsResumePdfBlob(data: AtsResumeData): Promise<Blo
   });
   currentY -= 16;
 
-  // 2. Target Title (Centered, 10.5pt)
+  // 2. Target Title
   if (data.title) {
     const titleText = data.title.trim();
     const titleSize = 10.5;
     const titleWidth = boldFont.widthOfTextAtSize(titleText, titleSize);
-    const titleX = Math.max(marginX, (pageWidth - titleWidth) / 2);
+    const titleX = isModern ? marginX : Math.max(marginX, (pageWidth - titleWidth) / 2);
 
     currentPage.drawText(titleText, {
       x: titleX,
       y: currentY,
       size: titleSize,
       font: boldFont,
-      color: rgb(0.25, 0.35, 0.48),
+      color: isModern ? accentColor : rgb(0.25, 0.35, 0.48),
     });
     currentY -= 14;
   }
@@ -341,8 +352,11 @@ export async function generateAtsResumePdfBlob(data: AtsResumeData): Promise<Blo
 /**
  * Triggers an immediate download of the generated resume in PDF format
  */
-export async function downloadAtsResumePdf(data: AtsResumeData): Promise<void> {
-  const blob = await generateAtsResumePdfBlob(data);
+export async function downloadAtsResumePdf(
+  data: AtsResumeData,
+  templateStyle: AtsBuilderTemplateStyle = "classic-executive"
+): Promise<void> {
+  const blob = await generateAtsResumePdfBlob(data, templateStyle);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

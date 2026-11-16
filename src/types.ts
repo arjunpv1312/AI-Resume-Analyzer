@@ -139,3 +139,40 @@ export interface AnalysisResult {
     [key: string]: any;
   };
 }
+
+export type AtsChatPersona = "scanner" | "recruiter" | "rewriter";
+export type AtsChatModelMode = "auto" | "fast" | "standard" | "deep";
+
+export interface AtsMissingPoint {
+  id: string;
+  title: string;
+  whyItMatters: string;
+  severity: "critical" | "recommended" | "polish";
+}
+
+export interface AtsResumePatch {
+  id: string;
+  label: string;
+  targetSection: "title" | "summary" | "experience" | "skills";
+  expIndex?: number;
+  bulletIndex?: number;
+  beforeText: string;
+  afterText: string;
+  skillsToAdd?: string[];
+  estimatedPointsGain: number;
+  applied?: boolean;
+}
+
+export interface AtsChatMessage {
+  id: string;
+  role: "user" | "model";
+  text: string;
+  timestamp: string;
+  persona?: AtsChatPersona;
+  modelUsed?: string;
+  shortMissingPoints?: AtsMissingPoint[];
+  patches?: AtsResumePatch[];
+  followUpPrompts?: string[];
+  isError?: boolean;
+}
+
