@@ -51,11 +51,12 @@ async function startServer() {
     app.use(express.json({ limit: "10mb" }));
     app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-    // Anonymized Logger
+    // Anonymized API Request Logger (skip Vite dev module/asset requests)
     app.use((req, res, next) => {
       const timestamp = new Date().toISOString();
-      console.log(`[REQUEST] ${timestamp} - ${req.method} ${req.url}`);
-      // Add a header to identify if it's handled by Express or fell through
+      if (req.url.startsWith("/api")) {
+        console.log(`[REQUEST] ${timestamp} - ${req.method} ${req.url}`);
+      }
       res.set("X-Server-Timestamp", timestamp);
       next();
     });

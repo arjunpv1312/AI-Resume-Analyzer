@@ -1023,36 +1023,59 @@ export default function App() {
     }
   }, []);
 
-  // Save session state
+  // Save session state safely
   React.useEffect(() => {
-    if (result) {
-      sessionStorage.setItem("current_analysis_result", JSON.stringify(result));
-    } else {
-      sessionStorage.removeItem("current_analysis_result");
+    try {
+      if (result) {
+        try {
+          sessionStorage.setItem("current_analysis_result", JSON.stringify(result));
+        } catch {
+          const compactResult = result.atsMetadata?.rawText
+            ? { ...result, atsMetadata: { ...result.atsMetadata, rawText: result.atsMetadata.rawText.slice(0, 6000) } }
+            : result;
+          sessionStorage.setItem("current_analysis_result", JSON.stringify(compactResult));
+        }
+      } else {
+        sessionStorage.removeItem("current_analysis_result");
+      }
+    } catch {
+      // Ignore storage quota errors
     }
   }, [result]);
 
   React.useEffect(() => {
-    if (jobDescription) {
-      sessionStorage.setItem("current_job_description", jobDescription);
-    } else {
-      sessionStorage.removeItem("current_job_description");
+    try {
+      if (jobDescription) {
+        sessionStorage.setItem("current_job_description", jobDescription);
+      } else {
+        sessionStorage.removeItem("current_job_description");
+      }
+    } catch {
+      // Ignore storage quota errors
     }
   }, [jobDescription]);
 
   React.useEffect(() => {
-    if (linkedinUrl) {
-      sessionStorage.setItem("current_linkedin_url", linkedinUrl);
-    } else {
-      sessionStorage.removeItem("current_linkedin_url");
+    try {
+      if (linkedinUrl) {
+        sessionStorage.setItem("current_linkedin_url", linkedinUrl);
+      } else {
+        sessionStorage.removeItem("current_linkedin_url");
+      }
+    } catch {
+      // Ignore storage quota errors
     }
   }, [linkedinUrl]);
 
   React.useEffect(() => {
-    if (linkedinData) {
-      sessionStorage.setItem("current_linkedin_data", linkedinData);
-    } else {
-      sessionStorage.removeItem("current_linkedin_data");
+    try {
+      if (linkedinData) {
+        sessionStorage.setItem("current_linkedin_data", linkedinData);
+      } else {
+        sessionStorage.removeItem("current_linkedin_data");
+      }
+    } catch {
+      // Ignore storage quota errors
     }
   }, [linkedinData]);
   const [isLinkedInModalOpen, setIsLinkedInModalOpen] = useState(false);
