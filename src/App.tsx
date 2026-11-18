@@ -2740,8 +2740,13 @@ export default function App() {
               setLinkedinUrl(url);
               setLinkedinData(data);
               setLinkedInTrustScore(trustScore);
-              sessionStorage.setItem("current_linkedin_url", url);
-              sessionStorage.setItem("current_linkedin_data", data);
+              try {
+                sessionStorage.setItem("current_linkedin_url", url);
+                sessionStorage.setItem("current_linkedin_data", data);
+                sessionStorage.setItem("current_linkedin_trust_score", String(trustScore));
+              } catch {
+                // ignore storage quota errors
+              }
               try {
                 const hasSeen = localStorage.getItem("has_seen_trust_score_walkthrough");
                 if (!hasSeen) {
@@ -3317,6 +3322,58 @@ export default function App() {
                   criteria, identifies critical capability gaps, and provides
                   board-ready narrative recommendations to solidify your candidacy.
                 </motion.p>
+
+                {/* Floating 'Verify with LinkedIn' Action Badge (Pre-Upload Instant Trigger) */}
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.65, ease: [0.16, 1, 0.3, 1] }}
+                  className="mt-8 flex justify-center"
+                >
+                  <motion.button
+                    id="hero-verify-linkedin-badge"
+                    type="button"
+                    onClick={() => setIsLinkedInVerificationModalOpen(true)}
+                    animate={{ y: [0, -4, 0] }}
+                    transition={{
+                      y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
+                    }}
+                    whileHover={{ y: -3, scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="group inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2.5 min-h-[44px] max-w-full rounded-full bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl border border-[#0A66C2]/25 dark:border-teal-500/35 hover:border-[#0A66C2]/60 dark:hover:border-teal-400/70 shadow-[0_14px_34px_-10px_rgba(10,102,194,0.28)] dark:shadow-[0_14px_34px_-10px_rgba(20,184,166,0.28)] transition-colors cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A66C2] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950"
+                    title="Verify your LinkedIn profile and inspect your real-time Credibility Score before uploading a resume"
+                  >
+                    <span className="w-7 h-7 rounded-full bg-[#0A66C2]/10 dark:bg-[#0A66C2]/25 flex items-center justify-center text-[#0A66C2] dark:text-[#38bdf8] shrink-0">
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+                      </svg>
+                    </span>
+
+                    <span className="text-xs font-extrabold tracking-wide text-slate-900 dark:text-white group-hover:text-[#0A66C2] dark:group-hover:text-teal-300 transition-colors">
+                      Verify with LinkedIn
+                    </span>
+
+                    <span aria-hidden="true" className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+
+                    <span className="inline-flex items-center gap-1.5 font-mono tabular-nums">
+                      <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
+                      <span className="text-xs font-black text-teal-700 dark:text-teal-300">
+                        {linkedInTrustScore !== null ? `${linkedInTrustScore}%` : "~84%"}
+                      </span>
+                      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                        {linkedInTrustScore !== null ? "Verified Trust" : "Est. Trust"}
+                      </span>
+                    </span>
+
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#0A66C2] dark:group-hover:text-teal-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                  </motion.button>
+                </motion.div>
               </div>
 
               {/* Upload Interface */}
