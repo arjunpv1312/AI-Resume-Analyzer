@@ -220,20 +220,16 @@ async function startServer() {
         contents: any;
         config?: any;
       },
-      maxRetriesPerKey = 1,
-      customApiKey?: string
+      maxRetriesPerKey = 1
     ): Promise<any> {
-      let keys = getAvailableGeminiApiKeys();
-      if (customApiKey && typeof customApiKey === "string" && customApiKey.trim().length > 15) {
-        keys = [{ key: customApiKey.trim(), source: "CUSTOM_SESSION_KEY" }, ...keys];
-      }
+      const keys = getAvailableGeminiApiKeys();
       if (keys.length === 0) {
         const err: any = new Error(
-          "Gemini API key is unconfigured. Please configure GEMINI_API_KEY or GEMINI_API_KEY_2 in Settings."
+          "AI analysis service is temporarily unavailable. Please try again shortly."
         );
         err.isAuthError = true;
-        err.code = "API_KEY_MISSING";
-        err.statusCode = 401;
+        err.code = "SERVICE_UNAVAILABLE";
+        err.statusCode = 503;
         throw err;
       }
 
@@ -359,14 +355,14 @@ async function startServer() {
       let finalError: any;
       if (isActualAuth) {
         finalError = new Error(
-          `Gemini API authentication failed across configured keys (${attemptedSources.join(", ")}). Please check your API configuration in Settings (GEMINI_API_KEY / GEMINI_API_KEY_2).`
+          "AI service authentication is currently unavailable. Please try again shortly."
         );
         finalError.isAuthError = true;
-        finalError.code = "API_KEY_AUTHENTICATION_FAILED";
-        finalError.statusCode = 401;
+        finalError.code = "SERVICE_UNAVAILABLE";
+        finalError.statusCode = 503;
       } else if (isQuota) {
         finalError = new Error(
-          "You exceeded your current Gemini API quota. Please check your plan or configure an alternative key in GEMINI_API_KEY_2 in Settings."
+          "AI service capacity is temporarily busy. Please retry in a few moments."
         );
         finalError.isQuotaError = true;
         finalError.code = "RESOURCE_EXHAUSTED";
@@ -393,63 +389,6 @@ async function startServer() {
         sources: keys.map((k) => k.source),
         timestamp: new Date().toISOString(),
       });
-    });
-
-    // Settings API: Returns masked key status without exposing secrets in plain text
-    app.get("/api/settings/keys", (req, res) => {
-      const keys = getAvailableGeminiApiKeys();
-      const formatMask = (val: string) => {
-        if (!val || val.length < 8) return "••••••••";
-        return val.slice(0, 6) + "•".repeat(Math.max(12, val.length - 10)) + val.slice(-4);
-      };
-
-      const primary = keys.find((k) => k.source === "GEMINI_API_KEY") || keys[0];
-      const secondary = keys.find((k) => k.source === "GEMINI_API_KEY_2") || (keys.length > 1 ? keys[1] : null);
-
-      res.json({
-        primaryConfigured: Boolean(primary),
-        primarySource: primary ? primary.source : "GEMINI_API_KEY",
-        primaryMasked: primary ? formatMask(primary.key) : null,
-        secondaryConfigured: Boolean(secondary),
-        secondarySource: secondary ? secondary.source : "GEMINI_API_KEY_2",
-        secondaryMasked: secondary ? formatMask(secondary.key) : null,
-        totalKeys: keys.length,
-        sources: keys.map((k) => k.source),
-        securityProxyActive: true,
-        model: "gemini-4-hydrogen",
-      });
-    });
-
-    // Verification endpoint to test live Gemini API connectivity
-    app.post("/api/test-gemini", async (req, res) => {
-      const customKey = (req.headers["x-gemini-api-key"] as string) || (req.body?.apiKey as string);
-      try {
-        const testResponse = await executeGeminiPrompt(
-          {
-            model: "gemini-3.1-flash-lite",
-            contents: [{ role: "user", parts: [{ text: "ping" }] }],
-          },
-          1,
-          customKey
-        );
-        return res.json({
-          success: true,
-          status: "connected",
-          message: "Gemini API key authenticated successfully!",
-          response: testResponse?.text?.trim() || "pong",
-        });
-      } catch (err: any) {
-        console.error("Test Gemini connection error:", redactSecrets(err?.message || err));
-        return res.status(err.statusCode || 500).json({
-          success: false,
-          error:
-            err.message ||
-            "Gemini API authentication failed. Please check your API configuration in Settings (GEMINI_API_KEY / GEMINI_API_KEY_2).",
-          isAuthError: Boolean(err.isAuthError),
-          code: err.code || "CONNECTION_FAILED",
-          details: redactSecrets(err.originalError || err.message),
-        });
-      }
     });
 
     app.post(
@@ -831,11 +770,9 @@ async function startServer() {
       } catch (err: any) {
         console.error("LinkedIn Retrieval error:", err);
         if (err.isAuthError || isAuthOrKeyError(err)) {
-          return res.status(401).json({
+          return res.status(503).json({
             error:
-              "Gemini API key authentication failed during profile retrieval. Please check your API configuration in Settings (GEMINI_API_KEY / GEMINI_API_KEY_2).",
-            isAuthError: true,
-            code: "API_KEY_AUTHENTICATION_FAILED",
+              "Profile retrieval service is temporarily unavailable. Please try again in a moment.",
             details: err.originalError || err.message,
           });
         }
@@ -1444,7 +1381,6 @@ async function startServer() {
       `;
 
         let aiPartialResult: any = undefined;
-        const customSessionKey = (req.headers["x-gemini-api-key"] as string) || (req.body?.customApiKey as string);
         try {
           const aiResponse = await executeGeminiPrompt(
             {
@@ -1454,8 +1390,7 @@ async function startServer() {
                 responseMimeType: "application/json",
               },
             },
-            1,
-            customSessionKey
+            1
           );
 
           const analysisJson = aiResponse?.text || "";
@@ -1964,9 +1899,6 @@ Return strictly a valid JSON object matching this schema:
           return res.status(400).json({ error: "message is required" });
         }
 
-        const customKey =
-          (req.headers["x-gemini-api-key"] as string) || (req.body?.customApiKey as string);
-
         const missingKeywords: string[] =
           analysisResult?.atsAnalysis?.jobKeywordsMissing || [];
         const foundKeywords: string[] =
@@ -2042,10 +1974,7 @@ ACTIVE CANDIDATE & ATS CONTEXT:
 ${currentResumeData ? JSON.stringify(currentResumeData, null, 2).slice(0, 5000) : "Raw Text Only: " + (resumeText || "").slice(0, 2500)}
 `;
 
-        let keys = getAvailableGeminiApiKeys();
-        if (customKey && typeof customKey === "string" && customKey.trim().length > 15) {
-          keys = [{ key: customKey.trim(), source: "CUSTOM_SESSION_KEY" }, ...keys];
-        }
+        const keys = getAvailableGeminiApiKeys();
 
         if (keys.length > 0) {
           const { GoogleGenAI, ThinkingLevel, Type } = await import("@google/genai");

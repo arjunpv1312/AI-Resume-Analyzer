@@ -135,9 +135,7 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
     setIsLoading(true);
 
     try {
-      const customKey = sessionStorage.getItem("custom_gemini_api_key");
       const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (customKey) headers["x-gemini-api-key"] = customKey;
 
       const res = await fetch("/api/ats-chat", {
         method: "POST",

@@ -160,10 +160,38 @@
   color: #0f172a;
 }
 
-/* Preserve white text inside solid colored CTA buttons even inside light cards */
-:root:not([data-theme="figma-dark"]) button:where(.bg-indigo-600, .bg-purple-600, .bg-teal-600, .bg-emerald-600, .bg-blue-600, .bg-rose-600, .bg-gradient-to-r, .btn-primary),
-:root:not([data-theme="figma-dark"]) button:where(.bg-indigo-600, .bg-purple-600, .bg-teal-600, .bg-emerald-600, .bg-blue-600, .bg-rose-600, .bg-gradient-to-r, .btn-primary) * {
+/* Preserve white text inside solid colored or dark CTA buttons even inside light cards */
+:root:not([data-theme="figma-dark"]) button:where(.bg-indigo-600, .bg-purple-600, .bg-teal-600, .bg-emerald-600, .bg-blue-600, .bg-rose-600, .bg-slate-900, .bg-\[\#0A66C2\], .bg-gradient-to-r, .btn-primary).text-white,
+:root:not([data-theme="figma-dark"]) button:where(.bg-indigo-600, .bg-purple-600, .bg-teal-600, .bg-emerald-600, .bg-blue-600, .bg-rose-600, .bg-slate-900, .bg-\[\#0A66C2\], .bg-gradient-to-r, .btn-primary).text-white *,
+:root:not([data-theme="figma-dark"]) .btn-primary,
+:root:not([data-theme="figma-dark"]) .btn-primary * {
   color: #ffffff;
+}
+
+/* Deepen pastel -200/-300/-400 accent text on light card surfaces for crisp contrast unless inside dark-studio */
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) :where(.text-teal-200, .text-teal-300, .text-teal-400):not(.dark-studio *):not(button.bg-slate-900 *) {
+  color: #0f766e;
+}
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) :where(.text-amber-200, .text-amber-300, .text-amber-400):not(.dark-studio *):not(button.bg-slate-900 *) {
+  color: #b45309;
+}
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) :where(.text-sky-200, .text-sky-300, .text-sky-400):not(.dark-studio *) {
+  color: #0369a1;
+}
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) :where(.text-blue-200, .text-blue-300, .text-blue-400):not(.dark-studio *) {
+  color: #1d4ed8;
+}
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) :where(.text-indigo-200, .text-indigo-300, .text-indigo-400):not(.dark-studio *) {
+  color: #4338ca;
+}
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) :where(.text-purple-200, .text-purple-300, .text-purple-400):not(.dark-studio *) {
+  color: #7e22ce;
+}
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) :where(.text-rose-200, .text-rose-300, .text-rose-400):not(.dark-studio *) {
+  color: #be123c;
+}
+:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) :where(.text-emerald-200, .text-emerald-300, .text-emerald-400):not(.dark-studio *) {
+  color: #047857;
 }
 
 /* Protect intentionally dark studios, drawers, and modals from light-mode text inversion */
@@ -184,6 +212,21 @@
 }
 :root:not([data-theme="figma-dark"]) .dark-studio .text-slate-400 {
   color: #94a3b8;
+}
+:root:not([data-theme="figma-dark"]) .dark-studio .text-teal-300 {
+  color: #5eead4;
+}
+:root:not([data-theme="figma-dark"]) .dark-studio .text-teal-400 {
+  color: #2dd4bf;
+}
+:root:not([data-theme="figma-dark"]) .dark-studio .text-amber-200 {
+  color: #fde68a;
+}
+:root:not([data-theme="figma-dark"]) .dark-studio .text-amber-300 {
+  color: #fcd34d;
+}
+:root:not([data-theme="figma-dark"]) .dark-studio .text-amber-400 {
+  color: #fbbf24;
 }
 :root:not([data-theme="figma-dark"]) .dark-studio :where(h1, h2, h3, h4) {
   color: inherit;

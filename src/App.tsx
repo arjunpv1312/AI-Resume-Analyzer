@@ -22,7 +22,6 @@ import {
   Layers,
   Fingerprint,
   ShieldCheck,
-  Lock,
   EyeOff,
   Trash2,
   ChevronDown,
@@ -50,18 +49,14 @@ import {
   RotateCcw,
   Notebook,
   Plus,
-  Key,
   Sun,
   Moon,
   Share2,
   Users,
   Sliders,
-  Settings,
   Bot
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import { SettingsModal } from "./components/SettingsModal";
-import { maskApiKey } from "./utils/masking";
 import { ResumeBuilderModal } from "./components/ResumeBuilderModal";
 import { AtsCopilotChat } from "./components/AtsCopilotChat";
 import { AtsResumeData } from "./utils/docxExport";
@@ -80,6 +75,7 @@ import { ModelTrainingStudio } from "./components/ModelTrainingStudio";
 import { ResumeCanvasTab } from "./components/ResumeCanvasTab";
 import { SkillNetworkGraph } from "./components/SkillNetworkGraph";
 import { LinkedInConnectionNetwork } from "./components/LinkedInConnectionNetwork";
+import { downloadNetworkDossierPdf } from "./utils/networkDossierPdf";
 import { PanelErrorBoundary } from "./components/AppErrorBoundary";
 import { normalizeAnalysisResult } from "./utils/normalizeAnalysisResult";
 import {
@@ -814,7 +810,6 @@ export default function App() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isApiKeyError, setIsApiKeyError] = useState(false);
   const [isSessionPurged, setIsSessionPurged] = useState(false);
   const [history, setHistory] = useState<AnalysisHistoryItem[]>([]);
   const [currentTheme, setCurrentTheme] = useState<string>(() => {
@@ -838,9 +833,6 @@ export default function App() {
   // Side-by-Side Version Comparison Modal
   const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
 
-  // API Credentials & Security Settings Modal
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
   // PDF Export Preview Modal state
   const [isPdfPreviewOpen, setIsPdfPreviewOpen] = useState(false);
 
@@ -851,6 +843,38 @@ export default function App() {
   const [linkedInTrustScore, setLinkedInTrustScore] = useState<number | null>(null);
   const [linkedInTrustReport, setLinkedInTrustReport] = useState<any | null>(null);
   const [isVerifyingLinkedInTrust, setIsVerifyingLinkedInTrust] = useState(false);
+  const [isDownloadingNetworkDossier, setIsDownloadingNetworkDossier] = useState(false);
+  const [networkDossierSuccess, setNetworkDossierSuccess] = useState(false);
+
+  const handleDownloadNetworkDossier = async () => {
+    if (isDownloadingNetworkDossier) return;
+    setIsDownloadingNetworkDossier(true);
+    try {
+      const candidateName =
+        linkedInTrustReport?.candidateName ||
+        (file ? file.name.replace(/\.[^/.]+$/, "") : "Executive Candidate");
+      await downloadNetworkDossierPdf({
+        candidateName,
+        targetRole: result?.careerPath?.topRole || "Executive Leadership",
+        linkedinUrl,
+        credibilityScore: linkedInTrustScore,
+        credibilityTier: linkedInTrustReport?.credibilityTier,
+        trustFactors: linkedInTrustReport?.trustFactors,
+        verificationSummary: linkedInTrustReport?.verificationSummary,
+        linkedinComparison: result?.linkedinComparison,
+        overallAtsScore: result?.overallScore,
+      });
+      setNetworkDossierSuccess(true);
+      setTimeout(() => setNetworkDossierSuccess(false), 2500);
+    } catch (err: any) {
+      console.error("Failed to generate LinkedIn Network PDF dossier:", err);
+      setError(
+        err?.message || "Unable to generate the network PDF dossier. Please retry."
+      );
+    } finally {
+      setIsDownloadingNetworkDossier(false);
+    }
+  };
 
   // Skill visualization mode (D3 force-directed network graph vs flat cloud list)
   const [skillVisualizationMode, setSkillVisualizationMode] = useState<"network" | "cloud">("network");
@@ -929,42 +953,6 @@ export default function App() {
       console.error("Failed to verify LinkedIn Trust Score:", err);
     } finally {
       setIsVerifyingLinkedInTrust(false);
-    }
-  };
-
-  // Gemini API connection test state
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<string | null>(null);
-
-  const handleTestConnection = async () => {
-    setIsTestingConnection(true);
-    setConnectionStatus(null);
-    try {
-      const customKey = sessionStorage.getItem("custom_gemini_api_key");
-      const headers: Record<string, string> = {};
-      if (customKey) {
-        headers["x-gemini-api-key"] = customKey;
-      }
-      const res = await fetch("/api/test-gemini", { method: "POST", headers });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setConnectionStatus("Connected! Gemini API key verified successfully.");
-        setIsApiKeyError(false);
-        setTimeout(() => {
-          setError(null);
-          setConnectionStatus(null);
-        }, 2200);
-      } else {
-        setConnectionStatus(
-          data.error || "Authentication check failed. Please verify the key in Settings."
-        );
-      }
-    } catch (e: any) {
-      setConnectionStatus(
-        "Connection check failed: " + (e.message || "Network unreachable")
-      );
-    } finally {
-      setIsTestingConnection(false);
     }
   };
 
@@ -1980,7 +1968,6 @@ export default function App() {
 
     setIsAnalyzing(true);
     setError(null);
-    setIsApiKeyError(false);
     setElapsedTime(0);
     setAnalysisStep("Initiating neural gateway...");
     const startTime = Date.now();
@@ -2013,15 +2000,9 @@ export default function App() {
       }
 
       setAnalysisStep("Parsing resume text via server-side engine...");
-      const customSessionKey = sessionStorage.getItem("custom_gemini_api_key");
-      const extractionHeaders: Record<string, string> = {};
-      if (customSessionKey) {
-        extractionHeaders["x-gemini-api-key"] = customSessionKey;
-      }
 
       const extractionResponse = await fetch("/api/analyze", {
         method: "POST",
-        headers: extractionHeaders,
         body: formData,
       });
 
@@ -2072,16 +2053,11 @@ export default function App() {
         "Initiating high-dimensional intelligence model generation...",
       );
 
-      const generationHeaders: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (customSessionKey) {
-        generationHeaders["x-gemini-api-key"] = customSessionKey;
-      }
-
       const generationResponse = await fetch("/api/generate-analysis", {
         method: "POST",
-        headers: generationHeaders,
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           text,
           jobDescription,
@@ -2094,26 +2070,10 @@ export default function App() {
 
       if (!generationResponse.ok) {
         const errorData = await generationResponse.json().catch(() => ({}));
-        let errMessage = errorData.error || "Intelligence processing failed.";
-        const isAuthError =
-          generationResponse.status === 401 ||
-          errorData.isAuthError ||
-          errorData.code === "API_KEY_AUTHENTICATION_FAILED" ||
-          errMessage.includes("API key is missing") ||
-          errMessage.includes("API_KEY_INVALID") ||
-          errMessage.includes("API key not valid") ||
-          errMessage.includes("API key") ||
-          errMessage.includes("GEMINI_API_KEY");
-
-        if (isAuthError) {
-          setIsApiKeyError(true);
-          errMessage =
-            errorData.error ||
-            "Gemini API key authentication failed. Please check your API configuration in Settings (GEMINI_API_KEY / GEMINI_API_KEY_2).";
-        }
-        const errorObj: any = new Error(errMessage);
-        errorObj.isAuthError = isAuthError;
-        throw errorObj;
+        const errMessage =
+          errorData.error ||
+          "Intelligence processing is temporarily unavailable. Please retry in a moment.";
+        throw new Error(errMessage);
       }
 
       setAnalysisStep("Parsing cognitive matrices output...");
@@ -2244,21 +2204,8 @@ export default function App() {
       saveToHistory(analysis, file, jobDescription);
     } catch (err: any) {
       console.error("Analysis Error:", err);
-      const isAuthError =
-        err?.isAuthError ||
-        err?.code === "API_KEY_AUTHENTICATION_FAILED" ||
-        err?.message?.includes("Gemini API key authentication failed") ||
-        err?.message?.includes("API key not valid") ||
-        err?.message?.includes("API key is missing") ||
-        err?.message?.includes("API key") ||
-        err?.message?.includes("GEMINI_API_KEY") ||
-        err?.message?.includes("API configuration in Settings");
-
-      if (isAuthError) {
-        setIsApiKeyError(true);
-      }
       setError(
-        err.message || "Interruption in neural processing. Please retry.",
+        err.message || "Interruption in analysis processing. Please retry.",
       );
     } finally {
       setIsAnalyzing(false);
@@ -2287,16 +2234,7 @@ export default function App() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        let errMessage = errorData.error || "Intelligence processing failed.";
-        if (
-          errMessage.includes("API key is missing") ||
-          errMessage.includes("API_KEY_INVALID") ||
-          errMessage.includes("API key")
-        ) {
-          errMessage =
-            "Your Gemini API Key is missing, invalid or has been revoked. Please update it in the settings / environment variables.";
-        }
-        throw new Error(errMessage);
+        throw new Error(errorData.error || "Intelligence processing failed.");
       }
 
       const parsedResponse = await response.json();
@@ -2470,14 +2408,6 @@ export default function App() {
             >
               <Layers className="h-3.5 w-3.5" />
               <span>History {history.length > 0 && `(${history.length})`}</span>
-            </button>
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1.5 cursor-pointer"
-              title="API Credentials & Security Settings"
-            >
-              <Settings className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
-              <span className="hidden sm:inline">Settings</span>
             </button>
           </div>
         </div>
@@ -2840,14 +2770,6 @@ export default function App() {
               setSnapshotToast(`Loaded version "${item.versionName || item.fileName}"`);
               setTimeout(() => setSnapshotToast(null), 3000);
             }}
-          />
-
-          {/* API Credentials & Security Settings Modal */}
-          <SettingsModal
-            key="app-settings-security-modal"
-            isOpen={isSettingsOpen}
-            onClose={() => setIsSettingsOpen(false)}
-            onKeysUpdated={handleTestConnection}
           />
 
           {/* Share Verified Trust Score Social Media Graphic Modal */}
@@ -3366,25 +3288,6 @@ export default function App() {
             >
               {/* Hero Section */}
               <div className="text-center mb-16 relative">
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="mb-6 inline-flex items-center gap-2 group relative cursor-pointer px-4 py-2 rounded-full bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 text-teal-700 dark:text-teal-300 text-[10px] font-black uppercase tracking-[0.3em] shadow-[0_0_15px_rgba(20,184,166,0.2)] transition-colors"
-                  onClick={() => setIsSettingsOpen(true)}
-                  title="Click to view API Credentials & Security Settings"
-                >
-                  <Lock className="h-3 w-3 text-teal-600 dark:text-teal-400" />
-                  <span>Privacy-First Architecture • API Keys Masked & Protected</span>
-                  <div className="dark dark-studio absolute inset-x-0 bottom-full mb-3 hidden group-hover:block px-4 py-3 bg-[#0A0A15] border border-white/10 text-slate-300 text-[10px] font-medium normal-case tracking-normal rounded-xl shadow-2xl z-50 text-center w-64 mx-auto left-1/2 -translate-x-1/2 transition-all">
-                    All parsing and analysis vectors happen locally or via
-                    stateless API protocols. We never store your resume files or
-                    personal data on our servers.{" "}
-                    <strong className="text-teal-400 font-bold">
-                      100% GDPR & ISO 27001 Compliant.
-                    </strong>
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-3 h-3 bg-[#0A0A15] border-b border-r border-white/10 rotate-45 transform"></div>
-                  </div>
-                </motion.div>
                 <motion.h2
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -3558,41 +3461,43 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           "Headline: Senior Staff Software Engineer & Cloud Architect | Distributed Systems & AWS\nAbout: 8+ years architecting microservices and leading platform teams. Scaled systems to 5M+ daily active users.",
                         );
                       }}
-                      className="text-[10px] font-black text-teal-400 hover:text-teal-300 uppercase tracking-widest bg-teal-500/10 hover:bg-teal-500/20 px-4 py-2 rounded-lg transition-all border border-teal-500/20 hover:border-teal-500/40 cursor-pointer"
+                      className="text-[10px] font-black text-teal-700 dark:text-teal-400 hover:text-teal-800 dark:hover:text-teal-300 uppercase tracking-widest bg-teal-500/10 hover:bg-teal-500/20 px-4 py-2 rounded-lg transition-all border border-teal-500/30 hover:border-teal-500/50 cursor-pointer"
                     >
                       Use Sample Resume & Job Description
                     </button>
                   </div>
 
-                  <div className="mt-4 border-t border-white/5 pt-4 space-y-3">
+                  <div className="mt-4 border-t border-slate-200 dark:border-white/5 pt-4 space-y-3">
                     <div className="group relative w-full">
                       {linkedinUrl ? (
-                        <div className="w-full flex flex-col gap-2.5 p-3 rounded-xl border border-[#0A66C2]/40 bg-[#0A66C2]/15 shadow-[0_0_20px_rgba(10,102,194,0.25)] transition-all">
+                        <div className="w-full flex flex-col gap-2.5 p-3 rounded-xl border border-[#0A66C2]/40 bg-[#0A66C2]/10 dark:bg-[#0A66C2]/15 shadow-[0_0_20px_rgba(10,102,194,0.15)] transition-all">
                           <div className="flex items-center justify-between gap-2">
                             <button
                               type="button"
                               onClick={() => setIsConnectLinkedInModalOpen(true)}
                               className="flex items-center gap-3 text-left overflow-hidden flex-1 cursor-pointer"
                             >
-                              <img
-                                src="https://cdn-icons-png.flaticon.com/512/174/174857.png"
+                              <svg
                                 width="20"
                                 height="20"
-                                alt="LI"
-                                referrerPolicy="no-referrer"
+                                viewBox="0 0 24 24"
+                                fill="#0A66C2"
+                                aria-hidden="true"
                                 className="shrink-0"
-                              />
+                              >
+                                <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+                              </svg>
                               <div className="overflow-hidden">
-                                <div className="flex items-center gap-2 text-xs text-white">
+                                <div className="flex items-center gap-2 text-xs text-slate-900 dark:text-white">
                                   <span className="font-bold tracking-wide">
                                     LinkedIn Connected
                                   </span>
                                   <span aria-hidden="true" className="text-slate-400">·</span>
-                                  <span className="text-emerald-400 font-semibold text-[11px]">
+                                  <span className="text-emerald-700 dark:text-emerald-400 font-semibold text-[11px]">
                                     Active
                                   </span>
                                 </div>
-                                <p className="text-[10px] text-teal-300 font-mono truncate max-w-[180px] sm:max-w-xs">
+                                <p className="text-[10px] text-teal-700 dark:text-teal-300 font-mono truncate max-w-[180px] sm:max-w-xs">
                                   {linkedinUrl.replace(/^https?:\/\/(www\.)?linkedin\.com\//i, "")}
                                 </p>
                               </div>
@@ -3602,13 +3507,13 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 type="button"
                                 onClick={() => handleVerifyLinkedInTrust()}
                                 disabled={isVerifyingLinkedInTrust}
-                                className="text-[11px] font-bold text-teal-300 hover:text-white bg-teal-500/15 hover:bg-teal-500/25 px-3 py-1.5 rounded-lg border border-teal-500/30 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer disabled:opacity-50"
+                                className="text-[11px] font-bold text-teal-800 dark:text-teal-300 hover:text-teal-950 dark:hover:text-white bg-teal-500/15 hover:bg-teal-500/25 px-3 py-1.5 rounded-lg border border-teal-500/35 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer disabled:opacity-50"
                                 title="Perform real-time verification of LinkedIn profile data against resume content"
                               >
-                                <ShieldCheck className={`w-3.5 h-3.5 text-teal-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
+                                <ShieldCheck className={`w-3.5 h-3.5 text-teal-600 dark:text-teal-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
                                 <span>{isVerifyingLinkedInTrust ? "Verifying..." : "LinkedIn Trust Score"}</span>
                                 {linkedInTrustScore !== null && (
-                                  <span className="font-mono font-bold tabular-nums text-white ml-0.5">
+                                  <span className="font-mono font-bold tabular-nums text-slate-900 dark:text-white ml-0.5">
                                     {linkedInTrustScore}%
                                   </span>
                                 )}
@@ -3616,7 +3521,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               <button
                                 type="button"
                                 onClick={() => setIsConnectLinkedInModalOpen(true)}
-                                className="text-[11px] font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-lg border border-white/10 transition-all whitespace-nowrap cursor-pointer"
+                                className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white bg-white/80 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-white/10 transition-all whitespace-nowrap cursor-pointer"
                               >
                                 Manage
                               </button>
@@ -3631,7 +3536,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                   sessionStorage.removeItem("current_linkedin_trust_score");
                                   sessionStorage.removeItem("current_linkedin_trust_report");
                                 }}
-                                className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer"
+                                className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer"
                                 title="Disconnect LinkedIn profile"
                               >
                                 <X className="w-4 h-4" />
@@ -3646,16 +3551,18 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             whileHover={{ scale: 1.01 }}
                             whileTap={{ scale: 0.99 }}
                             onClick={() => setIsConnectLinkedInModalOpen(true)}
-                            className="flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl border transition-all bg-[#0A66C2]/10 hover:bg-[#0A66C2]/20 border-[#0A66C2]/35 text-[#38bdf8] hover:text-white cursor-pointer whitespace-nowrap"
+                            className="flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl border transition-all bg-[#0A66C2]/10 hover:bg-[#0A66C2]/20 border-[#0A66C2]/35 text-[#0A66C2] dark:text-[#38bdf8] hover:text-[#004182] dark:hover:text-white cursor-pointer whitespace-nowrap"
                           >
-                            <img
-                              src="https://cdn-icons-png.flaticon.com/512/174/174857.png"
+                            <svg
                               width="16"
                               height="16"
-                              alt="LI"
-                              referrerPolicy="no-referrer"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              aria-hidden="true"
                               className="shrink-0"
-                            />
+                            >
+                              <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+                            </svg>
                             <span className="text-xs font-bold tracking-wide">
                               Connect LinkedIn Profile
                             </span>
@@ -3664,13 +3571,13 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             type="button"
                             onClick={() => handleVerifyLinkedInTrust()}
                             disabled={isVerifyingLinkedInTrust}
-                            className="px-4 py-3 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/35 text-teal-300 hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50"
+                            className="px-4 py-3 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/35 text-teal-800 dark:text-teal-300 hover:text-teal-950 dark:hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50"
                             title="Verify public LinkedIn profile data against your resume content in real time"
                           >
-                            <ShieldCheck className={`w-4 h-4 text-teal-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
+                            <ShieldCheck className={`w-4 h-4 text-teal-600 dark:text-teal-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
                             <span>{isVerifyingLinkedInTrust ? "Verifying..." : "LinkedIn Trust Score"}</span>
                             {linkedInTrustScore !== null && (
-                              <span className="font-mono font-bold tabular-nums text-white">
+                              <span className="font-mono font-bold tabular-nums text-slate-900 dark:text-white">
                                 {linkedInTrustScore}%
                               </span>
                             )}
@@ -3681,7 +3588,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                     {/* Real-Time Credibility Score Display inside the LinkedIn Connection Section */}
                     {linkedInTrustScore !== null && (
-                      <div className="p-3.5 rounded-xl bg-slate-900/90 border border-teal-500/30 space-y-2.5">
+                      <div className="dark dark-studio p-3.5 rounded-xl bg-slate-900/95 border border-teal-500/30 space-y-2.5">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 text-xs text-slate-300">
                             <ShieldCheck className="w-4 h-4 text-teal-400 shrink-0" />
@@ -3768,7 +3675,7 @@ Qualifications:
 - Exceptional strategic thinking, financial acumen, and operational expertise.
 - Strong communication and interpersonal skills, with the ability to influence and align diverse stakeholders.
 - MBA or equivalent advanced degree preferred.`)}
-                      className="text-[10px] font-black uppercase tracking-widest text-teal-400 hover:text-teal-300 transition-colors flex items-center gap-1 bg-teal-500/10 px-3 py-1.5 rounded-full hover:bg-teal-500/20"
+                      className="text-[10px] font-black uppercase tracking-widest text-teal-700 dark:text-teal-400 hover:text-teal-800 dark:hover:text-teal-300 transition-colors flex items-center gap-1 bg-teal-500/10 px-3 py-1.5 rounded-full hover:bg-teal-500/20 cursor-pointer"
                     >
                       <Zap className="h-3 w-3" /> Quick Fill
                     </button>
@@ -3783,9 +3690,9 @@ Qualifications:
                         e.target.style.height = `${e.target.scrollHeight}px`;
                       }}
                       placeholder="Paste the target job requirements to calibrate the intelligence engine..."
-                      className="w-full min-h-[14rem] max-h-[30rem] bg-[#0A0A15]/80 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-teal-500/60 focus:ring-1 focus:ring-teal-500/60 transition-all resize-y font-medium leading-relaxed custom-scrollbar relative z-10 shadow-inner"
+                      className="w-full min-h-[14rem] max-h-[30rem] bg-slate-50 dark:bg-[#0A0A15]/80 backdrop-blur-md border border-slate-200 dark:border-white/10 rounded-2xl p-6 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-teal-500/60 focus:ring-1 focus:ring-teal-500/60 transition-all resize-y font-medium leading-relaxed custom-scrollbar relative z-10 shadow-inner"
                     />
-                    <div className="absolute bottom-4 right-4 text-[9px] font-bold uppercase tracking-widest text-slate-500 pointer-events-none z-20 bg-[#0A0A15]/80 px-2 py-1 rounded">
+                    <div className="absolute bottom-4 right-4 text-[9px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 pointer-events-none z-20 bg-slate-100/90 dark:bg-[#0A0A15]/80 px-2 py-1 rounded">
                       {jobDescription.length > 0
                         ? `${jobDescription.length} chars`
                         : "Optional Context"}
@@ -4983,128 +4890,43 @@ Qualifications:
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 8 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    className={`mt-8 max-w-2xl mx-auto p-5 rounded-2xl border text-left flex items-start gap-4 transition-all relative ${
-                      isApiKeyError
-                        ? "bg-amber-500/10 border-amber-500/30 text-amber-200 shadow-xl shadow-amber-500/5"
-                        : "bg-rose-500/10 border-rose-500/25 text-rose-300 shadow-xl shadow-rose-500/5"
-                    }`}
+                    className="mt-8 max-w-2xl mx-auto p-5 rounded-2xl border text-left flex items-start gap-4 transition-all relative bg-rose-500/10 border-rose-500/25 text-rose-700 dark:text-rose-300 shadow-xl shadow-rose-500/5"
                   >
                     <div className="shrink-0 mt-0.5">
-                      {isApiKeyError ? (
-                        <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
-                          <Key className="h-5 w-5" />
-                        </div>
-                      ) : (
-                        <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400">
-                          <AlertCircle className="h-5 w-5" />
-                        </div>
-                      )}
+                      <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                        <AlertCircle className="h-5 w-5" />
+                      </div>
                     </div>
                     <div className="flex-1 space-y-2 pr-6">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h4
-                          className={`text-xs font-black uppercase tracking-wider ${
-                            isApiKeyError ? "text-amber-300" : "text-rose-400"
-                          }`}
-                        >
-                          {isApiKeyError
-                            ? "API Key Authentication Required"
-                            : "Analysis Interrupted"}
+                        <h4 className="text-xs font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                          Analysis Interrupted
                         </h4>
-                        {isApiKeyError && (
-                          <button
-                            type="button"
-                            onClick={() => setIsSettingsOpen(true)}
-                            className="px-2.5 py-0.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[9px] font-black uppercase tracking-wider border border-amber-500/30 transition-colors cursor-pointer flex items-center gap-1"
-                          >
-                            <Settings className="w-2.5 h-2.5" />
-                            <span>Check Settings</span>
-                          </button>
-                        )}
                       </div>
-                      <p className="text-xs text-slate-300 font-medium leading-relaxed">
+                      <p className="text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
                         {error}
                       </p>
 
-                      {/* Live Feedback / Connection status message */}
-                      {connectionStatus && (
-                        <div
-                          className={`p-2 rounded-lg text-xs font-semibold ${
-                            connectionStatus.includes("Connected")
-                              ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-300"
-                              : "bg-amber-500/20 border border-amber-500/40 text-amber-300"
-                          }`}
-                        >
-                          {connectionStatus}
-                        </div>
-                      )}
-
-                      {isApiKeyError && (
-                        <div className="pt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400 border-t border-amber-500/15 mt-2">
-                          <span className="font-semibold text-amber-200/90">
-                            Configure in Settings:
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setIsSettingsOpen(true)}
-                            className="bg-black/50 hover:bg-black/80 px-2 py-0.5 rounded text-amber-300 font-mono text-[10px] border border-white/10 transition-colors cursor-pointer flex items-center gap-1"
-                          >
-                            <Settings className="w-2.5 h-2.5" />
-                            <span>GEMINI_API_KEY / GEMINI_API_KEY_2 (Masked)</span>
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Interactive Actions: Test Connection & Retry */}
-                      <div className="pt-2 flex flex-wrap items-center gap-2.5">
-                        <button
-                          type="button"
-                          onClick={() => setIsSettingsOpen(true)}
-                          className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
-                        >
-                          <Settings className="w-3.5 h-3.5" />
-                          <span>Open Settings</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={handleTestConnection}
-                          disabled={isTestingConnection}
-                          className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer"
-                        >
-                          <RefreshCw
-                            className={`w-3.5 h-3.5 ${isTestingConnection ? "animate-spin text-teal-400" : "text-slate-300"}`}
-                          />
-                          <span>
-                            {isTestingConnection
-                              ? "Verifying Key..."
-                              : "Test Connection"}
-                          </span>
-                        </button>
-
-                        {file && (
+                      {file && (
+                        <div className="pt-2 flex flex-wrap items-center gap-2.5">
                           <button
                             type="button"
                             onClick={analyzeResume}
                             disabled={isAnalyzing}
-                            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 text-[11px] font-black flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+                            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white text-[11px] font-black flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
                           >
                             <Sparkles className="w-3.5 h-3.5" />
                             <span>Retry Analysis</span>
                           </button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Dismiss Button */}
                     <button
                       type="button"
-                      onClick={() => {
-                        setError(null);
-                        setIsApiKeyError(false);
-                        setConnectionStatus(null);
-                      }}
-                      className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+                      onClick={() => setError(null)}
+                      className="absolute top-4 right-4 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
                       title="Dismiss error message"
                     >
                       <X className="w-4 h-4" />
@@ -5114,12 +4936,12 @@ Qualifications:
               </div>
 
               {/* Trust & How It Works */}
-              <div className="mt-32 pt-16 border-t border-white/5">
+              <div className="mt-32 pt-16 border-t border-slate-200 dark:border-white/10">
                 <div className="text-center mb-16">
-                  <h3 className="text-2xl font-black font-display text-white mb-4">
+                  <h3 className="text-2xl font-black font-display text-slate-900 dark:text-white mb-4">
                     How It Works
                   </h3>
-                  <p className="text-slate-400 text-sm max-w-2xl mx-auto">
+                  <p className="text-slate-600 dark:text-slate-400 text-sm max-w-2xl mx-auto">
                     Our AI engine reverse-engineers the Applicant Tracking
                     Systems used by top Fortune 500 companies to give you a
                     competitive edge.
@@ -5134,18 +4956,18 @@ Qualifications:
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
                     viewport={{ once: true }}
-                    className="flex flex-col items-center text-center p-6 bg-[#0A0A15] border border-white/5 rounded-2xl relative z-10"
+                    className="flex flex-col items-center text-center p-6 bg-white dark:bg-[#0A0A15] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none rounded-2xl relative z-10"
                   >
-                    <div className="w-12 h-12 rounded-full bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-6 text-teal-400 font-black">
+                    <div className="w-12 h-12 rounded-full bg-teal-500/10 border border-teal-500/25 flex items-center justify-center mb-6 text-teal-700 dark:text-teal-400 font-black">
                       1
                     </div>
-                    <h4 className="text-white font-bold mb-3 uppercase tracking-wider text-sm">
+                    <h4 className="text-slate-900 dark:text-white font-bold mb-3 uppercase tracking-wider text-sm">
                       Upload & Parse
                     </h4>
-                    <p className="text-slate-500 text-xs leading-relaxed">
+                    <p className="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
                       Drop in your resume and an optional job description. Our
-                      engine parses your formatting just like workday or
-                      greenhouse.
+                      engine parses your formatting just like Workday or
+                      Greenhouse.
                     </p>
                   </motion.div>
 
@@ -5154,15 +4976,15 @@ Qualifications:
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
                     viewport={{ once: true }}
-                    className="flex flex-col items-center text-center p-6 bg-[#0A0A15] border border-white/5 rounded-2xl relative z-10"
+                    className="flex flex-col items-center text-center p-6 bg-white dark:bg-[#0A0A15] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none rounded-2xl relative z-10"
                   >
-                    <div className="w-12 h-12 rounded-full bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-6 text-teal-400 font-black">
+                    <div className="w-12 h-12 rounded-full bg-teal-500/10 border border-teal-500/25 flex items-center justify-center mb-6 text-teal-700 dark:text-teal-400 font-black">
                       2
                     </div>
-                    <h4 className="text-white font-bold mb-3 uppercase tracking-wider text-sm">
+                    <h4 className="text-slate-900 dark:text-white font-bold mb-3 uppercase tracking-wider text-sm">
                       Deep AI Analysis
                     </h4>
-                    <p className="text-slate-500 text-xs leading-relaxed">
+                    <p className="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
                       We scan for keyword density, structural integrity, and
                       skill gaps using the latest Gemini models.
                     </p>
@@ -5173,15 +4995,15 @@ Qualifications:
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
                     viewport={{ once: true }}
-                    className="flex flex-col items-center text-center p-6 bg-[#0A0A15] border border-white/5 rounded-2xl relative z-10"
+                    className="flex flex-col items-center text-center p-6 bg-white dark:bg-[#0A0A15] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none rounded-2xl relative z-10"
                   >
-                    <div className="w-12 h-12 rounded-full bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-6 text-teal-400 font-black">
+                    <div className="w-12 h-12 rounded-full bg-teal-500/10 border border-teal-500/25 flex items-center justify-center mb-6 text-teal-700 dark:text-teal-400 font-black">
                       3
                     </div>
-                    <h4 className="text-white font-bold mb-3 uppercase tracking-wider text-sm">
+                    <h4 className="text-slate-900 dark:text-white font-bold mb-3 uppercase tracking-wider text-sm">
                       Actionable Report
                     </h4>
-                    <p className="text-slate-500 text-xs leading-relaxed">
+                    <p className="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
                       Get a visual dashboard with your ATS score, missing
                       keywords, and ready-to-copy bullet point improvements.
                     </p>
@@ -5209,7 +5031,7 @@ Qualifications:
                 </div>
 
                 {/* Video Demo & Recruiter Appeal Section */}
-                <div className="mt-32 border border-white/10 rounded-3xl overflow-hidden relative shadow-[0_0_50px_rgba(20,184,166,0.1)]">
+                <div className="mt-32 border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden relative shadow-[0_0_50px_rgba(20,184,166,0.08)]">
                   <div className="absolute inset-0 bg-gradient-to-b from-teal-500/5 to-transparent"></div>
                   <div className="p-8 md:p-16 text-center relative z-10">
                     <a
@@ -5290,12 +5112,8 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     >
                       <Zap className="h-5 w-5" /> Try Live Demo Now
                     </motion.button>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-6">
-                      Hosted securely at{" "}
-                      <span className="text-teal-400/80">
-                        demo.airesumepro.com
-                      </span>{" "}
-                      • SOC2 & GDPR Compliant
+                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-6">
+                      Private Stateless Processing • Executive ATS Intelligence
                     </p>
                   </div>
                 </div>
@@ -5313,13 +5131,13 @@ AWS Certified Solutions Architect – Associate (2022)`;
               {(result.atsMetadata?.ocrUsed || result.atsMetadata?.isScannedPdf) && (
                 <div className="bg-amber-500/15 border border-amber-500/40 p-4 rounded-2xl flex items-start gap-4 shadow-xl backdrop-blur-md animate-fadeIn mb-6">
                   <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 shrink-0">
-                    <Camera className="w-5 h-5 text-amber-300 animate-pulse" />
+                    <Camera className="w-5 h-5 text-amber-700 dark:text-amber-300" />
                   </div>
                   <div className="space-y-1">
-                    <h4 className="text-xs font-black text-amber-300 uppercase tracking-widest flex items-center gap-2">
+                    <h4 className="text-xs font-black text-amber-800 dark:text-amber-300 uppercase tracking-widest flex items-center gap-2">
                       Scanned Document / Image PDF Parsed via Tesseract.js OCR
                     </h4>
-                    <p className="text-xs text-slate-300 leading-relaxed">
+                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                       We detected a scanned image-based PDF. Text was extracted using onboard Tesseract OCR.
                       Standard ATS scanners heavily penalize non-selectable text. For maximum compatibility and score, re-export your resume as a text-native PDF or DOCX format.
                     </p>
@@ -5348,16 +5166,16 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             setIsLinkedInVerificationModalOpen(true);
                           }
                         }}
-                        className="px-3 py-1 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/40 text-teal-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                        className="px-3 py-1 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/40 text-teal-800 dark:text-teal-300 hover:text-teal-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
                         title="Verified Trust Badge — Click to share or embed your LinkedIn Credibility Score"
                       >
-                        <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
+                        <ShieldCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
                         <span>Verified Trust</span>
-                        <span aria-hidden="true" className="text-teal-500/60">·</span>
-                        <span className="font-mono font-extrabold tabular-nums text-white">
+                        <span aria-hidden="true" className="text-teal-600/60 dark:text-teal-500/60">·</span>
+                        <span className="font-mono font-extrabold tabular-nums text-slate-900 dark:text-white">
                           {linkedInTrustScore ?? (linkedinUrl ? 86 : 78)}%
                         </span>
-                        <Share2 className="w-3 h-3 text-teal-400 ml-0.5" />
+                        <Share2 className="w-3 h-3 text-teal-600 dark:text-teal-400 ml-0.5" />
                       </button>
                       <button
                         type="button"
@@ -5367,21 +5185,11 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             el.scrollIntoView({ behavior: "smooth", block: "start" });
                           }
                         }}
-                        className="px-3 py-1 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/40 text-indigo-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                        className="px-3 py-1 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/40 text-indigo-700 dark:text-indigo-300 hover:text-indigo-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
                         title="Inspect itemized score reasons or retrain & calibrate the AI scoring model"
                       >
-                        <BrainCircuit className="w-3.5 h-3.5 text-indigo-400" />
+                        <BrainCircuit className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                         <span>Score Reasons & Retrain Model</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsSettingsOpen(true)}
-                        className="px-3 py-1 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
-                        title="API Keys Masked & Protected — Click to open Settings"
-                      >
-                        <Lock className="w-3 h-3 text-teal-400" />
-                        <span className="hidden sm:inline">Keys:</span>
-                        <span className="font-mono text-[11px] text-teal-300 font-bold">Masked</span>
                       </button>
                       {activeVersionId && (
                         <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold">
@@ -5914,14 +5722,13 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 ) : (
                   <div className="space-y-4">
                     {/* Section Header with Mode Selector and Collapse Toggle */}
-                    <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-[#0A0A15]/60 border border-white/10 backdrop-blur-md">
+                    <div className="dark dark-studio flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/95 border border-slate-800 shadow-lg">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600/30 to-teal-500/30 border border-blue-500/40 flex items-center justify-center text-blue-400">
                           <Users className="w-5 h-5" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse" />
                             <h3 className="text-xs font-black text-white uppercase tracking-[0.25em]">
                               LinkedIn Network & Credibility Intelligence
                             </h3>
@@ -5937,13 +5744,13 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {/* Tab Switcher */}
                         <div className="flex items-center p-1 bg-black/40 border border-white/10 rounded-xl text-xs">
                           <button
                             type="button"
                             onClick={() => setLinkedInViewTab("network")}
-                            className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                            className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
                               linkedInViewTab === "network"
                                 ? "bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md shadow-blue-500/20"
                                 : "text-slate-400 hover:text-white"
@@ -5955,7 +5762,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           <button
                             type="button"
                             onClick={() => setLinkedInViewTab("badge")}
-                            className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                            className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
                               linkedInViewTab === "badge"
                                 ? "bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md shadow-blue-500/20"
                                 : "text-slate-400 hover:text-white"
@@ -5965,6 +5772,32 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             <span>Profile Trust Audit</span>
                           </button>
                         </div>
+
+                        {/* Download Network & Trust PDF Dossier Button */}
+                        <button
+                          type="button"
+                          onClick={handleDownloadNetworkDossier}
+                          disabled={isDownloadingNetworkDossier}
+                          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-500 hover:to-blue-500 text-white font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 shadow-md shadow-teal-500/20 active:scale-95 disabled:opacity-60"
+                          title="Generate and download a structured PDF dossier of your network graph and trust metrics"
+                        >
+                          {isDownloadingNetworkDossier ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Generating PDF...</span>
+                            </>
+                          ) : networkDossierSuccess ? (
+                            <>
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Dossier Downloaded!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Download className="w-3.5 h-3.5" />
+                              <span>Download PDF Dossier</span>
+                            </>
+                          )}
+                        </button>
 
                         {/* Collapse Section Toggle Button */}
                         <button
@@ -6027,18 +5860,15 @@ AWS Certified Solutions Architect – Associate (2022)`;
               {/* Full Analysis Report Export & ATS Generator Banner */}
               <GlassCard className="mb-8 border-l-4 border-l-teal-500 bg-gradient-to-r from-teal-500/10 via-purple-500/5 to-transparent p-6 md:p-8 flex flex-wrap items-center justify-between gap-6">
                 <div className="space-y-1.5 max-w-2xl">
-                  <div className="flex items-center gap-2">
-                    <span className="px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 border border-teal-500/30">
-                      <Sparkles className="w-3.5 h-3.5 text-teal-400" /> Complete Career Report
-                    </span>
-                    <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-black uppercase tracking-wider border border-purple-500/30">
-                      DOCX & PDF Verified
-                    </span>
+                  <div className="flex items-center gap-2 text-xs font-semibold text-teal-700 dark:text-teal-300">
+                    <span>Complete Career Report</span>
+                    <span aria-hidden="true" className="text-slate-400">·</span>
+                    <span className="text-purple-700 dark:text-purple-300">DOCX & PDF Verified</span>
                   </div>
-                  <h3 className="text-lg font-black text-white font-display uppercase tracking-wider">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white font-display uppercase tracking-wider">
                     Download Full Analyzed Report
                   </h3>
-                  <p className="text-xs text-slate-300 font-medium leading-relaxed">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
                     Export your complete executive summary, skill gap report, D3 career roadmap, and strategic optimization plan as a clean, presentation-ready PDF or Word document.
                   </p>
                 </div>
@@ -6046,7 +5876,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     onClick={() => setIsPdfPreviewOpen(true)}
-                    className="px-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-purple-500/25 active:scale-95 cursor-pointer"
+                    className="px-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-purple-500/25 active:scale-95 cursor-pointer whitespace-nowrap"
                     title="Customize and toggle sections before exporting PDF"
                   >
                     <Eye className="w-4 h-4" /> PDF Export Preview
@@ -6054,15 +5884,15 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                   <button
                     onClick={handleFullReportPdfPrint}
-                    className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+                    className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 border border-slate-300 dark:border-white/20 text-slate-800 dark:text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 active:scale-95 cursor-pointer whitespace-nowrap"
                     title="Print full executive report directly"
                   >
-                    <Printer className="w-4 h-4 text-purple-300" /> Direct Print PDF
+                    <Printer className="w-4 h-4 text-purple-600 dark:text-purple-300" /> Direct Print PDF
                   </button>
 
                   <button
                     onClick={() => exportFullReportToDocx(result)}
-                    className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 cursor-pointer"
+                    className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 cursor-pointer whitespace-nowrap"
                   >
                     <Download className="w-4 h-4" /> Download DOCX Report
                   </button>
@@ -6076,7 +5906,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           "Give me a short, crystal-clear breakdown of what is missing from my resume for this job and the best quick fixes I can apply.",
                       });
                     }}
-                    className="px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-teal-500/40 text-teal-300 hover:text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+                    className="px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-teal-500/40 text-teal-300 hover:text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 active:scale-95 cursor-pointer whitespace-nowrap"
                   >
                     <Bot className="w-4 h-4 text-teal-400" /> Ask Copilot What&apos;s Missing
                   </button>
@@ -6086,7 +5916,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       setSelectedSkillToFrame(null);
                       setIsResumeBuilderOpen(true);
                     }}
-                    className="px-5 py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-teal-500/20 active:scale-95 cursor-pointer"
+                    className="px-5 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-teal-500/20 active:scale-95 cursor-pointer whitespace-nowrap"
                   >
                     <Briefcase className="w-4 h-4" /> Open Resume Builder & AI Coach
                   </button>
@@ -6128,15 +5958,15 @@ AWS Certified Solutions Architect – Associate (2022)`;
                   <div className="space-y-4">
                     <div className="flex items-center justify-between px-2">
                       <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
-                        <span className="text-xs font-black uppercase tracking-wider text-slate-300">
+                        <Target className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                        <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                           Scoring Infrastructure & Core ATS Metrics
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => toggleSection("scoring-infrastructure")}
-                        className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer flex items-center gap-1 text-xs"
+                        className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer flex items-center gap-1 text-xs"
                         title="Collapse section to declutter workspace"
                       >
                         <span className="text-[10px] font-bold">Collapse</span>
@@ -6504,8 +6334,8 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           className="relative pl-12 md:pl-16"
                         >
                           {/* Timeline dot */}
-                          <div className="absolute left-[-5px] md:left-[11px] top-1 h-6 w-6 rounded-full bg-[#050510] border-2 border-teal-500 flex items-center justify-center shadow-[0_0_10px_rgba(20,184,166,0.3)] z-10">
-                            <div className="h-2 w-2 rounded-full bg-teal-400"></div>
+                          <div className="absolute left-[-5px] md:left-[11px] top-1 h-6 w-6 rounded-full bg-white dark:bg-[#050510] border-2 border-teal-500 flex items-center justify-center shadow-[0_0_10px_rgba(20,184,166,0.3)] z-10">
+                            <div className="h-2 w-2 rounded-full bg-teal-500 dark:bg-teal-400"></div>
                           </div>
 
                           <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-2 gap-2">
@@ -6545,14 +6375,10 @@ AWS Certified Solutions Architect – Associate (2022)`;
               {result.linkedinComparison &&
               result.linkedinComparison.hasLinkedIn ? (
                 <GlassCard className="mb-8 border-t-2 border-t-[#14b8a6] overflow-hidden relative group">
-                  <div className="absolute top-0 right-0 p-8 opacity-5">
-                    <img
-                      src="https://cdn-icons-png.flaticon.com/512/174/174857.png"
-                      height="150"
-                      width="150"
-                      alt="LI"
-                      className="grayscale"
-                    />
+                  <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+                    <svg width="150" height="150" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+                    </svg>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -6613,13 +6439,13 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         type="button"
                         onClick={() => handleVerifyLinkedInTrust()}
                         disabled={isVerifyingLinkedInTrust}
-                        className="text-xs text-white bg-teal-500/20 hover:bg-teal-500/30 px-3.5 py-1.5 rounded-xl border border-teal-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap disabled:opacity-50"
+                        className="text-xs text-teal-800 dark:text-white bg-teal-500/15 dark:bg-teal-500/20 hover:bg-teal-500/25 dark:hover:bg-teal-500/30 px-3.5 py-1.5 rounded-xl border border-teal-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap disabled:opacity-50"
                         title="Perform real-time verification of LinkedIn profile data against resume content for Credibility Score"
                       >
-                        <ShieldCheck className={`w-3.5 h-3.5 text-teal-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
+                        <ShieldCheck className={`w-3.5 h-3.5 text-teal-600 dark:text-teal-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
                         <span>{isVerifyingLinkedInTrust ? "Verifying..." : "LinkedIn Trust Score"}</span>
                         {linkedInTrustScore !== null && (
-                          <span className="font-mono font-bold tabular-nums text-teal-300 ml-1">
+                          <span className="font-mono font-bold tabular-nums text-teal-700 dark:text-teal-300 ml-1">
                             {linkedInTrustScore}%
                           </span>
                         )}
@@ -6628,7 +6454,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         id="share-trust-score-linkedin-btn"
                         type="button"
                         onClick={() => setIsShareTrustScoreOpen(true)}
-                        className="text-xs text-white bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-teal-500/20 active:scale-95 whitespace-nowrap font-bold"
+                        className="text-xs text-white bg-gradient-to-r from-teal-600 to-indigo-600 hover:from-teal-500 hover:to-indigo-500 px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-teal-500/20 active:scale-95 whitespace-nowrap font-bold"
                         title="Generate social media card of your verified credibility score"
                       >
                         <Share2 className="w-3.5 h-3.5" />
@@ -6637,10 +6463,10 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       <button
                         type="button"
                         onClick={() => setIsTrustScoreWalkthroughOpen(true)}
-                        className="text-xs text-teal-300 hover:text-white bg-teal-500/10 hover:bg-teal-500/20 px-2.5 py-1.5 rounded-xl border border-teal-500/30 transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap font-bold"
+                        className="text-xs text-teal-800 dark:text-teal-300 hover:text-teal-950 dark:hover:text-white bg-teal-500/10 hover:bg-teal-500/20 px-2.5 py-1.5 rounded-xl border border-teal-500/30 transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap font-bold"
                         title="Interactive guide on how to customize and share your Trust Score card"
                       >
-                        <Sparkles className="w-3 h-3 text-teal-400" />
+                        <Sparkles className="w-3 h-3 text-teal-600 dark:text-teal-400" />
                         <span>Tour</span>
                       </button>
                     </div>
@@ -6648,7 +6474,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                   {/* Real-Time Credibility Score Banner in Connected LinkedIn Section */}
                   {linkedInTrustScore !== null && (
-                    <div className="mb-6 p-4 rounded-2xl bg-slate-900/90 border border-teal-500/30 space-y-3">
+                    <div className="dark dark-studio mb-6 p-4 rounded-2xl bg-slate-900/90 border border-teal-500/30 space-y-3">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-xs text-slate-300">
                           <ShieldCheck className="w-4 h-4 text-teal-400 shrink-0" />
@@ -6837,24 +6663,21 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 <GlassCard className="mb-8 border-t-2 border-t-[#0A66C2]/60 overflow-hidden relative group">
                   <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 p-2">
                     <div className="flex items-start gap-4">
-                      <div className="h-12 w-12 rounded-2xl bg-[#0A66C2]/20 border border-[#0A66C2]/40 flex items-center justify-center text-[#38bdf8] shrink-0 shadow-[0_0_20px_rgba(10,102,194,0.3)]">
-                        <img
-                          src="https://cdn-icons-png.flaticon.com/512/174/174857.png"
-                          width="24"
-                          height="24"
-                          alt="LI"
-                        />
+                      <div className="h-12 w-12 rounded-2xl bg-[#0A66C2]/15 dark:bg-[#0A66C2]/20 border border-[#0A66C2]/35 flex items-center justify-center text-[#0A66C2] dark:text-[#38bdf8] shrink-0">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                          <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+                        </svg>
                       </div>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-lg font-black text-white uppercase tracking-tight">
+                          <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
                             Connect LinkedIn Profile
                           </h3>
-                          <span className="px-2 py-0.5 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-400 text-[10px] font-black uppercase">
-                            +15% Verification Boost
+                          <span className="text-teal-700 dark:text-teal-400 text-[11px] font-bold">
+                            · +15% Verification Boost
                           </span>
                         </div>
-                        <p className="text-xs text-slate-400 mt-1 max-w-xl leading-relaxed">
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-xl leading-relaxed">
                           Sync your LinkedIn profile to run automated narrative alignment, discover missing executive skills, and benchmark your public presence against ATS standards.
                         </p>
                       </div>
@@ -6864,12 +6687,12 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         type="button"
                         onClick={() => handleVerifyLinkedInTrust()}
                         disabled={isVerifyingLinkedInTrust}
-                        className="px-4 py-3 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 font-bold text-xs uppercase tracking-wider transition-all border border-teal-500/30 flex items-center justify-center gap-2 cursor-pointer shadow-sm whitespace-nowrap disabled:opacity-50"
+                        className="px-4 py-3 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 text-teal-800 dark:text-teal-300 font-bold text-xs uppercase tracking-wider transition-all border border-teal-500/35 flex items-center justify-center gap-2 cursor-pointer shadow-sm whitespace-nowrap disabled:opacity-50"
                       >
-                        <ShieldCheck className={`w-4 h-4 text-teal-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
+                        <ShieldCheck className={`w-4 h-4 text-teal-600 dark:text-teal-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
                         <span>{isVerifyingLinkedInTrust ? "Verifying..." : "LinkedIn Trust Score"}</span>
                         {linkedInTrustScore !== null && (
-                          <span className="font-mono font-bold tabular-nums text-white ml-1">
+                          <span className="font-mono font-bold tabular-nums text-slate-900 dark:text-white ml-1">
                             {linkedInTrustScore}%
                           </span>
                         )}
@@ -6877,7 +6700,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       <button
                         type="button"
                         onClick={() => setIsShareTrustScoreOpen(true)}
-                        className="px-4 py-3 rounded-xl bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-teal-500/20 active:scale-95 whitespace-nowrap"
+                        className="px-4 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-indigo-600 hover:from-teal-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-teal-500/20 active:scale-95 whitespace-nowrap"
                         title="Generate a social media-ready image card of your verified credibility score"
                       >
                         <Share2 className="w-4 h-4" />
@@ -6886,19 +6709,19 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       <button
                         type="button"
                         onClick={() => setIsTrustScoreWalkthroughOpen(true)}
-                        className="px-3.5 py-3 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 font-bold text-xs uppercase tracking-wider transition-all border border-teal-500/30 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap"
+                        className="px-3.5 py-3 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-800 dark:text-teal-300 font-bold text-xs uppercase tracking-wider transition-all border border-teal-500/35 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap"
                         title="Interactive guide on how to customize and share your Trust Score card"
                       >
-                        <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                        <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
                         <span>Tour</span>
                       </button>
                       <motion.button
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
                         onClick={() => setIsConnectLinkedInModalOpen(true)}
-                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#0A66C2] hover:bg-[#004182] text-white font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(10,102,194,0.4)] flex items-center justify-center gap-2 shrink-0 cursor-pointer whitespace-nowrap"
+                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#0A66C2] hover:bg-[#004182] text-white font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(10,102,194,0.3)] flex items-center justify-center gap-2 shrink-0 cursor-pointer whitespace-nowrap"
                       >
-                        <Zap className="w-4 h-4 text-teal-300" />
+                        <Zap className="w-4 h-4 text-teal-200" />
                         <span>Connect Profile Now</span>
                       </motion.button>
                     </div>
@@ -6986,10 +6809,10 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 ) : (
                   <>
                     {/* Section Header with Segmented View Switcher */}
-                    <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-[#0A0A15]/60 border border-white/10 backdrop-blur-md">
+                    <div className="dark dark-studio flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/95 border border-slate-800 shadow-lg">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse" />
+                          <Share2 className="w-4 h-4 text-teal-400 shrink-0" />
                           <h3 className="text-xs font-black text-white uppercase tracking-[0.25em]">
                             Skills Ecosystem & Knowledge Architecture
                           </h3>
@@ -7085,16 +6908,16 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               }))}
                               margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                             >
-                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" vertical={false} />
                               <XAxis
                                 dataKey="name"
-                                stroke="rgba(255,255,255,0.3)"
-                                tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 10, fontWeight: 700 }}
+                                stroke="#64748b"
+                                tick={{ fill: "#64748b", fontSize: 10, fontWeight: 700 }}
                                 tickMargin={10}
                               />
                               <YAxis
-                                stroke="rgba(255,255,255,0.3)"
-                                tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 10 }}
+                                stroke="#64748b"
+                                tick={{ fill: "#64748b", fontSize: 10 }}
                                 tickFormatter={(val) => `${val}%`}
                               />
                               <RechartsTooltip
@@ -7195,22 +7018,22 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           >
                             <CartesianGrid
                               strokeDasharray="3 3"
-                              stroke="rgba(255,255,255,0.05)"
+                              stroke="rgba(148,163,184,0.2)"
                               vertical={false}
                             />
                             <XAxis
                               dataKey="name"
-                              stroke="rgba(255,255,255,0.3)"
+                              stroke="#64748b"
                               tick={{
-                                fill: "rgba(255,255,255,0.5)",
+                                fill: "#64748b",
                                 fontSize: 10,
                                 fontWeight: 700,
                               }}
                               tickMargin={10}
                             />
                             <YAxis
-                              stroke="rgba(255,255,255,0.3)"
-                              tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 10 }}
+                              stroke="#64748b"
+                              tick={{ fill: "#64748b", fontSize: 10 }}
                               tickFormatter={(val) => `${val}%`}
                             />
                             <RechartsTooltip
@@ -7561,7 +7384,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                   {/* High Priority Actions */}
                   {result.improvementPlan && (
-                    <div className="p-8 grid md:grid-cols-2 gap-6 bg-black/20 border-b border-white/5">
+                    <div className="p-8 grid md:grid-cols-2 gap-6 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/5">
                       {result.improvementPlan.resumeHeadlineUpdates &&
                         result.improvementPlan.resumeHeadlineUpdates.length >
                           0 && (
@@ -7724,7 +7547,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 exit={{ opacity: 0, height: 0 }}
                                 className="overflow-hidden"
                               >
-                                <div className="p-6 rounded-2xl bg-[#050510] border border-teal-500/20 shadow-inner ml-14 relative">
+                                <div className="dark dark-studio p-6 rounded-2xl bg-[#050510] border border-teal-500/20 shadow-inner ml-14 relative">
                                   <div className="absolute top-[-10px] left-10 w-4 h-4 bg-[#050510] border-t border-l border-teal-500/20 rotate-45 transform origin-center z-10" />
 
                                   {isGeneratingRecDetail ? (
@@ -7983,7 +7806,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                         (phrase, pIdx) => (
                                           <div
                                             key={`phrase-${opt.keyword}-${i}-${pIdx}`}
-                                            className="group/phrase relative p-3 pr-10 rounded-lg bg-black/40 border border-white/5 text-xs text-slate-300 leading-relaxed font-mono"
+                                            className="group/phrase relative p-3 pr-10 rounded-lg bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/5 text-xs text-slate-800 dark:text-slate-300 leading-relaxed font-mono"
                                           >
                                             {phrase}
                                             <button
@@ -8176,7 +7999,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
 {/* Floating Action Buttons */}
               {!isExecutiveMode && activeStudioTab !== "canvas" && (
                 <div className={`fixed top-1/4 left-4 z-50 transition-all duration-300 ${isQuickLinksOpen ? 'w-64' : 'w-12'}`}>
-                  <div className="bg-brand-deep/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex">
+                  <div className="dark dark-studio bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex">
                     <div className="w-12 flex flex-col items-center py-4 border-r border-white/5 shrink-0">
                       <button 
                         onClick={() => setIsQuickLinksOpen(!isQuickLinksOpen)}
@@ -8199,15 +8022,16 @@ AWS Certified Solutions Architect – Associate (2022)`;
                   </div>
                 </div>
               )}
-              <div className="fixed bottom-12 right-12 z-50 flex flex-col gap-4">
+              <div className="fixed bottom-32 right-6 md:right-8 z-[195] flex flex-col gap-4">
                 <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
                   onClick={exportToExcel}
-                  className="h-16 w-16 rounded-2xl bg-teal-500 text-white shadow-2xl shadow-teal-500/20 flex items-center justify-center group relative overflow-hidden active:scale-95 transition-all"
+                  title="Export Summary to Excel"
+                  aria-label="Export Summary to Excel"
+                  className="h-12 w-12 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white shadow-2xl shadow-teal-500/20 flex items-center justify-center group relative overflow-hidden active:scale-95 transition-all cursor-pointer"
                 >
-                  <Download className="h-7 w-7 relative z-10" />
-                  <div className="absolute inset-0 bg-gradient-to-tr from-emerald-600 to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Download className="h-5 w-5 relative z-10" />
                 </motion.button>
               </div>
             </motion.div>
@@ -8215,33 +8039,33 @@ AWS Certified Solutions Architect – Associate (2022)`;
         </AnimatePresence>
       </main>
 
-      <footer className="py-20 border-t border-white/5 text-center mt-20 bg-brand-deep/20 relative">
-        <div className="flex items-center justify-center gap-3 mb-6 opacity-40">
-          <BrainCircuit className="h-5 w-5 text-teal-400" />
-          <span className="font-display font-black text-sm uppercase tracking-widest text-white">
+      <footer className="py-20 border-t border-slate-200 dark:border-white/5 text-center mt-20 bg-slate-50/60 dark:bg-brand-deep/20 relative">
+        <div className="flex items-center justify-center gap-3 mb-6 opacity-80 dark:opacity-60">
+          <BrainCircuit className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+          <span className="font-display font-black text-sm uppercase tracking-widest text-slate-800 dark:text-white">
             Executive Career Intelligence
           </span>
         </div>
         <div className="flex justify-center mb-8">
           <button
             onClick={() => setIsPurgePromptOpen(true)}
-            className="px-6 py-2.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white transition-all transition-duration-300 text-[10px] font-black uppercase tracking-widest"
+            className="px-6 py-2.5 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-700 dark:text-rose-400 hover:bg-rose-600 hover:text-white transition-all duration-300 text-[10px] font-black uppercase tracking-widest cursor-pointer"
           >
             Purge Session
           </button>
         </div>
-        <div className="flex justify-center gap-8 text-[10px] font-black uppercase tracking-widest text-slate-600 mb-6">
-          <a href="#" className="hover:text-teal-400 transition-colors">
+        <div className="flex justify-center gap-8 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-6">
+          <a href="#" className="hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
             Privacy Priority
           </a>
-          <a href="#" className="hover:text-teal-400 transition-colors">
+          <a href="#" className="hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
             Secure Processing
           </a>
-          <a href="#" className="hover:text-teal-400 transition-colors">
+          <a href="#" className="hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
             Session Only
           </a>
         </div>
-        <p className="text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em]">
+        <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">
           © 2026 Professional Career Intelligence. All data processed locally
           for this session.
         </p>
@@ -8253,7 +8077,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
           href="https://personal-portfolio--serenayt06.replit.app/"
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex items-center gap-3 bg-[#0A0A15]/90 backdrop-blur-xl border border-white/10 px-4 py-2.5 rounded-full shadow-xl hover:border-teal-500/40 hover:shadow-[0_0_20px_rgba(20,184,166,0.15)] transition-all ease-out duration-300 w-fit"
+          className="dark dark-studio group flex items-center gap-3 bg-[#0A0A15]/90 backdrop-blur-xl border border-white/10 px-4 py-2.5 rounded-full shadow-xl hover:border-teal-500/40 hover:shadow-[0_0_20px_rgba(20,184,166,0.15)] transition-all ease-out duration-300 w-fit"
         >
           <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest group-hover:text-teal-400 transition-colors">
             Portfolio
@@ -8279,18 +8103,14 @@ AWS Certified Solutions Architect – Associate (2022)`;
           href="https://www.linkedin.com/in/arjun-pv1312"
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex items-center gap-3 bg-[#0A0A15]/90 backdrop-blur-xl border border-white/10 px-4 py-2.5 rounded-full shadow-xl hover:border-[#0A66C2]/40 hover:shadow-[0_0_20px_rgba(10,102,194,0.15)] transition-all ease-out duration-300 w-fit"
+          className="dark dark-studio group flex items-center gap-3 bg-[#0A0A15]/90 backdrop-blur-xl border border-white/10 px-4 py-2.5 rounded-full shadow-xl hover:border-[#0A66C2]/40 hover:shadow-[0_0_20px_rgba(10,102,194,0.15)] transition-all ease-out duration-300 w-fit"
         >
           <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest group-hover:text-[#0A66C2] transition-colors">
             LinkedIn
           </span>
-          <img
-            src="https://cdn-icons-png.flaticon.com/512/174/174857.png"
-            width="14"
-            height="14"
-            className="rounded-sm opacity-80 group-hover:opacity-100 transition-opacity"
-            alt="LinkedIn"
-          />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#0A66C2" aria-hidden="true" className="opacity-85 group-hover:opacity-100 transition-opacity">
+            <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+          </svg>
         </a>
       </div>
 

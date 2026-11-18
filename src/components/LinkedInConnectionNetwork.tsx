@@ -110,7 +110,7 @@ export const CIRCLE_CONFIG: Record<
 };
 
 // Curated high-impact industry contacts representing warm professional referral circles
-const MOCK_INDUSTRY_CONTACTS = [
+export const EXECUTIVE_NETWORK_CONTACTS = [
   {
     id: "contact-1",
     name: "Sarah Chen",
@@ -277,6 +277,8 @@ const MOCK_INDUSTRY_CONTACTS = [
     avatarColor: "#f43f5e",
   },
 ];
+
+const MOCK_INDUSTRY_CONTACTS = EXECUTIVE_NETWORK_CONTACTS;
 
 export interface LinkedInConnectionNetworkProps {
   candidateName?: string;

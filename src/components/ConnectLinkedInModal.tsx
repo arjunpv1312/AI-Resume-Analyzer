@@ -247,7 +247,7 @@ export function ConnectLinkedInModal({
           } else {
             setError(
               data.error ||
-                "Gemini API key authentication failed. Please check your API configuration in Settings (GEMINI_API_KEY / GEMINI_API_KEY_2)."
+                "AI profile retrieval service is temporarily unavailable. Please try again in a moment."
             );
           }
           return;
