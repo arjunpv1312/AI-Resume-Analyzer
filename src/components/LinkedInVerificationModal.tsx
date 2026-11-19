@@ -83,7 +83,9 @@ const DEFAULT_WEIGHTS: TrustWeights = {
 const WEIGHT_STORAGE_KEY = "linkedin_trust_custom_weights_v1";
 const AUDIT_HISTORY_STORAGE_KEY = "linkedin_verification_audit_history_v1";
 
-export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps> = ({
+export const LinkedInVerificationModal: React.FC<
+  LinkedInVerificationModalProps
+> = ({
   isOpen,
   onClose,
   resumeData,
@@ -98,11 +100,31 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
   const [verificationProgress, setVerificationProgress] = useState(0);
   const [currentVerificationStep, setCurrentVerificationStep] = useState("");
   const [copiedReport, setCopiedReport] = useState(false);
-  const [hasRunVerification, setHasRunVerification] = useState(false);
   const [showFactorLines, setShowFactorLines] = useState(true);
   const [auditSavedNotice, setAuditSavedNotice] = useState(false);
 
-  // User-adjustable trust factor weights
+  const [isDark, setIsDark] = useState(() =>
+    typeof document !== "undefined" &&
+    (document.documentElement.getAttribute("data-theme") === "figma-dark" ||
+      document.documentElement.classList.contains("dark"))
+  );
+
+  useEffect(() => {
+    const syncTheme = () => {
+      setIsDark(
+        document.documentElement.getAttribute("data-theme") === "figma-dark" ||
+          document.documentElement.classList.contains("dark")
+      );
+    };
+    syncTheme();
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme", "class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   const [weights, setWeights] = useState<TrustWeights>(() => {
     try {
       const saved = localStorage.getItem(WEIGHT_STORAGE_KEY);
@@ -123,7 +145,6 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
     return { ...DEFAULT_WEIGHTS };
   });
 
-  // Persist weights on change
   useEffect(() => {
     try {
       localStorage.setItem(WEIGHT_STORAGE_KEY, JSON.stringify(weights));
@@ -132,16 +153,11 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
     }
   }, [weights]);
 
-  // Sync initial props
   useEffect(() => {
     if (initialLinkedinUrl) setLinkedinUrl(initialLinkedinUrl);
     if (initialLinkedinData) setProfileText(initialLinkedinData);
-    if (initialLinkedinUrl || initialLinkedinData) {
-      setHasRunVerification(true);
-    }
   }, [initialLinkedinUrl, initialLinkedinData, isOpen]);
 
-  // Extract candidate profile details from resumeData
   const candidateInfo = useMemo(() => {
     const candidateName = resumeData?.name || "Alex Mercer";
     const targetRole =
@@ -154,7 +170,6 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
     return { candidateName, targetRole, skills, timeline };
   }, [resumeData]);
 
-  // Calculate normalized weights (0-100%)
   const normalizedWeights = useMemo(() => {
     const total =
       weights.endorsements +
@@ -186,7 +201,6 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
     };
   }, [weights]);
 
-  // Calculate live verification metrics with customizable factor weights
   const verificationResult = useMemo(() => {
     const urlProvided = !!linkedinUrl.trim();
     const textProvided = !!profileText.trim();
@@ -194,7 +208,6 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
     const normText = profileText.toLowerCase();
     const normResume = (resumeText || resumeData?.summary || "").toLowerCase();
 
-    // 1. Identity & Role Authenticity
     let identityScore = 54;
     if (urlProvided) {
       identityScore += 28;
@@ -212,7 +225,9 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
         .toLowerCase()
         .split(/[\s,/|&-]+/)
         .filter((w: string) => w.length > 2);
-      const matches = targetRoleTerms.filter((term: string) => normText.includes(term));
+      const matches = targetRoleTerms.filter((term: string) =>
+        normText.includes(term)
+      );
       roleScore = Math.round(
         60 + (matches.length / (targetRoleTerms.length || 1)) * 38
       );
@@ -223,7 +238,6 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
 
     const identityRoleScore = Math.round((identityScore + roleScore) / 2);
 
-    // 2. Work History Consistency (Employment Timeline & Tenure Reconciliation)
     let workHistoryScore = 68;
     if (textProvided) {
       const timelineMatches = candidateInfo.timeline.filter(
@@ -247,15 +261,13 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
     }
     workHistoryScore = Math.min(100, Math.max(50, workHistoryScore));
 
-    // 3. Endorsements & Skill Alignment
     let endorsementsScore = 66;
     if (textProvided && candidateInfo.skills.length > 0) {
       const matchedSkills = candidateInfo.skills.filter((s: string) =>
         normText.includes(s.toLowerCase())
       );
       endorsementsScore = Math.round(
-        58 +
-          (matchedSkills.length / Math.min(candidateInfo.skills.length, 8)) * 40
+        58 + (matchedSkills.length / Math.min(candidateInfo.skills.length, 8)) * 40
       );
     } else if (textProvided) {
       const techTerms = [
@@ -279,7 +291,6 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
     }
     endorsementsScore = Math.min(100, Math.max(48, endorsementsScore));
 
-    // 4. Education Verification (Degrees, Universities & Certifications)
     let educationScore = 74;
     const eduRegex =
       /\b(b\.?s\.?|m\.?s\.?|ph\.?d\.?|mba|bachelor|master|university|institute|college|computer science|engineering|certified|aws certified|certification|stanford|mit|berkeley)\b/i;
@@ -292,7 +303,6 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
     }
     educationScore = Math.min(100, Math.max(52, educationScore));
 
-    // Unweighted (equal 25% each) baseline score for comparison
     const equalBaselineScore = Math.round(
       endorsementsScore * 0.25 +
         workHistoryScore * 0.25 +
@@ -300,7 +310,6 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
         identityRoleScore * 0.25
     );
 
-    // Weighted Composite Credibility Score using user-defined weights
     const compositeTrustScore = Math.round(
       (endorsementsScore * normalizedWeights.endorsements +
         workHistoryScore * normalizedWeights.workHistory +
@@ -436,9 +445,16 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
       trustFactors,
       auditChecks,
     };
-  }, [linkedinUrl, profileText, resumeText, resumeData, candidateInfo, weights, normalizedWeights]);
+  }, [
+    linkedinUrl,
+    profileText,
+    resumeText,
+    resumeData,
+    candidateInfo,
+    weights,
+    normalizedWeights,
+  ]);
 
-  // Historical Audits State (stores past 4 audits + live 5th current audit for the 5-audit comparison line chart)
   const [pastAudits, setPastAudits] = useState<VerificationAuditEntry[]>(() => {
     try {
       const saved = localStorage.getItem(AUDIT_HISTORY_STORAGE_KEY);
@@ -499,7 +515,6 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
     ];
   });
 
-  // Save past audits to localStorage
   useEffect(() => {
     try {
       localStorage.setItem(AUDIT_HISTORY_STORAGE_KEY, JSON.stringify(pastAudits));
@@ -508,7 +523,6 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
     }
   }, [pastAudits]);
 
-  // Combine past 4 audits with the live 5th audit ("Audit #5 (Current)") so the line chart always displays the last 5 verification audits
   const fiveAuditTrendData = useMemo(() => {
     const recentFour = pastAudits.slice(-4).map((entry, idx) => ({
       ...entry,
@@ -530,48 +544,45 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
     return [...recentFour, currentAudit];
   }, [pastAudits, verificationResult]);
 
-  // Calculate 5-audit statistics for the comparison chart header
   const trendStats = useMemo(() => {
     const scores = fiveAuditTrendData.map((d) => d.credibilityScore);
     const firstScore = scores[0] ?? 68;
-    const currentScore = scores[scores.length - 1] ?? verificationResult.compositeTrustScore;
+    const currentScore =
+      scores[scores.length - 1] ?? verificationResult.compositeTrustScore;
     const netChange = currentScore - firstScore;
     const peakScore = Math.max(...scores);
-    const avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+    const avgScore = Math.round(
+      scores.reduce((a, b) => a + b, 0) / scores.length
+    );
     return { firstScore, currentScore, netChange, peakScore, avgScore };
   }, [fiveAuditTrendData, verificationResult.compositeTrustScore]);
 
-  // Record a new audit snapshot into the 5-audit history
   const recordAuditSnapshot = (customScore?: number) => {
     const scoreToRecord = customScore ?? verificationResult.compositeTrustScore;
     const timeLabel = new Date().toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     });
-    setPastAudits((prev) => {
-      const updated = [
-        ...prev.slice(-3),
-        {
-          id: `audit-${Date.now()}`,
-          auditLabel: "Audit #4",
-          timestamp: timeLabel,
-          credibilityScore: scoreToRecord,
-          endorsements: verificationResult.endorsementsScore,
-          workHistory: verificationResult.workHistoryScore,
-          education: verificationResult.educationScore,
-          identityRole: verificationResult.identityRoleScore,
-          note: "Verified snapshot",
-        },
-      ];
-      return updated;
-    });
+    setPastAudits((prev) => [
+      ...prev.slice(-3),
+      {
+        id: `audit-${Date.now()}`,
+        auditLabel: "Audit #4",
+        timestamp: timeLabel,
+        credibilityScore: scoreToRecord,
+        endorsements: verificationResult.endorsementsScore,
+        workHistory: verificationResult.workHistoryScore,
+        education: verificationResult.educationScore,
+        identityRole: verificationResult.identityRoleScore,
+        note: "Verified snapshot",
+      },
+    ]);
     setAuditSavedNotice(true);
     setTimeout(() => setAuditSavedNotice(false), 2200);
   };
 
   if (!isOpen) return null;
 
-  // Handle manual slider change for a specific trust factor
   const handleWeightChange = (key: keyof TrustWeights, value: number) => {
     const clamped = Math.min(100, Math.max(0, value));
     setWeights((prev) => ({
@@ -580,7 +591,6 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
     }));
   };
 
-  // Auto-normalize slider values so the raw numbers themselves equal 100
   const handleAutoNormalizeWeights = () => {
     setWeights({
       endorsements: normalizedWeights.endorsements,
@@ -594,16 +604,26 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
     setWeights({ ...DEFAULT_WEIGHTS });
   };
 
-  // Perform live real-time verification against backend /api/linkedin/verify-trust + progress steps
   const handleRunLiveVerification = async () => {
     setIsVerifying(true);
     setVerificationProgress(15);
-    setCurrentVerificationStep("1/5: Normalizing candidate digital profile footprint...");
+    setCurrentVerificationStep(
+      "1/5: Normalizing candidate digital profile footprint..."
+    );
 
     const steps = [
-      { progress: 35, text: "2/5: Cross-referencing public headline & seniority level against resume..." },
-      { progress: 60, text: "3/5: Reconciling work history dates, companies, and education credentials..." },
-      { progress: 85, text: "4/5: Applying custom trust factor weights & auditing endorsements..." },
+      {
+        progress: 35,
+        text: "2/5: Cross-referencing public headline & seniority level against resume...",
+      },
+      {
+        progress: 60,
+        text: "3/5: Reconciling work history dates, companies, and education credentials...",
+      },
+      {
+        progress: 85,
+        text: "4/5: Applying custom trust factor weights & auditing endorsements...",
+      },
     ];
 
     let current = 0;
@@ -630,10 +650,13 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
       const data = await response.json();
       clearInterval(interval);
       setVerificationProgress(100);
-      setCurrentVerificationStep("5/5: Real-time verification complete! Credibility Score & trend updated.");
+      setCurrentVerificationStep(
+        "5/5: Real-time verification complete. Credibility score updated."
+      );
 
       const finalUrl = data?.normalizedUrl || linkedinUrl;
-      const finalProfile = profileText.trim() || data?.synchronizedProfileData || "";
+      const finalProfile =
+        profileText.trim() || data?.synchronizedProfileData || "";
       if (!linkedinUrl.trim() && finalUrl) setLinkedinUrl(finalUrl);
       if (!profileText.trim() && finalProfile) setProfileText(finalProfile);
 
@@ -646,7 +669,6 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
 
       setTimeout(() => {
         setIsVerifying(false);
-        setHasRunVerification(true);
         if (onSaveVerifiedData) {
           onSaveVerifiedData(finalUrl, finalProfile, resolvedScore);
         }
@@ -654,13 +676,18 @@ export const LinkedInVerificationModal: React.FC<LinkedInVerificationModalProps>
     } catch {
       clearInterval(interval);
       setVerificationProgress(100);
-      setCurrentVerificationStep("5/5: Verification complete! Professional Credibility Score updated.");
+      setCurrentVerificationStep(
+        "5/5: Verification complete. Credibility score updated."
+      );
       recordAuditSnapshot(verificationResult.compositeTrustScore);
       setTimeout(() => {
         setIsVerifying(false);
-        setHasRunVerification(true);
         if (onSaveVerifiedData) {
-          onSaveVerifiedData(linkedinUrl, profileText, verificationResult.compositeTrustScore);
+          onSaveVerifiedData(
+            linkedinUrl,
+            profileText,
+            verificationResult.compositeTrustScore
+          );
         }
       }, 350);
     }
@@ -688,7 +715,7 @@ ${fiveAuditTrendData
 
 AUDIT CHECKLIST:
 ${verificationResult.auditChecks
-  .map((c) => `[${c.passed ? "✓ VERIFIED" : "⚠ ATTENTION"}] ${c.title}: ${c.details}`)
+  .map((c) => `[${c.passed ? "VERIFIED" : "ATTENTION"}] ${c.title}: ${c.details}`)
   .join("\n")}
 `;
     navigator.clipboard.writeText(reportText);
@@ -696,81 +723,65 @@ ${verificationResult.auditChecks
     setTimeout(() => setCopiedReport(false), 2500);
   };
 
-  const getTrustBadge = (score: number) => {
-    if (score >= 88)
-      return {
-        label: "Verified High Credibility",
-        color: "text-emerald-300 bg-emerald-500/20 border-emerald-500/30",
-      };
-    if (score >= 75)
-      return {
-        label: "Strong Profile Credibility",
-        color: "text-teal-300 bg-teal-500/20 border-teal-500/30",
-      };
-    if (score >= 60)
-      return {
-        label: "Moderate Fit (Review Discrepancies)",
-        color: "text-amber-300 bg-amber-500/20 border-amber-500/30",
-      };
-    return {
-      label: "Low Verification (Data Needed)",
-      color: "text-rose-300 bg-rose-500/20 border-rose-500/30",
-    };
+  const getTrustTierLabel = (score: number) => {
+    if (score >= 88) return "Verified High Credibility";
+    if (score >= 75) return "Strong Profile Credibility";
+    if (score >= 60) return "Moderate Fit (Review Discrepancies)";
+    return "Low Verification (Data Needed)";
   };
 
-  const badge = getTrustBadge(verificationResult.compositeTrustScore);
+  const axisColor = isDark ? "#a1a1aa" : "#52525b";
+  const gridStroke = isDark ? "rgba(255,255,255,0.08)" : "rgba(9,9,11,0.08)";
 
   return (
     <AnimatePresence>
       <div
         key="linkedin-verification-backdrop"
-        className="dark dark-studio fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-2xl overflow-y-auto"
+        className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md overflow-y-auto"
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          initial={{ opacity: 0, scale: 0.96, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-          className="bg-slate-900 border border-blue-500/30 rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto"
+          exit={{ opacity: 0, scale: 0.96, y: 12 }}
+          transition={{ duration: 0.2 }}
+          className="bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto text-zinc-950 dark:text-zinc-100"
         >
           {/* Header */}
-          <div className="px-6 py-5 border-b border-white/10 bg-slate-950/80 flex flex-wrap items-center justify-between gap-4 shrink-0">
+          <div className="px-6 py-5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#111116] flex flex-wrap items-center justify-between gap-4 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-600/20 to-teal-500/20 border border-blue-500/30 text-blue-400">
+              <div className="p-2.5 rounded-xl bg-violet-100 dark:bg-violet-950/60 border border-violet-200 dark:border-violet-800/60 text-violet-700 dark:text-violet-300">
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <div>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <h2 className="text-xl font-black font-display text-white">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-lg font-bold font-display text-zinc-950 dark:text-white">
                     LinkedIn Identity & Credibility Verification
                   </h2>
-                  <span
-                    className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${badge.color}`}
-                  >
-                    {badge.label}
+                  <span className="text-xs font-semibold text-violet-700 dark:text-violet-300">
+                    · {getTrustTierLabel(verificationResult.compositeTrustScore)}
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Real-time profile verification with customizable trust factor weighting and 5-audit credibility trend analysis
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
+                  Customizable trust factor weighting and 5-audit credibility trend analysis
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleCopyReport}
-                className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-2 rounded-xl bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
                 title="Copy full verification report"
               >
                 {copiedReport ? (
                   <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-emerald-300">Report Copied!</span>
+                    <Check className="w-3.5 h-3.5 text-violet-700 dark:text-violet-400" />
+                    <span>Report Copied</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="w-3.5 h-3.5 text-slate-400" />
+                    <Copy className="w-3.5 h-3.5" />
                     <span>Copy Report</span>
                   </>
                 )}
@@ -779,7 +790,7 @@ ${verificationResult.auditChecks
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-2 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-200/70 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -788,10 +799,9 @@ ${verificationResult.auditChecks
 
           {/* Body Content */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* Real-time Credibility Score Highlight Banner */}
-            <div className="p-6 rounded-3xl bg-gradient-to-r from-blue-950/40 via-slate-900 to-teal-950/40 border border-blue-500/30 relative overflow-hidden shadow-xl">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-                {/* Left: Credibility Score Gauge */}
+            {/* Credibility Score Highlight Banner */}
+            <div className="p-6 rounded-2xl bg-zinc-50 dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 relative overflow-hidden">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-6">
                   <div className="relative flex items-center justify-center shrink-0">
                     <svg className="w-28 h-28 transform -rotate-90">
@@ -801,7 +811,7 @@ ${verificationResult.auditChecks
                         r="48"
                         stroke="currentColor"
                         strokeWidth="8"
-                        className="text-slate-800"
+                        className="text-zinc-200 dark:text-zinc-800"
                         fill="transparent"
                       />
                       <circle
@@ -812,36 +822,32 @@ ${verificationResult.auditChecks
                         strokeWidth="8"
                         strokeDasharray={301.6}
                         strokeDashoffset={
-                          301.6 - (301.6 * verificationResult.compositeTrustScore) / 100
+                          301.6 -
+                          (301.6 * verificationResult.compositeTrustScore) / 100
                         }
                         strokeLinecap="round"
-                        className="text-teal-400 transition-all duration-500"
+                        className="text-violet-700 dark:text-purple-500 transition-all duration-500"
                         fill="transparent"
                       />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-black font-mono tabular-nums text-white">
+                      <span className="text-3xl font-extrabold font-mono tabular-nums text-zinc-950 dark:text-white">
                         {verificationResult.compositeTrustScore}%
                       </span>
-                      <span className="text-[9px] font-black uppercase tracking-widest text-teal-300">
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-violet-700 dark:text-violet-300">
                         CREDIBILITY
                       </span>
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className="font-bold text-violet-700 dark:text-violet-300">
                         Weighted Credibility Score
                       </span>
                       {verificationResult.weightDelta !== 0 && (
-                        <span
-                          className={`text-[11px] font-mono font-bold tabular-nums px-2 py-0.5 rounded border ${
-                            verificationResult.weightDelta > 0
-                              ? "text-emerald-300 bg-emerald-500/15 border-emerald-500/30"
-                              : "text-amber-300 bg-amber-500/15 border-amber-500/30"
-                          }`}
-                        >
+                        <span className="font-mono font-bold tabular-nums text-zinc-600 dark:text-zinc-300">
+                          ·{" "}
                           {verificationResult.weightDelta > 0
                             ? `+${verificationResult.weightDelta}`
                             : verificationResult.weightDelta}{" "}
@@ -849,32 +855,29 @@ ${verificationResult.auditChecks
                         </span>
                       )}
                     </div>
-                    <h3 className="text-lg font-black text-white">
+                    <h3 className="text-lg font-bold text-zinc-950 dark:text-white">
                       {verificationResult.compositeTrustScore >= 85
                         ? "High Authenticity & Verified Alignment"
                         : verificationResult.compositeTrustScore >= 70
                         ? "Strong Profile Congruence"
                         : "Requires Identity Optimization"}
                     </h3>
-                    <p className="text-xs text-slate-300 max-w-md leading-relaxed">
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 max-w-md leading-relaxed">
                       Cross-referenced against resume targeting{" "}
-                      <strong className="text-white">{candidateInfo.targetRole}</strong>. Adjust
-                      factor weights below to customize how{" "}
-                      <span className="text-teal-300">Endorsements</span>,{" "}
-                      <span className="text-teal-300">Work History Consistency</span>, and{" "}
-                      <span className="text-teal-300">Education Verification</span> shape your
-                      Credibility Score.
+                      <strong className="text-zinc-950 dark:text-white">
+                        {candidateInfo.targetRole}
+                      </strong>
+                      . Adjust factor weights below to customize how Endorsements, Work History Consistency, and Education shape your score.
                     </p>
                   </div>
                 </div>
 
-                {/* Right: Live Action Button */}
                 <div className="shrink-0 flex flex-col items-center md:items-end gap-2">
                   <button
                     type="button"
                     onClick={handleRunLiveVerification}
                     disabled={isVerifying}
-                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-500 hover:to-teal-400 disabled:opacity-50 text-white font-extrabold text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 cursor-pointer whitespace-nowrap"
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-700 to-purple-700 hover:from-violet-600 hover:to-purple-600 disabled:opacity-50 text-white font-bold text-xs tracking-wide transition-all flex items-center gap-2 shadow-sm active:scale-[0.98] cursor-pointer whitespace-nowrap"
                   >
                     {isVerifying ? (
                       <>
@@ -888,22 +891,21 @@ ${verificationResult.auditChecks
                       </>
                     )}
                   </button>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
                     Updates score & logs audit to 5-run trend chart
                   </span>
                 </div>
               </div>
 
-              {/* Progress bar if verifying */}
               {isVerifying && (
-                <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
-                  <div className="flex justify-between text-[11px] text-blue-300 font-bold tabular-nums">
+                <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
+                  <div className="flex justify-between text-xs text-violet-700 dark:text-violet-300 font-semibold tabular-nums">
                     <span>{currentVerificationStep}</span>
                     <span>{verificationProgress}%</span>
                   </div>
-                  <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-blue-500 to-teal-400 rounded-full transition-all duration-300"
+                      className="h-full bg-gradient-to-r from-violet-700 to-purple-500 rounded-full transition-all duration-300"
                       style={{ width: `${verificationProgress}%` }}
                     />
                   </div>
@@ -911,35 +913,33 @@ ${verificationResult.auditChecks
               )}
             </div>
 
-            {/* Interactive Trust Factor Weighting Controls & Last 5 Audits Trend Comparison Grid */}
+            {/* Trust Factor Weighting Controls & 5-Audit Trend Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Left Column (6 cols): Custom Trust Factor Weighting Controls */}
-              <div className="lg:col-span-6 p-5 rounded-2xl bg-slate-950/70 border border-white/10 flex flex-col justify-between space-y-4">
+              {/* Left Column: Weight Controls */}
+              <div className="lg:col-span-6 p-5 rounded-xl bg-zinc-50 dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between space-y-4">
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
-                        <Sliders className="w-4 h-4 text-teal-400" />
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-950 dark:text-white flex items-center gap-2">
+                        <Sliders className="w-4 h-4 text-violet-700 dark:text-violet-400" />
                         <span>Trust Factor Weighting Controls</span>
                       </h3>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Manually adjust factor weights to control your calculated Credibility Score.
+                      <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-0.5">
+                        Adjust factor weights to control your Credibility Score.
                       </p>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={handleAutoNormalizeWeights}
-                        className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-bold text-slate-300 hover:text-white transition-all cursor-pointer whitespace-nowrap"
-                        title="Normalize slider positions to sum to 100%"
+                        className="px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer whitespace-nowrap"
                       >
                         Normalize 100%
                       </button>
                       <button
                         type="button"
                         onClick={handleResetWeights}
-                        className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-bold text-slate-400 hover:text-white transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                        title="Reset all trust factor weights to 25% equal baseline"
+                        className="px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
                       >
                         <RotateCcw className="w-3 h-3" />
                         <span>Reset</span>
@@ -949,7 +949,7 @@ ${verificationResult.auditChecks
 
                   {/* Quick Weighting Presets */}
                   <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mr-1">
+                    <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mr-1">
                       Presets:
                     </span>
                     {[
@@ -958,15 +958,15 @@ ${verificationResult.auditChecks
                         w: { endorsements: 25, workHistory: 25, education: 25, identityRole: 25 },
                       },
                       {
-                        label: "Work History Focus",
+                        label: "Work History",
                         w: { endorsements: 20, workHistory: 45, education: 15, identityRole: 20 },
                       },
                       {
-                        label: "Endorsements Focus",
+                        label: "Endorsements",
                         w: { endorsements: 45, workHistory: 25, education: 15, identityRole: 15 },
                       },
                       {
-                        label: "Education Focus",
+                        label: "Education",
                         w: { endorsements: 15, workHistory: 25, education: 45, identityRole: 15 },
                       },
                     ].map((preset) => {
@@ -980,10 +980,10 @@ ${verificationResult.auditChecks
                           key={preset.label}
                           type="button"
                           onClick={() => setWeights(preset.w)}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border cursor-pointer ${
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors border cursor-pointer ${
                             isCurrent
-                              ? "bg-teal-500/20 text-teal-300 border-teal-500/40"
-                              : "bg-slate-900 text-slate-400 hover:text-slate-200 border-white/5"
+                              ? "bg-violet-700 text-white border-violet-700"
+                              : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white border-zinc-200 dark:border-zinc-800"
                           }`}
                         >
                           {preset.label}
@@ -992,16 +992,13 @@ ${verificationResult.auditChecks
                     })}
                   </div>
 
-                  {/* Sliders for Endorsements, Work History Consistency, Education Verification, Identity & Role */}
-                  <div className="space-y-3.5 pt-2">
+                  <div className="space-y-3 pt-2">
                     {[
                       {
                         key: "endorsements" as const,
                         label: "Endorsements",
                         subtitle: "Skill endorsements & technical competency overlap",
                         icon: Award,
-                        color: "text-teal-400",
-                        accent: "accent-teal-400",
                         score: verificationResult.endorsementsScore,
                         normWeight: normalizedWeights.endorsements,
                       },
@@ -1010,8 +1007,6 @@ ${verificationResult.auditChecks
                         label: "Work History Consistency",
                         subtitle: "Company tenure dates & role progression alignment",
                         icon: Briefcase,
-                        color: "text-blue-400",
-                        accent: "accent-blue-400",
                         score: verificationResult.workHistoryScore,
                         normWeight: normalizedWeights.workHistory,
                       },
@@ -1020,8 +1015,6 @@ ${verificationResult.auditChecks
                         label: "Education Verification",
                         subtitle: "University degrees, academic credentials & certifications",
                         icon: GraduationCap,
-                        color: "text-indigo-400",
-                        accent: "accent-indigo-400",
                         score: verificationResult.educationScore,
                         normWeight: normalizedWeights.education,
                       },
@@ -1030,8 +1023,6 @@ ${verificationResult.auditChecks
                         label: "Identity & Role Authenticity",
                         subtitle: "Public vanity URL & target title seniority match",
                         icon: ShieldCheck,
-                        color: "text-emerald-400",
-                        accent: "accent-emerald-400",
                         score: verificationResult.identityRoleScore,
                         normWeight: normalizedWeights.identityRole,
                       },
@@ -1042,27 +1033,29 @@ ${verificationResult.auditChecks
                       return (
                         <div
                           key={item.key}
-                          className="p-3 rounded-xl bg-slate-900/90 border border-white/5 space-y-2"
+                          className="p-3 rounded-xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 space-y-2"
                         >
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0">
-                              <IconComponent className={`w-4 h-4 shrink-0 ${item.color}`} />
+                              <IconComponent className="w-4 h-4 shrink-0 text-violet-700 dark:text-violet-400" />
                               <div className="truncate">
-                                <span className="text-xs font-bold text-white block truncate">
+                                <span className="text-xs font-bold text-zinc-950 dark:text-white block truncate">
                                   {item.label}
                                 </span>
-                                <span className="text-[10px] text-slate-400 block truncate">
+                                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block truncate">
                                   {item.subtitle}
                                 </span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0 font-mono tabular-nums text-right">
-                              <span className="text-[11px] text-slate-400">
-                                Factor: <strong className="text-slate-200">{item.score}%</strong>
+                              <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                <strong className="text-zinc-950 dark:text-white">
+                                  {item.score}%
+                                </strong>
                               </span>
-                              <span className="text-slate-600">·</span>
-                              <span className="text-xs font-bold text-teal-300 min-w-[70px]">
-                                {item.normWeight}% Weight
+                              <span className="text-zinc-400">·</span>
+                              <span className="text-xs font-bold text-violet-700 dark:text-violet-300 min-w-[68px]">
+                                {item.normWeight}% Wt
                               </span>
                             </div>
                           </div>
@@ -1078,9 +1071,9 @@ ${verificationResult.auditChecks
                               onChange={(e) =>
                                 handleWeightChange(item.key, Number(e.target.value))
                               }
-                              className={`w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer ${item.accent}`}
+                              className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-lg cursor-pointer accent-violet-600"
                             />
-                            <span className="text-[11px] font-mono tabular-nums text-slate-300 w-16 text-right shrink-0">
+                            <span className="text-[11px] font-mono tabular-nums text-zinc-600 dark:text-zinc-300 w-16 text-right shrink-0">
                               +{contribution} pts
                             </span>
                           </div>
@@ -1090,34 +1083,33 @@ ${verificationResult.auditChecks
                   </div>
                 </div>
 
-                {/* Weight Summary Footer */}
-                <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 font-mono tabular-nums">
+                <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-600 dark:text-zinc-400 font-mono tabular-nums">
                   <span>
-                    Equal-Weight Score:{" "}
-                    <strong className="text-slate-200">
+                    Equal-Weight:{" "}
+                    <strong className="text-zinc-950 dark:text-white">
                       {verificationResult.equalBaselineScore}%
                     </strong>
                   </span>
                   <span>
-                    Custom Weighted Score:{" "}
-                    <strong className="text-teal-300">
+                    Weighted Score:{" "}
+                    <strong className="text-violet-700 dark:text-violet-300">
                       {verificationResult.compositeTrustScore}%
                     </strong>
                   </span>
                 </div>
               </div>
 
-              {/* Right Column (6 cols): Credibility Score Trend Line Chart (Last 5 Verification Audits) */}
-              <div className="lg:col-span-6 p-5 rounded-2xl bg-slate-950/70 border border-white/10 flex flex-col justify-between space-y-4">
+              {/* Right Column: 5-Audit Trend Line Chart */}
+              <div className="lg:col-span-6 p-5 rounded-xl bg-zinc-50 dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between space-y-4">
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-teal-400" />
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-950 dark:text-white flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-violet-700 dark:text-violet-400" />
                         <span>Credibility Score Trend (Last 5 Audits)</span>
                       </h3>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Visual progress comparing your current Credibility Score across your last 5 verification audits.
+                      <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-0.5">
+                        Progress across your last 5 verification audits.
                       </p>
                     </div>
 
@@ -1125,10 +1117,10 @@ ${verificationResult.auditChecks
                       <button
                         type="button"
                         onClick={() => setShowFactorLines((prev) => !prev)}
-                        className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                        className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${
                           showFactorLines
-                            ? "bg-teal-500/20 text-teal-300 border-teal-500/40"
-                            : "bg-white/5 text-slate-400 border-white/10 hover:text-white"
+                            ? "bg-violet-700 text-white border-violet-700"
+                            : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700"
                         }`}
                       >
                         {showFactorLines ? "Hide Factor Lines" : "Show Factor Lines"}
@@ -1136,32 +1128,33 @@ ${verificationResult.auditChecks
                       <button
                         type="button"
                         onClick={() => recordAuditSnapshot()}
-                        className="px-2.5 py-1 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 text-[10px] font-bold text-blue-300 hover:text-white transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                        title="Record current weighted score as a verification audit point"
+                        className="px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[11px] font-semibold text-violet-700 dark:text-violet-300 transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
                       >
                         <PlusCircle className="w-3 h-3" />
-                        <span>{auditSavedNotice ? "Logged!" : "Log Audit"}</span>
+                        <span>{auditSavedNotice ? "Logged" : "Log Audit"}</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* 5-Audit Trend Summary Strip */}
+                  {/* Summary Strip */}
                   <div className="grid grid-cols-3 gap-2.5 pt-1">
-                    <div className="p-2.5 rounded-xl bg-slate-900/90 border border-white/5">
-                      <span className="text-[10px] uppercase tracking-wider text-slate-400 block">
-                        Current (Audit #5)
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800">
+                      <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 block">
+                        Current (#5)
                       </span>
-                      <span className="text-lg font-mono font-bold tabular-nums text-teal-400">
+                      <span className="text-lg font-mono font-bold tabular-nums text-violet-700 dark:text-violet-300">
                         {trendStats.currentScore}%
                       </span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-slate-900/90 border border-white/5">
-                      <span className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800">
+                      <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 block">
                         5-Audit Net Trend
                       </span>
                       <span
                         className={`text-lg font-mono font-bold tabular-nums ${
-                          trendStats.netChange >= 0 ? "text-emerald-400" : "text-amber-400"
+                          trendStats.netChange >= 0
+                            ? "text-violet-700 dark:text-purple-300"
+                            : "text-rose-700 dark:text-rose-400"
                         }`}
                       >
                         {trendStats.netChange >= 0
@@ -1169,17 +1162,17 @@ ${verificationResult.auditChecks
                           : `${trendStats.netChange}%`}
                       </span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-slate-900/90 border border-white/5">
-                      <span className="text-[10px] uppercase tracking-wider text-slate-400 block">
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800">
+                      <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 block">
                         5-Audit Average
                       </span>
-                      <span className="text-lg font-mono font-bold tabular-nums text-white">
+                      <span className="text-lg font-mono font-bold tabular-nums text-zinc-950 dark:text-white">
                         {trendStats.avgScore}%
                       </span>
                     </div>
                   </div>
 
-                  {/* Line Chart Container */}
+                  {/* Line Chart */}
                   <div className="h-56 w-full pt-2">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart
@@ -1188,19 +1181,19 @@ ${verificationResult.auditChecks
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          stroke="rgba(255,255,255,0.07)"
+                          stroke={gridStroke}
                           vertical={false}
                         />
                         <XAxis
                           dataKey="auditLabel"
-                          stroke="#94a3b8"
+                          stroke={axisColor}
                           fontSize={11}
                           tickLine={false}
-                          axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                          axisLine={{ stroke: gridStroke }}
                         />
                         <YAxis
                           domain={[40, 100]}
-                          stroke="#94a3b8"
+                          stroke={axisColor}
                           fontSize={11}
                           tickLine={false}
                           axisLine={false}
@@ -1208,29 +1201,34 @@ ${verificationResult.auditChecks
                         />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "#0f172a",
-                            borderColor: "rgba(20, 184, 166, 0.35)",
-                            borderRadius: "12px",
+                            backgroundColor: isDark ? "#111116" : "#ffffff",
+                            borderColor: isDark ? "#7c3aed" : "#c4b5fd",
+                            borderRadius: "10px",
                             fontSize: "11px",
-                            color: "#f8fafc",
+                            color: isDark ? "#f4f4f5" : "#09090b",
                           }}
-                          formatter={(value: any, name: string) => [`${value}%`, name]}
+                          formatter={(value: any, name: string) => [
+                            `${value}%`,
+                            name,
+                          ]}
                           labelFormatter={(label, payload) => {
                             const item = payload?.[0]?.payload;
                             return item
-                              ? `${label} · ${item.timestamp}${item.note ? ` (${item.note})` : ""}`
+                              ? `${label} · ${item.timestamp}${
+                                  item.note ? ` (${item.note})` : ""
+                                }`
                               : label;
                           }}
                         />
                         <ReferenceLine
                           y={85}
-                          stroke="#10b981"
+                          stroke={isDark ? "#a855f7" : "#6d28d9"}
                           strokeDasharray="4 4"
                           strokeOpacity={0.5}
                           label={{
                             value: "85% Target",
                             position: "insideTopRight",
-                            fill: "#34d399",
+                            fill: isDark ? "#c084fc" : "#6d28d9",
                             fontSize: 10,
                           }}
                         />
@@ -1238,10 +1236,20 @@ ${verificationResult.auditChecks
                           type="monotone"
                           dataKey="credibilityScore"
                           name="Credibility Score"
-                          stroke="#14b8a6"
+                          stroke={isDark ? "#a855f7" : "#6d28d9"}
                           strokeWidth={3}
-                          dot={{ r: 4, fill: "#14b8a6", strokeWidth: 2, stroke: "#0f172a" }}
-                          activeDot={{ r: 6, fill: "#2dd4bf", stroke: "#ffffff", strokeWidth: 2 }}
+                          dot={{
+                            r: 4,
+                            fill: isDark ? "#a855f7" : "#6d28d9",
+                            strokeWidth: 2,
+                            stroke: isDark ? "#09090b" : "#ffffff",
+                          }}
+                          activeDot={{
+                            r: 6,
+                            fill: "#7c3aed",
+                            stroke: "#ffffff",
+                            strokeWidth: 2,
+                          }}
                         />
                         {showFactorLines && (
                           <>
@@ -1249,28 +1257,28 @@ ${verificationResult.auditChecks
                               type="monotone"
                               dataKey="workHistory"
                               name="Work History Consistency"
-                              stroke="#3b82f6"
+                              stroke={isDark ? "#d8b4fe" : "#9333ea"}
                               strokeWidth={1.5}
                               strokeDasharray="4 3"
-                              dot={{ r: 2.5, fill: "#3b82f6" }}
+                              dot={{ r: 2.5, fill: isDark ? "#d8b4fe" : "#9333ea" }}
                             />
                             <Line
                               type="monotone"
                               dataKey="endorsements"
                               name="Endorsements"
-                              stroke="#a855f7"
+                              stroke={isDark ? "#c026d3" : "#7e22ce"}
                               strokeWidth={1.5}
                               strokeDasharray="4 3"
-                              dot={{ r: 2.5, fill: "#a855f7" }}
+                              dot={{ r: 2.5, fill: isDark ? "#c026d3" : "#7e22ce" }}
                             />
                             <Line
                               type="monotone"
                               dataKey="education"
                               name="Education Verification"
-                              stroke="#f59e0b"
+                              stroke={isDark ? "#71717a" : "#3f3f46"}
                               strokeWidth={1.5}
                               strokeDasharray="4 3"
-                              dot={{ r: 2.5, fill: "#f59e0b" }}
+                              dot={{ r: 2.5, fill: isDark ? "#71717a" : "#3f3f46" }}
                             />
                           </>
                         )}
@@ -1278,38 +1286,41 @@ ${verificationResult.auditChecks
                     </ResponsiveContainer>
                   </div>
 
-                  {/* Chart Legend & 5-Audit History Pills */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[10px] text-slate-400">
+                  {/* Chart Legend */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-zinc-600 dark:text-zinc-400">
                     <div className="flex flex-wrap items-center gap-3">
-                      <span className="flex items-center gap-1.5 text-teal-300 font-bold">
-                        <span className="w-2.5 h-2.5 rounded-full bg-teal-400 inline-block" />
+                      <span className="flex items-center gap-1.5 text-violet-700 dark:text-purple-300 font-bold">
+                        <span className="w-2.5 h-2.5 rounded-full bg-violet-700 dark:bg-purple-500 inline-block" />
                         Credibility Score
                       </span>
                       {showFactorLines && (
                         <>
-                          <span className="flex items-center gap-1 text-blue-300">
-                            <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" />
                             Work History
                           </span>
-                          <span className="flex items-center gap-1 text-purple-300">
-                            <span className="w-2 h-2 rounded-full bg-purple-400 inline-block" />
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-fuchsia-600 inline-block" />
                             Endorsements
                           </span>
-                          <span className="flex items-center gap-1 text-amber-300">
-                            <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-zinc-500 inline-block" />
                             Education
                           </span>
                         </>
                       )}
                     </div>
-                    <span className="font-mono tabular-nums text-slate-400">
-                      Peak: <strong className="text-white">{trendStats.peakScore}%</strong>
+                    <span className="font-mono tabular-nums">
+                      Peak:{" "}
+                      <strong className="text-zinc-950 dark:text-white">
+                        {trendStats.peakScore}%
+                      </strong>
                     </span>
                   </div>
                 </div>
 
-                {/* Audit Snapshot Table Strip */}
-                <div className="pt-3 border-t border-white/10 grid grid-cols-5 gap-1.5">
+                {/* Audit Snapshot Strip */}
+                <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 grid grid-cols-5 gap-1.5">
                   {fiveAuditTrendData.map((audit, idx) => {
                     const isCurrent = idx === fiveAuditTrendData.length - 1;
                     return (
@@ -1317,8 +1328,8 @@ ${verificationResult.auditChecks
                         key={audit.id}
                         className={`px-2 py-1.5 rounded-lg border text-center font-mono tabular-nums ${
                           isCurrent
-                            ? "bg-teal-500/15 border-teal-500/40 text-white"
-                            : "bg-slate-900/70 border-white/5 text-slate-400"
+                            ? "bg-violet-50 dark:bg-violet-950/50 border-violet-500/50 text-zinc-950 dark:text-white"
+                            : "bg-white dark:bg-[#111116] border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400"
                         }`}
                       >
                         <div className="text-[9px] font-sans font-semibold truncate">
@@ -1326,7 +1337,9 @@ ${verificationResult.auditChecks
                         </div>
                         <div
                           className={`text-xs font-bold ${
-                            isCurrent ? "text-teal-300" : "text-slate-200"
+                            isCurrent
+                              ? "text-violet-700 dark:text-violet-300"
+                              : "text-zinc-800 dark:text-zinc-200"
                           }`}
                         >
                           {audit.credibilityScore}%
@@ -1339,14 +1352,14 @@ ${verificationResult.auditChecks
             </div>
 
             {/* LinkedIn Profile Input Panel */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 p-5 rounded-2xl bg-black/40 border border-white/10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 p-5 rounded-xl bg-zinc-50 dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800">
               <div className="lg:col-span-5 space-y-3">
-                <span className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-1.5">
-                  <Link2 className="w-4 h-4 text-blue-400" />
+                <span className="text-xs font-bold text-zinc-950 dark:text-white flex items-center gap-1.5">
+                  <Link2 className="w-4 h-4 text-violet-700 dark:text-violet-400" />
                   LinkedIn Profile Coordinates
                 </span>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                  <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 block mb-1">
                     Public Profile URL:
                   </label>
                   <div className="relative">
@@ -1355,7 +1368,7 @@ ${verificationResult.auditChecks
                       placeholder="https://linkedin.com/in/username"
                       value={linkedinUrl}
                       onChange={(e) => setLinkedinUrl(e.target.value)}
-                      className="w-full bg-slate-900 border border-white/20 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-blue-400"
+                      className="w-full bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs text-zinc-950 dark:text-white placeholder-zinc-400 outline-none focus:border-violet-600"
                     />
                     {linkedinUrl && (
                       <a
@@ -1366,7 +1379,7 @@ ${verificationResult.auditChecks
                         }
                         target="_blank"
                         rel="noreferrer"
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-400 p-1"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-violet-700 dark:hover:text-violet-300 p-1"
                         title="Open LinkedIn profile"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
@@ -1375,21 +1388,19 @@ ${verificationResult.auditChecks
                   </div>
                 </div>
 
-                <div className="pt-1">
-                  <span className="text-[10px] text-slate-400 leading-normal block">
-                    Connect your public profile to verify headline seniority, company tenures, education credentials, and mutual skill vectors.
-                  </span>
-                </div>
+                <span className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-normal block">
+                  Connect your public profile to verify headline seniority, company tenures, education credentials, and skill vectors.
+                </span>
               </div>
 
               <div className="lg:col-span-7 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-teal-400" />
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-zinc-950 dark:text-white flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-violet-700 dark:text-violet-400" />
                     LinkedIn Experience, Education & Endorsements Text (Optional)
                   </span>
-                  <span className="text-[10px] text-slate-500">
-                    Paste LinkedIn About, Experience, or Education section
+                  <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                    Paste About, Experience, or Education text
                   </span>
                 </div>
                 <textarea
@@ -1397,7 +1408,7 @@ ${verificationResult.auditChecks
                   placeholder="Paste your LinkedIn headline, work history, education, or skill endorsements here to perform deep concordance checking..."
                   value={profileText}
                   onChange={(e) => setProfileText(e.target.value)}
-                  className="w-full bg-slate-900 border border-white/20 rounded-xl p-2.5 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-teal-400 leading-relaxed"
+                  className="w-full bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-700 rounded-xl p-2.5 text-xs text-zinc-900 dark:text-zinc-200 placeholder-zinc-400 outline-none focus:border-violet-600 leading-relaxed"
                 />
               </div>
             </div>
@@ -1405,11 +1416,11 @@ ${verificationResult.auditChecks
             {/* 4-Quadrant Weighted Trust Factor Breakdown */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase tracking-widest text-slate-300 flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-teal-400" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-violet-700 dark:text-violet-400" />
                   Weighted Trust Vector Breakdown
                 </h3>
-                <span className="text-[11px] text-slate-400 font-mono tabular-nums">
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono tabular-nums">
                   Total Effective Weight: 100%
                 </span>
               </div>
@@ -1418,59 +1429,56 @@ ${verificationResult.auditChecks
                 {verificationResult.trustFactors.map((factor, idx) => (
                   <div
                     key={`tf-${factor.name}-${idx}`}
-                    className="p-4 rounded-2xl bg-slate-950/60 border border-white/10 relative overflow-hidden space-y-3"
+                    className="p-4 rounded-xl bg-zinc-50 dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 space-y-3"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-xs font-bold text-white leading-snug">
+                      <span className="text-xs font-bold text-zinc-950 dark:text-white leading-snug">
                         {factor.name}
                       </span>
-                      <span className="text-[10px] font-mono font-bold tabular-nums text-teal-300 shrink-0">
+                      <span className="text-[11px] font-mono font-bold tabular-nums text-violet-700 dark:text-violet-300 shrink-0">
                         {factor.weight}
                       </span>
                     </div>
 
                     <div className="flex items-baseline justify-between">
                       <div>
-                        <span className="text-2xl font-black font-mono tabular-nums text-white">
+                        <span className="text-2xl font-extrabold font-mono tabular-nums text-zinc-950 dark:text-white">
                           {factor.score}%
                         </span>
-                        <span className="text-[10px] font-mono tabular-nums text-slate-400 ml-1.5">
-                          (+{factor.weightedContribution} pts)
+                        <span className="text-[11px] font-mono tabular-nums text-zinc-500 dark:text-zinc-400 ml-1.5">
+                          (+{factor.weightedContribution})
                         </span>
                       </div>
                       <span
-                        className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md flex items-center gap-1 ${
+                        className={`text-[11px] font-bold flex items-center gap-1 ${
                           factor.status === "verified"
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                            : factor.status === "warning"
-                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                            : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                            ? "text-violet-700 dark:text-violet-300"
+                            : "text-rose-700 dark:text-rose-400"
                         }`}
                       >
-                        {factor.status === "verified" && (
-                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        {factor.status === "verified" ? (
+                          <CheckCircle2 className="w-3 h-3" />
+                        ) : (
+                          <AlertCircle className="w-3 h-3" />
                         )}
-                        {factor.status === "warning" && (
-                          <AlertCircle className="w-3 h-3 text-amber-400" />
-                        )}
-                        {factor.status}
+                        <span className="capitalize">{factor.status}</span>
                       </span>
                     </div>
 
-                    <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="w-full bg-zinc-200 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${
                           factor.score >= 80
-                            ? "bg-teal-400"
+                            ? "bg-violet-700 dark:bg-violet-500"
                             : factor.score >= 60
-                            ? "bg-amber-400"
-                            : "bg-rose-400"
+                            ? "bg-purple-600 dark:bg-purple-400"
+                            : "bg-rose-600 dark:bg-rose-500"
                         }`}
                         style={{ width: `${factor.score}%` }}
                       />
                     </div>
 
-                    <p className="text-[11px] text-slate-400 leading-snug">
+                    <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-snug">
                       {factor.description}
                     </p>
                   </div>
@@ -1479,24 +1487,24 @@ ${verificationResult.auditChecks
             </div>
 
             {/* Detailed Verification Checklist */}
-            <div className="p-5 rounded-2xl bg-black/40 border border-white/10 space-y-3">
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-300 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <div className="p-5 rounded-xl bg-zinc-50 dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-violet-700 dark:text-violet-400" />
                 Live Verification Audit Checklist
               </h3>
 
-              <div className="divide-y divide-white/5 space-y-1">
+              <div className="divide-y divide-zinc-200 dark:divide-zinc-800 space-y-1">
                 {verificationResult.auditChecks.map((check, idx) => (
                   <div
                     key={`audit-${check.title || idx}-${idx}`}
-                    className="pt-2.5 pb-1 flex items-center justify-between gap-4 text-xs"
+                    className="pt-2.5 pb-1.5 flex items-center justify-between gap-4 text-xs"
                   >
                     <div className="flex items-center gap-2.5">
                       <div
                         className={`p-1 rounded-full ${
                           check.passed
-                            ? "bg-emerald-500/20 text-emerald-400"
-                            : "bg-amber-500/20 text-amber-400"
+                            ? "bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300"
+                            : "bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400"
                         }`}
                       >
                         {check.passed ? (
@@ -1505,9 +1513,11 @@ ${verificationResult.auditChecks
                           <AlertCircle className="w-3.5 h-3.5" />
                         )}
                       </div>
-                      <span className="font-bold text-slate-200">{check.title}</span>
+                      <span className="font-semibold text-zinc-900 dark:text-zinc-200">
+                        {check.title}
+                      </span>
                     </div>
-                    <span className="text-[11px] text-slate-400 text-right font-mono tabular-nums">
+                    <span className="text-[11px] text-zinc-600 dark:text-zinc-400 text-right font-mono tabular-nums">
                       {check.details}
                     </span>
                   </div>
@@ -1517,15 +1527,15 @@ ${verificationResult.auditChecks
           </div>
 
           {/* Footer Actions */}
-          <div className="px-6 py-4 border-t border-white/10 bg-slate-950/80 flex items-center justify-between shrink-0">
-            <span className="text-xs text-slate-400">
-              Trust Engine: Custom-weighted multi-vector evaluation • 5-audit history active
+          <div className="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#111116] flex flex-wrap items-center justify-between gap-3 shrink-0">
+            <span className="text-xs text-zinc-600 dark:text-zinc-400">
+              Custom-weighted multi-vector evaluation · 5-audit history active
             </span>
             <div className="flex items-center gap-2.5">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 text-xs font-semibold transition-all cursor-pointer"
+                className="px-4 py-2 rounded-xl text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-200/70 dark:hover:bg-zinc-800 text-xs font-semibold transition-colors cursor-pointer"
               >
                 Close
               </button>
@@ -1542,10 +1552,12 @@ ${verificationResult.auditChecks
                   }
                   onClose();
                 }}
-                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-1.5 cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-violet-700 to-purple-700 hover:from-violet-600 hover:to-purple-600 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5" />
-                <span>Save Verified Credibility Score ({verificationResult.compositeTrustScore}%)</span>
+                <span>
+                  Save Verified Score ({verificationResult.compositeTrustScore}%)
+                </span>
               </button>
             </div>
           </div>

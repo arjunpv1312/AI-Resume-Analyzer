@@ -6,12 +6,6 @@ import {
   Download,
   Copy,
   Check,
-  ShieldCheck,
-  Sparkles,
-  Sliders,
-  CheckCircle2,
-  ExternalLink,
-  Layers,
   Image as ImageIcon,
 } from "lucide-react";
 
@@ -31,7 +25,7 @@ export interface ShareTrustScoreModalProps {
   }>;
 }
 
-type CardTheme = "executive-dark" | "electric-cyan" | "clean-light";
+type CardTheme = "obsidian-violet" | "royal-purple" | "clean-white";
 type CardFormat = "post" | "banner";
 
 export const ShareTrustScoreModal: React.FC<ShareTrustScoreModalProps> = ({
@@ -44,7 +38,7 @@ export const ShareTrustScoreModal: React.FC<ShareTrustScoreModalProps> = ({
   targetRole = "Senior Technology Leader",
   trustFactors,
 }) => {
-  const [theme, setTheme] = useState<CardTheme>("executive-dark");
+  const [theme, setTheme] = useState<CardTheme>("obsidian-violet");
   const [format, setFormat] = useState<CardFormat>("post");
   const [customName, setCustomName] = useState(candidateName);
   const [copiedCaption, setCopiedCaption] = useState(false);
@@ -53,7 +47,6 @@ export const ShareTrustScoreModal: React.FC<ShareTrustScoreModalProps> = ({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Sync customName if prop changes
   useEffect(() => {
     if (candidateName) {
       setCustomName(candidateName);
@@ -77,7 +70,6 @@ export const ShareTrustScoreModal: React.FC<ShareTrustScoreModalProps> = ({
         .replace(/\/+$/, "")
     : "in/verified-leader";
 
-  // Deterministic Credential ID
   const credentialId = `VT-${effectiveScore}-${Math.abs(
     (customName + cleanHandle + effectiveScore)
       .split("")
@@ -87,18 +79,28 @@ export const ShareTrustScoreModal: React.FC<ShareTrustScoreModalProps> = ({
     .toUpperCase()
     .slice(0, 6)}`;
 
-  // Factors for display
   const factors =
     trustFactors && trustFactors.length > 0
       ? trustFactors.slice(0, 4)
       : [
-          { name: "Endorsement & Skill Alignment", score: Math.min(98, effectiveScore + 2) },
-          { name: "Work History Consistency", score: Math.min(99, effectiveScore + 4) },
-          { name: "Education & Credential Audit", score: Math.max(75, effectiveScore - 1) },
-          { name: "Identity & Seniority Match", score: Math.min(98, effectiveScore + 3) },
+          {
+            name: "Endorsement & Skill Alignment",
+            score: Math.min(98, effectiveScore + 2),
+          },
+          {
+            name: "Work History Consistency",
+            score: Math.min(99, effectiveScore + 4),
+          },
+          {
+            name: "Education & Credential Audit",
+            score: Math.max(75, effectiveScore - 1),
+          },
+          {
+            name: "Identity & Seniority Match",
+            score: Math.min(98, effectiveScore + 3),
+          },
         ];
 
-  // Helper: Draw rounded rectangle
   const drawRoundedRect = (
     ctx: CanvasRenderingContext2D,
     x: number,
@@ -121,7 +123,6 @@ export const ShareTrustScoreModal: React.FC<ShareTrustScoreModalProps> = ({
     ctx.closePath();
   };
 
-  // Render High-DPI Social Card on HTML5 Canvas
   const drawCard = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -134,29 +135,27 @@ export const ShareTrustScoreModal: React.FC<ShareTrustScoreModalProps> = ({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const isLight = theme === "clean-light";
-    const isCyan = theme === "electric-cyan";
+    const isLight = theme === "clean-white";
+    const isRoyal = theme === "royal-purple";
 
-    // 1. Background Gradient
     const bg = ctx.createLinearGradient(0, 0, width, height);
     if (isLight) {
-      bg.addColorStop(0, "#f8fafc");
-      bg.addColorStop(0.5, "#f1f5f9");
-      bg.addColorStop(1, "#e2e8f0");
-    } else if (isCyan) {
-      bg.addColorStop(0, "#02121e");
-      bg.addColorStop(0.5, "#062238");
-      bg.addColorStop(1, "#041624");
+      bg.addColorStop(0, "#fafafa");
+      bg.addColorStop(0.5, "#f4f4f5");
+      bg.addColorStop(1, "#ede9fe");
+    } else if (isRoyal) {
+      bg.addColorStop(0, "#120726");
+      bg.addColorStop(0.5, "#230f47");
+      bg.addColorStop(1, "#09090b");
     } else {
-      bg.addColorStop(0, "#050814");
-      bg.addColorStop(0.45, "#0b1224");
-      bg.addColorStop(1, "#071a24");
+      bg.addColorStop(0, "#09090b");
+      bg.addColorStop(0.55, "#111116");
+      bg.addColorStop(1, "#1e1038");
     }
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, width, height);
 
-    // 2. Subtle architectural grid pattern
-    ctx.strokeStyle = isLight ? "rgba(15, 23, 42, 0.05)" : "rgba(255, 255, 255, 0.03)";
+    ctx.strokeStyle = isLight ? "rgba(9, 9, 11, 0.04)" : "rgba(255, 255, 255, 0.03)";
     ctx.lineWidth = 1;
     for (let x = 0; x < width; x += 48) {
       ctx.beginPath();
@@ -171,115 +170,71 @@ export const ShareTrustScoreModal: React.FC<ShareTrustScoreModalProps> = ({
       ctx.stroke();
     }
 
-    // 3. Ambient glow accents
-    const glowColor1 = isCyan
-      ? "rgba(6, 182, 212, 0.22)"
-      : isLight
-      ? "rgba(20, 184, 166, 0.16)"
-      : "rgba(20, 184, 166, 0.22)";
-    const glow1 = ctx.createRadialGradient(
-      width * 0.18,
-      height * 0.45,
-      20,
-      width * 0.18,
-      height * 0.45,
-      380
-    );
-    glow1.addColorStop(0, glowColor1);
-    glow1.addColorStop(1, "rgba(20, 184, 166, 0)");
-    ctx.fillStyle = glow1;
-    ctx.fillRect(0, 0, width, height);
-
-    const glow2 = ctx.createRadialGradient(
-      width * 0.82,
-      height * 0.35,
-      30,
-      width * 0.82,
-      height * 0.35,
-      420
-    );
-    glow2.addColorStop(
-      0,
-      isLight ? "rgba(59, 130, 246, 0.12)" : "rgba(99, 102, 241, 0.2)"
-    );
-    glow2.addColorStop(1, "rgba(99, 102, 241, 0)");
-    ctx.fillStyle = glow2;
-    ctx.fillRect(0, 0, width, height);
-
-    // 4. Outer Glassmorphism Card Frame
     const cardPadding = 32;
     const cw = width - cardPadding * 2;
     const ch = height - cardPadding * 2;
-    drawRoundedRect(ctx, cardPadding, cardPadding, cw, ch, 28);
-    ctx.fillStyle = isLight ? "rgba(255, 255, 255, 0.85)" : "rgba(10, 15, 30, 0.65)";
+    drawRoundedRect(ctx, cardPadding, cardPadding, cw, ch, 24);
+    ctx.fillStyle = isLight ? "#ffffff" : "#111116";
     ctx.fill();
-    ctx.strokeStyle = isLight
-      ? "rgba(203, 213, 225, 0.9)"
-      : isCyan
-      ? "rgba(6, 182, 212, 0.35)"
-      : "rgba(255, 255, 255, 0.12)";
+    ctx.strokeStyle = isLight ? "#d4d4d8" : "#27272a";
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // 5. Header: Badge & Authority Branding
-    const textPrimary = isLight ? "#0f172a" : "#ffffff";
-    const textSecondary = isLight ? "#475569" : "#94a3b8";
-    const accentTeal = "#14b8a6";
+    const textPrimary = isLight ? "#09090b" : "#fafafa";
+    const textSecondary = isLight ? "#52525b" : "#a1a1aa";
+    const accentPrimary = isLight ? "#6d28d9" : "#8b5cf6";
+    const accentSecondary = isLight ? "#9333ea" : "#a855f7";
 
-    // Top Brand Pill
     const pillX = cardPadding + 36;
     const pillY = cardPadding + 32;
-    drawRoundedRect(ctx, pillX, pillY, 260, 36, 18);
-    ctx.fillStyle = isLight ? "rgba(20, 184, 166, 0.15)" : "rgba(20, 184, 166, 0.15)";
+    drawRoundedRect(ctx, pillX, pillY, 240, 36, 8);
+    ctx.fillStyle = isLight ? "#f3e8ff" : "rgba(124, 58, 237, 0.18)";
     ctx.fill();
-    ctx.strokeStyle = "rgba(20, 184, 166, 0.4)";
+    ctx.strokeStyle = isLight ? "#c4b5fd" : "rgba(139, 92, 246, 0.45)";
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    ctx.font = "bold 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-    ctx.fillStyle = isLight ? "#0f766e" : "#2dd4bf";
-    ctx.fillText("🛡️  VERIFIED TRUST AUDIT", pillX + 16, pillY + 23);
+    ctx.font = "bold 13px Outfit, sans-serif";
+    ctx.fillStyle = accentPrimary;
+    ctx.fillText("VERIFIED TRUST AUDIT", pillX + 16, pillY + 23);
 
-    // Verification ID on right
-    ctx.font = "bold 13px 'Courier New', monospace";
+    ctx.font = "bold 13px monospace";
     ctx.fillStyle = textSecondary;
     ctx.textAlign = "right";
     ctx.fillText(`ID: ${credentialId}`, cardPadding + cw - 36, pillY + 23);
     ctx.textAlign = "left";
 
     if (format === "post") {
-      // POST FORMAT (1200 x 628)
-      // Candidate Name & Headline
-      ctx.font = "900 42px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.font = "900 42px Outfit, sans-serif";
       ctx.fillStyle = textPrimary;
       ctx.fillText(customName, cardPadding + 36, cardPadding + 120);
 
-      ctx.font = "600 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.font = "600 20px Outfit, sans-serif";
       ctx.fillStyle = textSecondary;
       ctx.fillText(targetRole, cardPadding + 36, cardPadding + 155);
 
-      // LinkedIn handle pill
       const handleY = cardPadding + 175;
-      drawRoundedRect(ctx, cardPadding + 36, handleY, 220, 32, 16);
-      ctx.fillStyle = isLight ? "rgba(15, 23, 42, 0.05)" : "rgba(255, 255, 255, 0.05)";
+      drawRoundedRect(ctx, cardPadding + 36, handleY, 240, 32, 8);
+      ctx.fillStyle = isLight ? "#f4f4f5" : "#18181b";
       ctx.fill();
-      ctx.font = "bold 13px 'Courier New', monospace";
-      ctx.fillStyle = isLight ? "#0284c7" : "#38bdf8";
-      ctx.fillText(`in/${cleanHandle.replace(/^in\//i, "")}`, cardPadding + 52, handleY + 21);
+      ctx.font = "bold 13px monospace";
+      ctx.fillStyle = accentPrimary;
+      ctx.fillText(
+        `in/${cleanHandle.replace(/^in\//i, "")}`,
+        cardPadding + 52,
+        handleY + 21
+      );
 
-      // Score Showcase Circle (Right Side)
       const circleCenterX = width - cardPadding - 180;
       const circleCenterY = cardPadding + 160;
       const radius = 95;
 
-      // Track background
       ctx.beginPath();
       ctx.arc(circleCenterX, circleCenterY, radius, 0, Math.PI * 2);
-      ctx.strokeStyle = isLight ? "rgba(15, 23, 42, 0.08)" : "rgba(255, 255, 255, 0.08)";
+      ctx.strokeStyle = isLight ? "#e4e4e7" : "#27272a";
       ctx.lineWidth = 14;
       ctx.stroke();
 
-      // Progress Arc
       ctx.beginPath();
       const startAngle = -Math.PI / 2;
       const endAngle = startAngle + (effectiveScore / 100) * (Math.PI * 2);
@@ -290,56 +245,53 @@ export const ShareTrustScoreModal: React.FC<ShareTrustScoreModalProps> = ({
         circleCenterX + radius,
         circleCenterY + radius
       );
-      arcGrad.addColorStop(0, "#14b8a6");
-      arcGrad.addColorStop(1, "#38bdf8");
+      arcGrad.addColorStop(0, accentPrimary);
+      arcGrad.addColorStop(1, accentSecondary);
       ctx.strokeStyle = arcGrad;
       ctx.lineWidth = 14;
       ctx.lineCap = "round";
       ctx.stroke();
 
-      // Score Number
       ctx.textAlign = "center";
-      ctx.font = "900 60px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.font = "900 60px Outfit, sans-serif";
       ctx.fillStyle = textPrimary;
       ctx.fillText(`${effectiveScore}%`, circleCenterX, circleCenterY + 14);
 
-      ctx.font = "bold 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-      ctx.fillStyle = isLight ? "#0f766e" : "#2dd4bf";
+      ctx.font = "bold 12px Outfit, sans-serif";
+      ctx.fillStyle = accentPrimary;
       ctx.fillText("CREDIBILITY SCORE", circleCenterX, circleCenterY + 36);
       ctx.textAlign = "left";
 
-      // Verified Tier Banner
       const tierY = cardPadding + 235;
-      drawRoundedRect(ctx, cardPadding + 36, tierY, 320, 36, 18);
-      ctx.fillStyle = "rgba(16, 185, 129, 0.15)";
+      drawRoundedRect(ctx, cardPadding + 36, tierY, 320, 36, 8);
+      ctx.fillStyle = isLight ? "#f3e8ff" : "rgba(124, 58, 237, 0.16)";
       ctx.fill();
-      ctx.strokeStyle = "rgba(16, 185, 129, 0.4)";
+      ctx.strokeStyle = isLight ? "#c4b5fd" : "rgba(139, 92, 246, 0.4)";
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      ctx.font = "bold 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-      ctx.fillStyle = "#34d399";
-      ctx.fillText(`✓ ${resolvedTier.toUpperCase()}`, cardPadding + 52, tierY + 23);
+      ctx.font = "bold 13px Outfit, sans-serif";
+      ctx.fillStyle = accentPrimary;
+      ctx.fillText(resolvedTier.toUpperCase(), cardPadding + 52, tierY + 23);
 
-      // Factor Cards (Bottom 4 Pillars)
       const factorY = height - cardPadding - 180;
       const factorW = (cw - 72 - 36) / 4;
       const factorH = 120;
 
       factors.forEach((f, idx) => {
         const fx = cardPadding + 36 + idx * (factorW + 12);
-        drawRoundedRect(ctx, fx, factorY, factorW, factorH, 18);
-        ctx.fillStyle = isLight ? "rgba(241, 245, 249, 0.8)" : "rgba(255, 255, 255, 0.04)";
+        drawRoundedRect(ctx, fx, factorY, factorW, factorH, 14);
+        ctx.fillStyle = isLight ? "#f4f4f5" : "#18181b";
         ctx.fill();
-        ctx.strokeStyle = isLight ? "rgba(203, 213, 225, 0.7)" : "rgba(255, 255, 255, 0.08)";
+        ctx.strokeStyle = isLight ? "#e4e4e7" : "#27272a";
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        ctx.font = "bold 26px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-        ctx.fillStyle = accentTeal;
+        ctx.font = "bold 26px Outfit, sans-serif";
+        ctx.fillStyle = accentPrimary;
         ctx.fillText(`${f.score}%`, fx + 18, factorY + 42);
 
-        ctx.font = "bold 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.font = "bold 12px Outfit, sans-serif";
         ctx.fillStyle = textPrimary;
         const words = f.name.split(" ");
         if (words.length > 2) {
@@ -350,79 +302,87 @@ export const ShareTrustScoreModal: React.FC<ShareTrustScoreModalProps> = ({
         }
       });
 
-      // Bottom Footer
       const footerY = height - cardPadding - 24;
-      ctx.font = "600 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.font = "600 12px Outfit, sans-serif";
       ctx.fillStyle = textSecondary;
       ctx.fillText("Executive Resume & LinkedIn Cross-Vector Engine", cardPadding + 36, footerY);
 
       ctx.textAlign = "right";
-      ctx.fillText("Verified with Zero-Knowledge Local Parsing", cardPadding + cw - 36, footerY);
+      ctx.fillText("Verified with Local Parsing Architecture", cardPadding + cw - 36, footerY);
       ctx.textAlign = "left";
     } else {
-      // BANNER FORMAT (1584 x 396)
-      ctx.font = "900 36px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.font = "900 36px Outfit, sans-serif";
       ctx.fillStyle = textPrimary;
       ctx.fillText(customName, cardPadding + 36, cardPadding + 115);
 
-      ctx.font = "600 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.font = "600 18px Outfit, sans-serif";
       ctx.fillStyle = textSecondary;
-      ctx.fillText(`${targetRole}  •  in/${cleanHandle.replace(/^in\//i, "")}`, cardPadding + 36, cardPadding + 150);
+      ctx.fillText(
+        `${targetRole}  ·  in/${cleanHandle.replace(/^in\//i, "")}`,
+        cardPadding + 36,
+        cardPadding + 150
+      );
 
-      // Score Badge on Right
       const rightX = width - cardPadding - 240;
       const rightY = cardPadding + 85;
-      drawRoundedRect(ctx, rightX, rightY, 200, 180, 24);
-      ctx.fillStyle = isLight ? "rgba(20, 184, 166, 0.1)" : "rgba(20, 184, 166, 0.15)";
+      drawRoundedRect(ctx, rightX, rightY, 200, 180, 18);
+      ctx.fillStyle = isLight ? "#f3e8ff" : "rgba(124, 58, 237, 0.16)";
       ctx.fill();
-      ctx.strokeStyle = "rgba(20, 184, 166, 0.4)";
+      ctx.strokeStyle = isLight ? "#c4b5fd" : "rgba(139, 92, 246, 0.45)";
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
       ctx.textAlign = "center";
-      ctx.font = "900 64px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.font = "900 64px Outfit, sans-serif";
       ctx.fillStyle = textPrimary;
       ctx.fillText(`${effectiveScore}%`, rightX + 100, rightY + 90);
 
-      ctx.font = "bold 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-      ctx.fillStyle = accentTeal;
+      ctx.font = "bold 13px Outfit, sans-serif";
+      ctx.fillStyle = accentPrimary;
       ctx.fillText("TRUST SCORE", rightX + 100, rightY + 120);
 
-      ctx.font = "600 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.font = "600 11px Outfit, sans-serif";
       ctx.fillStyle = textSecondary;
       ctx.fillText(resolvedTier, rightX + 100, rightY + 145);
       ctx.textAlign = "left";
 
-      // 3 Mini Factor badges in center
       const factorStartY = cardPadding + 185;
       factors.slice(0, 3).forEach((f, idx) => {
         const fx = cardPadding + 36 + idx * 260;
-        drawRoundedRect(ctx, fx, factorStartY, 240, 80, 16);
-        ctx.fillStyle = isLight ? "rgba(241, 245, 249, 0.8)" : "rgba(255, 255, 255, 0.04)";
+        drawRoundedRect(ctx, fx, factorStartY, 240, 80, 14);
+        ctx.fillStyle = isLight ? "#f4f4f5" : "#18181b";
         ctx.fill();
-        ctx.strokeStyle = isLight ? "rgba(203, 213, 225, 0.7)" : "rgba(255, 255, 255, 0.08)";
+        ctx.strokeStyle = isLight ? "#e4e4e7" : "#27272a";
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        ctx.font = "bold 24px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-        ctx.fillStyle = accentTeal;
+        ctx.font = "bold 24px Outfit, sans-serif";
+        ctx.fillStyle = accentPrimary;
         ctx.fillText(`${f.score}%`, fx + 16, factorStartY + 42);
 
-        ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.font = "bold 11px Outfit, sans-serif";
         ctx.fillStyle = textPrimary;
         ctx.fillText(f.name, fx + 16, factorStartY + 64);
       });
     }
-  }, [theme, format, customName, targetRole, cleanHandle, effectiveScore, resolvedTier, credentialId, factors]);
+  }, [
+    theme,
+    format,
+    customName,
+    targetRole,
+    cleanHandle,
+    effectiveScore,
+    resolvedTier,
+    credentialId,
+    factors,
+  ]);
 
-  // Redraw when settings change
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => drawCard(), 50);
     }
   }, [isOpen, drawCard]);
 
-  // Download image
   const handleDownload = (imgFormat: "png" | "jpeg" = "png") => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -443,7 +403,6 @@ export const ShareTrustScoreModal: React.FC<ShareTrustScoreModalProps> = ({
     }
   };
 
-  // Copy Image to Clipboard
   const handleCopyImage = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -452,13 +411,11 @@ export const ShareTrustScoreModal: React.FC<ShareTrustScoreModalProps> = ({
       canvas.toBlob(async (blob) => {
         if (!blob) return;
         try {
-          // Clipboard Item for image
           const item = new ClipboardItem({ "image/png": blob });
           await navigator.clipboard.write([item]);
           setCopiedImage(true);
           setTimeout(() => setCopiedImage(false), 2200);
         } catch {
-          // If browser clipboard item fails, fallback to download
           handleDownload("png");
         }
       }, "image/png");
@@ -467,17 +424,18 @@ export const ShareTrustScoreModal: React.FC<ShareTrustScoreModalProps> = ({
     }
   };
 
-  // Copy LinkedIn Post Caption
-  const postCaption = `🛡️ Verified Trust Credential: ${effectiveScore}% LinkedIn Credibility Score (${resolvedTier})
+  const postCaption = `Verified Trust Credential: ${effectiveScore}% LinkedIn Credibility Score (${resolvedTier})
 
-I just completed a cross-vector credibility audit of my LinkedIn profile (${cleanHandle}) against my executive resume for ${targetRole} mandates.
+I completed a cross-vector credibility audit of my LinkedIn profile (${cleanHandle}) against my executive resume for ${targetRole} mandates.
 
-✅ Verification ID: ${credentialId}
+Verification ID: ${credentialId}
 • Endorsement & Skill Consistency Verified
 • Work History & Milestone Metrics Audited
 • Education & Public Identity Alignment Authenticated
 
-Audited via AI Career Intelligence Studio: ${typeof window !== "undefined" ? window.location.origin : "https://resume-studio.app"}`;
+Audited via Career Intelligence Studio: ${
+    typeof window !== "undefined" ? window.location.origin : "https://resume-studio.app"
+  }`;
 
   const handleCopyCaption = async () => {
     try {
@@ -489,7 +447,6 @@ Audited via AI Career Intelligence Studio: ${typeof window !== "undefined" ? win
     }
   };
 
-  // Mobile Web Share API support
   const handleNativeShare = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -498,7 +455,9 @@ Audited via AI Career Intelligence Studio: ${typeof window !== "undefined" ? win
       try {
         canvas.toBlob(async (blob) => {
           if (!blob) return;
-          const file = new File([blob], `Trust-Score-${effectiveScore}.png`, { type: "image/png" });
+          const file = new File([blob], `Trust-Score-${effectiveScore}.png`, {
+            type: "image/png",
+          });
           await navigator.share({
             title: `Verified Trust Score: ${effectiveScore}%`,
             text: postCaption,
@@ -507,7 +466,6 @@ Audited via AI Career Intelligence Studio: ${typeof window !== "undefined" ? win
         });
         return;
       } catch {
-        // Fallback to copy caption
         handleCopyCaption();
       }
     } else {
@@ -519,37 +477,40 @@ Audited via AI Career Intelligence Studio: ${typeof window !== "undefined" ? win
 
   return (
     <AnimatePresence>
-      <div className="dark dark-studio fixed inset-0 z-[130] flex items-center justify-center p-4 md:p-6 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
+      <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 md:p-6 bg-black/75 backdrop-blur-md overflow-y-auto">
         <motion.div
-          initial={{ scale: 0.95, opacity: 0, y: 15 }}
+          initial={{ scale: 0.96, opacity: 0, y: 12 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.95, opacity: 0, y: 15 }}
-          className="max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto text-slate-100 flex flex-col max-h-[92vh]"
+          exit={{ scale: 0.96, opacity: 0, y: 12 }}
+          transition={{ duration: 0.2 }}
+          className="max-w-4xl w-full bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden my-auto text-zinc-950 dark:text-zinc-100 flex flex-col max-h-[92vh]"
         >
           {/* Header */}
-          <div className="p-6 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between shrink-0">
+          <div className="p-6 bg-zinc-50 dark:bg-[#111116] border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-2xl bg-gradient-to-tr from-teal-500/20 to-blue-500/20 border border-teal-500/30 flex items-center justify-center text-teal-400">
-                <Share2 className="w-6 h-6" />
+              <div className="h-11 w-11 rounded-xl bg-violet-100 dark:bg-violet-950/60 border border-violet-200 dark:border-violet-800/60 flex items-center justify-center text-violet-700 dark:text-violet-300">
+                <Share2 className="w-5 h-5" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-black font-display tracking-tight text-white">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-lg font-bold font-display tracking-tight text-zinc-950 dark:text-white">
                     Share My Trust Score
                   </h3>
-                  <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-[10px] font-black uppercase tracking-wider border border-teal-500/30">
-                    Social Card Ready
+                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    · Social Card Studio
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 font-medium">
-                  High-resolution social media graphic card for LinkedIn, X, and professional portfolios
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">
+                  High-resolution social media graphic card for LinkedIn posts and profile headers
                 </p>
               </div>
             </div>
 
             <button
+              type="button"
               onClick={onClose}
-              className="h-9 w-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors flex items-center justify-center cursor-pointer"
+              className="h-9 w-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-colors flex items-center justify-center cursor-pointer"
+              aria-label="Close modal"
             >
               <X className="w-5 h-5" />
             </button>
@@ -558,20 +519,19 @@ Audited via AI Career Intelligence Studio: ${typeof window !== "undefined" ? win
           {/* Modal Scrollable Body */}
           <div className="p-6 md:p-8 space-y-6 overflow-y-auto flex-1">
             {/* Customization Toolbar */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-950 border border-slate-800/80">
-              {/* Card Dimensions */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-zinc-50 dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                   Graphic Format
                 </label>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setFormat("post")}
-                    className={`flex-1 py-1.5 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                       format === "post"
-                        ? "bg-teal-500 text-slate-950 font-black shadow-sm"
-                        : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                        ? "bg-violet-700 text-white"
+                        : "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
                     }`}
                   >
                     Post (1200×628)
@@ -579,10 +539,10 @@ Audited via AI Career Intelligence Studio: ${typeof window !== "undefined" ? win
                   <button
                     type="button"
                     onClick={() => setFormat("banner")}
-                    className={`flex-1 py-1.5 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                       format === "banner"
-                        ? "bg-teal-500 text-slate-950 font-black shadow-sm"
-                        : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                        ? "bg-violet-700 text-white"
+                        : "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
                     }`}
                   >
                     Banner (1584×396)
@@ -590,51 +550,49 @@ Audited via AI Career Intelligence Studio: ${typeof window !== "undefined" ? win
                 </div>
               </div>
 
-              {/* Theme Selector */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Color Theme
+                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  Card Palette
                 </label>
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setTheme("executive-dark")}
-                    className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      theme === "executive-dark"
-                        ? "bg-indigo-600 text-white font-black"
-                        : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                    onClick={() => setTheme("obsidian-violet")}
+                    className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      theme === "obsidian-violet"
+                        ? "bg-zinc-950 text-white border border-violet-500"
+                        : "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
                     }`}
                   >
-                    Dark
+                    Obsidian
                   </button>
                   <button
                     type="button"
-                    onClick={() => setTheme("electric-cyan")}
-                    className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      theme === "electric-cyan"
-                        ? "bg-cyan-600 text-white font-black"
-                        : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                    onClick={() => setTheme("royal-purple")}
+                    className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      theme === "royal-purple"
+                        ? "bg-purple-700 text-white"
+                        : "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
                     }`}
                   >
-                    Cyan
+                    Royal
                   </button>
                   <button
                     type="button"
-                    onClick={() => setTheme("clean-light")}
-                    className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      theme === "clean-light"
-                        ? "bg-slate-200 text-slate-900 font-black"
-                        : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                    onClick={() => setTheme("clean-white")}
+                    className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      theme === "clean-white"
+                        ? "bg-zinc-200 text-zinc-950 font-bold"
+                        : "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
                     }`}
                   >
-                    Light
+                    White
                   </button>
                 </div>
               </div>
 
-              {/* Editable Name */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                   Card Display Name
                 </label>
                 <input
@@ -642,49 +600,48 @@ Audited via AI Career Intelligence Studio: ${typeof window !== "undefined" ? win
                   value={customName}
                   onChange={(e) => setCustomName(e.target.value)}
                   placeholder="Candidate Name"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-teal-500"
+                  className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-zinc-950 dark:text-white focus:outline-none focus:border-violet-600"
                 />
               </div>
             </div>
 
             {/* Live Canvas Preview */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-slate-400 px-1">
-                <span className="font-bold flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-teal-400" />
-                  <span>Real-Time High-Resolution Graphic Preview</span>
+              <div className="flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-400 px-1">
+                <span className="font-semibold flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-violet-700 dark:text-violet-400" />
+                  <span>High-Resolution Graphic Preview</span>
                 </span>
-                <span className="font-mono text-[11px] text-teal-300">
-                  {format === "post" ? "1200 × 628 px (1.91:1 LinkedIn Post)" : "1584 × 396 px (4:1 Banner)"}
+                <span className="font-mono text-[11px] text-violet-700 dark:text-violet-300">
+                  {format === "post"
+                    ? "1200 × 628 px (LinkedIn Post)"
+                    : "1584 × 396 px (Banner)"}
                 </span>
               </div>
 
-              <div className="w-full bg-slate-950 p-2 md:p-4 rounded-2xl border border-slate-800/80 overflow-hidden flex items-center justify-center">
+              <div className="w-full bg-zinc-100 dark:bg-[#09090b] p-2 md:p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden flex items-center justify-center">
                 <canvas
                   ref={canvasRef}
-                  className="w-full h-auto max-h-[380px] rounded-xl shadow-2xl object-contain border border-white/5"
+                  className="w-full h-auto max-h-[380px] rounded-lg shadow-md object-contain border border-zinc-200 dark:border-zinc-800"
                 />
               </div>
             </div>
 
             {/* LinkedIn Post Copy Area */}
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
+            <div className="p-4 rounded-xl bg-zinc-50 dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 space-y-2.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                  <span>Pre-Formatted LinkedIn Post Copy</span>
-                  <span className="text-[10px] text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded-full border border-teal-500/20 font-sans normal-case">
-                    Ready to Paste
-                  </span>
+                <label className="text-xs font-bold text-zinc-900 dark:text-zinc-200">
+                  Pre-Formatted LinkedIn Post Copy
                 </label>
                 <button
                   type="button"
                   onClick={handleCopyCaption}
-                  className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-teal-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:border-violet-500 text-violet-700 dark:text-violet-300 text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   {copiedCaption ? (
                     <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Copied Caption!</span>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Copied Caption</span>
                     </>
                   ) : (
                     <>
@@ -694,28 +651,28 @@ Audited via AI Career Intelligence Studio: ${typeof window !== "undefined" ? win
                   )}
                 </button>
               </div>
-              <pre className="text-[11px] font-sans text-slate-300 bg-slate-900/80 p-3 rounded-xl border border-slate-800 overflow-x-auto whitespace-pre-wrap leading-relaxed">
+              <pre className="text-[11px] font-sans text-zinc-700 dark:text-zinc-300 bg-white dark:bg-[#111116] p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-x-auto whitespace-pre-wrap leading-relaxed">
                 {postCaption}
               </pre>
             </div>
           </div>
 
           {/* Footer Actions */}
-          <div className="p-6 bg-slate-900/90 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="p-5 bg-zinc-50 dark:bg-[#111116] border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleCopyImage}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
+                className="px-4 py-2 rounded-xl bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-semibold transition-colors flex items-center gap-2 cursor-pointer"
               >
                 {copiedImage ? (
                   <>
-                    <Check className="w-4 h-4 text-emerald-400" />
-                    <span>Card Copied to Clipboard!</span>
+                    <Check className="w-4 h-4 text-violet-700 dark:text-violet-400" />
+                    <span>Copied to Clipboard</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="w-4 h-4 text-teal-400" />
+                    <Copy className="w-4 h-4 text-violet-700 dark:text-violet-400" />
                     <span>Copy Card Image</span>
                   </>
                 )}
@@ -725,9 +682,9 @@ Audited via AI Career Intelligence Studio: ${typeof window !== "undefined" ? win
                 type="button"
                 onClick={() => handleDownload("jpeg")}
                 disabled={isExporting}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50"
+                className="px-4 py-2 rounded-xl bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-semibold transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
-                <Download className="w-4 h-4 text-slate-400" />
+                <Download className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
                 <span>JPEG</span>
               </button>
             </div>
@@ -736,7 +693,7 @@ Audited via AI Career Intelligence Studio: ${typeof window !== "undefined" ? win
               <button
                 type="button"
                 onClick={handleNativeShare}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-300 border border-teal-500/30 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+                className="px-4 py-2 rounded-xl bg-violet-50 dark:bg-violet-950/50 hover:bg-violet-100 dark:hover:bg-violet-950 border border-violet-200 dark:border-violet-800/60 text-violet-700 dark:text-violet-300 text-xs font-semibold transition-colors flex items-center gap-2 cursor-pointer"
               >
                 <Share2 className="w-4 h-4" />
                 <span>Share Post</span>
@@ -746,7 +703,7 @@ Audited via AI Career Intelligence Studio: ${typeof window !== "undefined" ? win
                 type="button"
                 onClick={() => handleDownload("png")}
                 disabled={isExporting}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white font-black text-xs transition-all shadow-lg shadow-teal-500/25 active:scale-95 cursor-pointer flex items-center gap-2 disabled:opacity-50"
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-violet-700 to-purple-700 hover:from-violet-600 hover:to-purple-600 text-white font-bold text-xs transition-all shadow-sm active:scale-[0.98] cursor-pointer flex items-center gap-2 disabled:opacity-50"
               >
                 <Download className="w-4 h-4" />
                 <span>Download High-Res PNG</span>

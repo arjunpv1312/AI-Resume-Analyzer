@@ -1,17 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
-import {
-  Sparkles,
-  TrendingUp,
-  Target,
-  Briefcase,
-  Layers,
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
-  CheckCircle2,
-  Award,
-} from "lucide-react";
+import { TrendingUp, Target, X } from "lucide-react";
 
 interface AlternativeRole {
   role: string;
@@ -71,14 +60,32 @@ export const D3CareerGraph: React.FC<D3CareerGraphProps> = ({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
-  const [viewMode, setViewMode] = useState<"tree" | "radial">("tree");
+  const [isDark, setIsDark] = useState(() =>
+    typeof document !== "undefined" &&
+    (document.documentElement.getAttribute("data-theme") === "figma-dark" ||
+      document.documentElement.classList.contains("dark"))
+  );
 
-  // Construct Nodes and Links
+  useEffect(() => {
+    const syncTheme = () => {
+      setIsDark(
+        document.documentElement.getAttribute("data-theme") === "figma-dark" ||
+          document.documentElement.classList.contains("dark")
+      );
+    };
+    syncTheme();
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme", "class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   const buildGraphData = () => {
     const nodes: GraphNode[] = [];
     const links: GraphLink[] = [];
 
-    // 1. Past Experience Nodes (from career timeline)
     if (careerTimeline && careerTimeline.length > 0) {
       careerTimeline.forEach((item, idx) => {
         const nodeId = `past_${idx}`;
@@ -91,30 +98,36 @@ export const D3CareerGraph: React.FC<D3CareerGraphProps> = ({
           skills: item.highlights?.slice(0, 3),
         });
 
-        // Link sequential past roles
         if (idx > 0) {
-          links.push({ source: `past_${idx - 1}`, target: nodeId, label: "Advanced to" });
+          links.push({
+            source: `past_${idx - 1}`,
+            target: nodeId,
+            label: "Advanced to",
+          });
         }
       });
     }
 
-    // 2. Current Node (Baseline)
     const currentId = "node_current";
-    const lastPastId = careerTimeline.length > 0 ? `past_${careerTimeline.length - 1}` : null;
+    const lastPastId =
+      careerTimeline.length > 0 ? `past_${careerTimeline.length - 1}` : null;
 
     nodes.push({
       id: currentId,
-      name: currentRole || (careerTimeline[0]?.role) || "Current Candidate Profile",
+      name: currentRole || careerTimeline[0]?.role || "Current Candidate Profile",
       type: "current",
       subtitle: "Current Career Stage",
       match: 100,
     });
 
     if (lastPastId) {
-      links.push({ source: lastPastId, target: currentId, label: "Current Level" });
+      links.push({
+        source: lastPastId,
+        target: currentId,
+        label: "Current Level",
+      });
     }
 
-    // 3. Recommended Primary Target Role
     const primaryId = "node_primary";
     nodes.push({
       id: primaryId,
@@ -130,7 +143,6 @@ export const D3CareerGraph: React.FC<D3CareerGraphProps> = ({
       label: `${Math.round(confidence > 1 ? confidence : confidence * 100)}% Match`,
     });
 
-    // 4. Alternative Pivot Roles
     alternatives.forEach((alt, idx) => {
       const altId = `pivot_${idx}`;
       nodes.push({
@@ -148,14 +160,13 @@ export const D3CareerGraph: React.FC<D3CareerGraphProps> = ({
       });
     });
 
-    // 5. Future Career Trajectories / Milestones
     careerTrajectories.forEach((traj, idx) => {
       const futureId = `future_${idx}`;
       nodes.push({
         id: futureId,
         name: traj.title,
         type: "future",
-        subtitle: traj.timeline || "Next Frontier",
+        subtitle: traj.timeline || "Next Horizon",
         skills: traj.requiredSkills,
       });
 
@@ -174,14 +185,12 @@ export const D3CareerGraph: React.FC<D3CareerGraphProps> = ({
 
     const container = containerRef.current;
     const width = container.clientWidth || 900;
-    const height = 480;
+    const height = 460;
 
-    // Clear previous SVG content
     d3.select(svgRef.current).selectAll("*").remove();
 
     const { nodes, links } = buildGraphData();
 
-    // Map Node Positions based on logical layers (X coordinates)
     const layers: { [key: string]: GraphNode[] } = {
       past: nodes.filter((n) => n.type === "past"),
       current: nodes.filter((n) => n.type === "current"),
@@ -212,10 +221,8 @@ export const D3CareerGraph: React.FC<D3CareerGraphProps> = ({
       .attr("width", "100%")
       .attr("height", height);
 
-    // Create container group for zoom/pan
     const g = svg.append("g");
 
-    // Setup D3 Zoom
     const zoom = d3
       .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.5, 2.5])
@@ -225,54 +232,44 @@ export const D3CareerGraph: React.FC<D3CareerGraphProps> = ({
 
     svg.call(zoom);
 
-    // SVG Defs (Gradients & Drop Shadows)
     const defs = svg.append("defs");
-
-    // Glow filter
-    const filter = defs
-      .append("filter")
-      .attr("id", "glow")
-      .attr("x", "-50%")
-      .attr("y", "-50%")
-      .attr("width", "200%")
-      .attr("height", "200%");
-
-    filter
-      .append("feGaussianBlur")
-      .attr("stdDeviation", "4")
-      .attr("result", "coloredBlur");
-
-    const feMerge = filter.append("feMerge");
-    feMerge.append("feMergeNode").attr("in", "coloredBlur");
-    feMerge.append("feMergeNode").attr("in", "SourceGraphic");
-
-    // Linear Gradients for links
     const linkGradient = defs
       .append("linearGradient")
-      .attr("id", "linkGrad")
+      .attr("id", "careerLinkGrad")
       .attr("gradientUnits", "userSpaceOnUse");
 
-    linkGradient.append("stop").attr("offset", "0%").attr("stop-color", "#14b8a6");
-    linkGradient.append("stop").attr("offset", "100%").attr("stop-color", "#8b5cf6");
+    linkGradient
+      .append("stop")
+      .attr("offset", "0%")
+      .attr("stop-color", isDark ? "#7c3aed" : "#6d28d9");
+    linkGradient
+      .append("stop")
+      .attr("offset", "100%")
+      .attr("stop-color", isDark ? "#c084fc" : "#9333ea");
 
-    // Map node array to dictionary for quick lookup
     const nodeMap = new Map<string, GraphNode>();
     nodes.forEach((n) => nodeMap.set(n.id, n));
 
-    // Render Links (Curved Bezier Paths)
     const linkGroup = g.append("g").attr("class", "links");
 
     links.forEach((link) => {
       const sourceNode = nodeMap.get(link.source);
       const targetNode = nodeMap.get(link.target);
 
-      if (!sourceNode || !targetNode || sourceNode.x === undefined || sourceNode.y === undefined || targetNode.x === undefined || targetNode.y === undefined) return;
+      if (
+        !sourceNode ||
+        !targetNode ||
+        sourceNode.x === undefined ||
+        sourceNode.y === undefined ||
+        targetNode.x === undefined ||
+        targetNode.y === undefined
+      ) {
+        return;
+      }
 
       const pathData = d3.path();
       pathData.moveTo(sourceNode.x, sourceNode.y);
-
       const dx = targetNode.x - sourceNode.x;
-      const dy = targetNode.y - sourceNode.y;
 
       pathData.bezierCurveTo(
         sourceNode.x + dx * 0.5,
@@ -283,29 +280,15 @@ export const D3CareerGraph: React.FC<D3CareerGraphProps> = ({
         targetNode.y
       );
 
-      // Path line
       linkGroup
         .append("path")
         .attr("d", pathData.toString())
         .attr("fill", "none")
-        .attr("stroke", "url(#linkGrad)")
-        .attr("stroke-width", 2.5)
-        .attr("stroke-opacity", 0.5)
+        .attr("stroke", "url(#careerLinkGrad)")
+        .attr("stroke-width", 2.2)
+        .attr("stroke-opacity", isDark ? 0.55 : 0.45)
         .attr("stroke-dasharray", targetNode.type === "pivot" ? "4,4" : "none");
 
-      // Animated pulsing particle along connection line
-      if (targetNode.type === "primary" || targetNode.type === "current") {
-        linkGroup
-          .append("circle")
-          .attr("r", 3)
-          .attr("fill", "#2dd4bf")
-          .append("animateMotion")
-          .attr("path", pathData.toString())
-          .attr("dur", "3s")
-          .attr("repeatCount", "indefinite");
-      }
-
-      // Link badge label
       if (link.label) {
         const midX = (sourceNode.x + targetNode.x) / 2;
         const midY = (sourceNode.y + targetNode.y) / 2 - 8;
@@ -316,27 +299,26 @@ export const D3CareerGraph: React.FC<D3CareerGraphProps> = ({
 
         badge
           .append("rect")
-          .attr("x", -32)
+          .attr("x", -34)
           .attr("y", -9)
-          .attr("width", 64)
+          .attr("width", 68)
           .attr("height", 16)
-          .attr("rx", 8)
-          .attr("fill", "#090d16")
-          .attr("stroke", "#1e293b")
+          .attr("rx", 6)
+          .attr("fill", isDark ? "#111116" : "#ffffff")
+          .attr("stroke", isDark ? "#27272a" : "#e4e4e7")
           .attr("stroke-width", 1);
 
         badge
           .append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "3")
-          .attr("fill", "#94a3b8")
+          .attr("fill", isDark ? "#a1a1aa" : "#52525b")
           .attr("font-size", "9px")
-          .attr("font-weight", "800")
+          .attr("font-weight", "700")
           .text(link.label);
       }
     });
 
-    // Render Nodes
     const nodeGroup = g
       .append("g")
       .attr("class", "nodes")
@@ -348,187 +330,179 @@ export const D3CareerGraph: React.FC<D3CareerGraphProps> = ({
       .attr("class", "cursor-pointer")
       .on("click", (_event, d) => setSelectedNode(d));
 
-    // Node Circle Styling by type
     nodeGroup.each(function (d) {
       const nodeElem = d3.select(this);
 
       let radius = 24;
-      let strokeColor = "#14b8a6";
-      let fillColor = "#0f172a";
+      let strokeColor = isDark ? "#8b5cf6" : "#6d28d9";
+      let fillColor = isDark ? "#18181b" : "#f4f4f5";
+      let textColor = isDark ? "#ffffff" : "#09090b";
 
       if (d.type === "primary") {
         radius = 32;
-        strokeColor = "#2dd4bf";
-        fillColor = "#134e4a";
+        strokeColor = isDark ? "#a855f7" : "#6d28d9";
+        fillColor = "#6d28d9";
+        textColor = "#ffffff";
       } else if (d.type === "pivot") {
         radius = 26;
-        strokeColor = "#38bdf8";
-        fillColor = "#0c4a6e";
+        strokeColor = isDark ? "#c084fc" : "#9333ea";
+        fillColor = isDark ? "#2e1065" : "#f3e8ff";
+        textColor = isDark ? "#f3e8ff" : "#581c87";
       } else if (d.type === "current") {
         radius = 28;
-        strokeColor = "#a855f7";
-        fillColor = "#581c87";
+        strokeColor = isDark ? "#f4f4f5" : "#09090b";
+        fillColor = isDark ? "#09090b" : "#09090b";
+        textColor = "#ffffff";
       } else if (d.type === "future") {
         radius = 24;
-        strokeColor = "#f43f5e";
-        fillColor = "#881337";
+        strokeColor = isDark ? "#d8b4fe" : "#7e22ce";
+        fillColor = isDark ? "#1e1b2e" : "#faf5ff";
+        textColor = isDark ? "#f4f4f5" : "#581c87";
       }
 
-      // Outer glow circle
-      nodeElem
-        .append("circle")
-        .attr("r", radius + 6)
-        .attr("fill", strokeColor)
-        .attr("opacity", 0.15)
-        .attr("filter", "url(#glow)");
-
-      // Main Node Circle
       nodeElem
         .append("circle")
         .attr("r", radius)
         .attr("fill", fillColor)
         .attr("stroke", strokeColor)
-        .attr("stroke-width", 2.5);
+        .attr("stroke-width", 2.2);
 
-      // Node Icon / Indicator
       if (d.match) {
         nodeElem
           .append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "4")
-          .attr("fill", "#ffffff")
+          .attr("fill", textColor)
           .attr("font-size", d.type === "primary" ? "12px" : "10px")
-          .attr("font-weight", "900")
+          .attr("font-weight", "800")
           .text(`${d.match}%`);
       } else {
         nodeElem
           .append("circle")
-          .attr("r", 5)
+          .attr("r", 4.5)
           .attr("fill", strokeColor);
       }
 
-      // Node Text Label
       const labelGroup = nodeElem
         .append("g")
         .attr("transform", `translate(0, ${radius + 18})`);
 
-      // Node Title
       labelGroup
         .append("text")
         .attr("text-anchor", "middle")
-        .attr("fill", "#f8fafc")
+        .attr("fill", isDark ? "#f4f4f5" : "#09090b")
         .attr("font-size", d.type === "primary" ? "12px" : "11px")
-        .attr("font-weight", "800")
+        .attr("font-weight", "700")
         .text(d.name.length > 22 ? d.name.substring(0, 20) + "..." : d.name);
 
-      // Node Subtitle
       if (d.subtitle) {
         labelGroup
           .append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "14")
-          .attr("fill", "#94a3b8")
-          .attr("font-size", "9px")
-          .attr("font-weight", "600")
+          .attr("fill", isDark ? "#a1a1aa" : "#52525b")
+          .attr("font-size", "9.5px")
+          .attr("font-weight", "500")
           .text(
-            d.subtitle.length > 26 ? d.subtitle.substring(0, 24) + "..." : d.subtitle
+            d.subtitle.length > 26
+              ? d.subtitle.substring(0, 24) + "..."
+              : d.subtitle
           );
       }
     });
-  }, [confidence, topRole, alternatives, careerTimeline, careerTrajectories, viewMode]);
+  }, [confidence, topRole, alternatives, careerTimeline, careerTrajectories, isDark]);
 
   return (
-    <div className="dark dark-studio w-full bg-slate-950/80 border border-purple-500/20 rounded-3xl p-5 space-y-4 shadow-2xl relative overflow-hidden">
-      {/* Header & Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30">
+    <div className="w-full bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 space-y-4 shadow-sm relative overflow-hidden">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 dark:border-zinc-800 pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800/60">
             <TrendingUp className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
-              D3 Interactive Trajectory Graph
+            <h3 className="text-sm font-bold text-zinc-950 dark:text-white tracking-tight">
+              Interactive Trajectory Graph
             </h3>
-            <p className="text-[10px] text-slate-400 font-medium">
-              Connected mapping from past experience to primary & pivot career horizons
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
+              Connected mapping from past experience to primary and pivot career horizons
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="px-2.5 py-1 rounded-full bg-teal-500/20 border border-teal-500/30 text-teal-300 text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-teal-400" /> Vector Graph Engine
-          </span>
-        </div>
+        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+          Drag to pan · Scroll to zoom · Click node to inspect
+        </span>
       </div>
 
       {/* SVG Canvas Container */}
-      <div ref={containerRef} className="w-full h-[480px] relative bg-black/40 rounded-2xl border border-white/5 overflow-hidden">
+      <div
+        ref={containerRef}
+        className="w-full h-[460px] relative bg-zinc-50 dark:bg-[#09090b] rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden"
+      >
         <svg ref={svgRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
         {/* Selected Node Details Drawer */}
         {selectedNode && (
-          <div className="absolute bottom-4 left-4 right-4 bg-slate-900/95 border border-purple-500/40 p-4 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-wrap items-center justify-between gap-4 animate-fadeIn">
+          <div className="absolute bottom-4 left-4 right-4 bg-white dark:bg-[#111116] border border-violet-300 dark:border-violet-700/60 p-4 rounded-xl shadow-xl flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl ${selectedNode.type === 'primary' ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40' : 'bg-sky-500/20 text-sky-300 border border-sky-500/40'}`}>
-                <Target className="w-5 h-5" />
+              <div className="p-2.5 rounded-lg bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800/50">
+                <Target className="w-4 h-4" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-black text-white">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="text-sm font-bold text-zinc-950 dark:text-white">
                     {selectedNode.name}
                   </h4>
                   {selectedNode.match && (
-                    <span className="px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 text-[10px] font-black border border-teal-500/30">
-                      {selectedNode.match}% Match
+                    <span className="text-xs font-bold tabular-nums text-violet-700 dark:text-violet-300">
+                      · {selectedNode.match}% Match
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-400 font-medium">
+                <p className="text-xs text-zinc-600 dark:text-zinc-400">
                   {selectedNode.subtitle}
                 </p>
               </div>
             </div>
 
             {selectedNode.skills && selectedNode.skills.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-extrabold text-slate-400 uppercase">Skills:</span>
-                <div className="flex flex-wrap gap-1">
-                  {selectedNode.skills.map((s, idx) => (
-                    <span key={`node-sk-${s}-${idx}`} className="px-2 py-0.5 rounded bg-white/10 text-slate-200 text-[10px] font-bold">
-                      {s}
-                    </span>
-                  ))}
-                </div>
+              <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+                <span className="font-semibold text-zinc-500 dark:text-zinc-400">
+                  Highlights:
+                </span>
+                <span>{selectedNode.skills.join(" · ")}</span>
               </div>
             )}
 
             <button
+              type="button"
               onClick={() => setSelectedNode(null)}
-              className="text-xs text-slate-400 hover:text-white font-bold uppercase tracking-wider"
+              className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-colors cursor-pointer"
+              aria-label="Close node details"
             >
-              Close
+              <X className="w-4 h-4" />
             </button>
           </div>
         )}
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest border-t border-white/5">
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-purple-600 border border-purple-400" />
+      <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800">
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-zinc-950 border border-zinc-400 dark:border-zinc-200" />
           <span>Current Profile</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-teal-600 border border-teal-400" />
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-violet-700 border border-violet-500" />
           <span>Recommended Primary Role</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-sky-600 border border-sky-400" />
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-purple-200 dark:bg-purple-900 border border-purple-500" />
           <span>Career Pivot Option</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-rose-600 border border-rose-400" />
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-fuchsia-100 dark:bg-violet-950 border border-purple-400" />
           <span>Future Horizon</span>
         </div>
       </div>

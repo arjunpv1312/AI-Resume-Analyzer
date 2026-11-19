@@ -10,7 +10,7 @@ import {
   Copy,
   RefreshCcw,
   AlertTriangle,
-  Sparkles,
+  Wand2,
   ArrowRight,
   GitCompare,
   RotateCcw,
@@ -187,7 +187,7 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
         {
           id: `err_${Date.now()}`,
           role: "model",
-          text: err?.message || "Network error contacting Gemini ATS Copilot.",
+          text: err?.message || "Network error contacting ATS Copilot.",
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           isError: true,
         },
@@ -219,7 +219,7 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
       {
         id: `welcome_${Date.now()}`,
         role: "model",
-        text: "Ready to audit your resume. Ask me what is missing, click a quick gap check below, or click any missing keyword to weave it right in.",
+        text: "Ready to audit your resume. Ask me what is missing, select a quick gap check below, or click any missing keyword to weave it right in.",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         persona,
         modelUsed: "gemini-4-hydrogen",
@@ -232,20 +232,20 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
   };
 
   return (
-    <div className="dark dark-studio flex flex-col h-full bg-slate-950/70 text-slate-100 overflow-hidden">
+    <div className="flex flex-col h-full bg-white dark:bg-[#111116] text-zinc-950 dark:text-zinc-100 overflow-hidden">
       {/* Top Role & Model Bar */}
-      <div className="p-3 border-b border-slate-800 bg-slate-900/90 space-y-2.5 shrink-0">
+      <div className="p-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#09090b] space-y-2.5 shrink-0">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-400 shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-violet-50 dark:bg-violet-950/50 border border-violet-200 dark:border-violet-800/60 flex items-center justify-center text-violet-700 dark:text-violet-400 shrink-0">
               <Bot className="w-4 h-4" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h4 className="text-xs font-bold text-white truncate">
+                <h4 className="text-xs font-bold text-zinc-950 dark:text-white truncate">
                   ATS Gap Copilot
                 </h4>
-                <span className="text-[10px] font-mono text-teal-400 tabular-nums shrink-0">
+                <span className="text-[10px] font-mono text-violet-700 dark:text-violet-400 tabular-nums shrink-0">
                   {modelMode === "fast"
                     ? "Lite"
                     : modelMode === "deep"
@@ -255,7 +255,7 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
                     : "Smart Route"}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 truncate">
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
                 {PERSONA_META[persona].shortDesc}
               </p>
             </div>
@@ -266,8 +266,8 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
               <button
                 type="button"
                 onClick={onUndoLastPatch}
-                className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
-                title="Undo last AI resume patch"
+                className="px-2 py-1 rounded-lg bg-white dark:bg-[#16161d] hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
+                title="Undo last resume patch"
               >
                 <RotateCcw className="w-3 h-3" />
                 <span>Undo</span>
@@ -276,7 +276,7 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
             <button
               type="button"
               onClick={handleClearChat}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-200/70 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
               title="Reset conversation thread"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -285,7 +285,7 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
         </div>
 
         {/* Persona Segmented Switcher */}
-        <div className="grid grid-cols-3 gap-1 p-1 bg-slate-950 rounded-lg border border-slate-800">
+        <div className="grid grid-cols-3 gap-1 p-1 bg-white dark:bg-[#16161d] rounded-lg border border-zinc-200 dark:border-zinc-800">
           {(["scanner", "recruiter", "rewriter"] as AtsChatPersona[]).map((pKey) => {
             const active = persona === pKey;
             return (
@@ -295,8 +295,8 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
                 onClick={() => onPersonaChange(pKey)}
                 className={`px-2 py-1.5 rounded-md text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap truncate ${
                   active
-                    ? "bg-teal-600 text-white shadow-xs"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                    ? "bg-violet-700 dark:bg-violet-600 text-white shadow-xs"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                 }`}
               >
                 {PERSONA_META[pKey].icon}
@@ -308,10 +308,10 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
 
         {/* Speed / Depth Selector */}
         <div className="flex items-center justify-between gap-2 text-[11px]">
-          <span className="text-slate-400 flex items-center gap-1 shrink-0">
-            <Sliders className="w-3 h-3 text-slate-500" /> Depth:
+          <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1 shrink-0">
+            <Sliders className="w-3 h-3 text-zinc-400" /> Depth:
           </span>
-          <div className="flex items-center gap-1 bg-slate-950 p-0.5 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-1 bg-white dark:bg-[#16161d] p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-800">
             {(
               [
                 { id: "auto", label: "Auto" },
@@ -326,8 +326,8 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
                 onClick={() => onModelModeChange(opt.id)}
                 className={`px-2 py-1 rounded-md font-medium transition-colors cursor-pointer whitespace-nowrap ${
                   modelMode === opt.id
-                    ? "bg-slate-800 text-teal-300 border border-teal-500/30"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-violet-50 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800/60"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                 }`}
               >
                 {opt.label}
@@ -338,16 +338,16 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
       </div>
 
       {/* Quick Action Bar */}
-      <div className="px-3 py-2 border-b border-slate-800/80 bg-slate-900/40 flex items-center gap-1.5 overflow-x-auto shrink-0">
+      <div className="px-3 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-[#09090b]/50 flex items-center gap-1.5 overflow-x-auto shrink-0">
         {QUICK_PROMPTS.map((qp) => (
           <button
             key={qp.label}
             type="button"
             disabled={isLoading}
             onClick={() => sendMessage(qp.prompt)}
-            className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-teal-500/50 text-[11px] font-medium text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-50"
+            className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-[#16161d] hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 hover:border-violet-400 dark:hover:border-violet-600 text-[11px] font-medium text-zinc-700 dark:text-zinc-200 flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-50"
           >
-            <Zap className="w-3 h-3 text-teal-400 shrink-0" />
+            <Zap className="w-3 h-3 text-violet-600 dark:text-violet-400 shrink-0" />
             <span>{qp.label}</span>
           </button>
         ))}
@@ -365,10 +365,10 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
               <div
                 className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
                   isUser
-                    ? "bg-indigo-600 text-white"
+                    ? "bg-zinc-950 dark:bg-violet-600 text-white"
                     : msg.isError
-                    ? "bg-rose-500/15 text-rose-400 border border-rose-500/30"
-                    : "bg-teal-500/15 text-teal-400 border border-teal-500/30"
+                    ? "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60"
+                    : "bg-violet-50 dark:bg-violet-950/50 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-800/60"
                 }`}
               >
                 {isUser ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
@@ -383,16 +383,16 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
                 <div
                   className={`px-3.5 py-2.5 rounded-xl text-xs leading-relaxed ${
                     isUser
-                      ? "bg-indigo-600 text-white rounded-tr-xs"
+                      ? "bg-violet-700 dark:bg-violet-600 text-white rounded-tr-xs"
                       : msg.isError
-                      ? "bg-rose-950/40 border border-rose-500/40 text-rose-200 rounded-tl-xs"
-                      : "bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-xs"
+                      ? "bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-rose-800 dark:text-rose-200 rounded-tl-xs"
+                      : "bg-zinc-50 dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-xs"
                   }`}
                 >
                   <p className="whitespace-pre-wrap">{msg.text}</p>
                   <div
                     className={`mt-1.5 flex items-center gap-2 text-[10px] font-mono tabular-nums ${
-                      isUser ? "text-indigo-200 justify-end" : "text-slate-500"
+                      isUser ? "text-violet-200 justify-end" : "text-zinc-400 dark:text-zinc-500"
                     }`}
                   >
                     <span>{msg.timestamp}</span>
@@ -407,10 +407,10 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
 
                 {/* Short Missing Gaps Digest */}
                 {!isUser && msg.shortMissingPoints && msg.shortMissingPoints.length > 0 && (
-                  <div className="rounded-xl bg-slate-900/90 border border-slate-800 p-3 space-y-2">
-                    <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300 border-b border-slate-800 pb-1.5">
+                  <div className="rounded-xl bg-zinc-50 dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-800 p-3 space-y-2">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-800 dark:text-zinc-200 border-b border-zinc-200 dark:border-zinc-800 pb-1.5">
                       <span className="flex items-center gap-1.5">
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                        <AlertTriangle className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                         What's Missing ({msg.shortMissingPoints.length})
                       </span>
                     </div>
@@ -418,10 +418,10 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
                       {msg.shortMissingPoints.map((pt, idx) => {
                         const sevColor =
                           pt.severity === "critical"
-                            ? "text-rose-400"
+                            ? "text-rose-700 dark:text-rose-400"
                             : pt.severity === "polish"
-                            ? "text-sky-400"
-                            : "text-amber-400";
+                            ? "text-violet-700 dark:text-violet-400"
+                            : "text-purple-700 dark:text-purple-400";
                         const sevLabel =
                           pt.severity === "critical"
                             ? "Critical"
@@ -431,15 +431,19 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
                         return (
                           <li
                             key={pt.id || idx}
-                            className="text-xs leading-snug border-b border-slate-800/60 last:border-b-0 pb-1.5 last:pb-0"
+                            className="text-xs leading-snug border-b border-zinc-200/70 dark:border-zinc-800/70 last:border-b-0 pb-1.5 last:pb-0"
                           >
                             <div className="flex items-baseline justify-between gap-2">
-                              <span className="font-semibold text-white">{pt.title}</span>
+                              <span className="font-semibold text-zinc-950 dark:text-white">
+                                {pt.title}
+                              </span>
                               <span className={`text-[10px] font-semibold shrink-0 ${sevColor}`}>
                                 {sevLabel}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-400 mt-0.5">{pt.whyItMatters}</p>
+                            <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-0.5">
+                              {pt.whyItMatters}
+                            </p>
                           </li>
                         );
                       })}
@@ -457,17 +461,19 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
                           key={patch.id}
                           className={`rounded-xl border p-3 space-y-2 transition-colors ${
                             patch.applied
-                              ? "bg-emerald-950/20 border-emerald-500/40"
-                              : "bg-slate-900 border-slate-800 hover:border-teal-500/40"
+                              ? "bg-violet-50/70 dark:bg-violet-950/30 border-violet-300 dark:border-violet-700"
+                              : "bg-zinc-50 dark:bg-[#16161d] border-zinc-200 dark:border-zinc-800 hover:border-violet-400 dark:hover:border-violet-600"
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2">
                             <div className="min-w-0">
-                              <span className="text-[10px] font-mono text-teal-400 uppercase tracking-wider">
+                              <span className="text-[10px] font-mono text-violet-700 dark:text-violet-400 uppercase tracking-wider">
                                 {patch.targetSection}
-                                {patch.estimatedPointsGain ? ` · +${patch.estimatedPointsGain} ATS pts` : ""}
+                                {patch.estimatedPointsGain
+                                  ? ` · +${patch.estimatedPointsGain} ATS pts`
+                                  : ""}
                               </span>
-                              <p className="text-xs font-semibold text-white truncate">
+                              <p className="text-xs font-semibold text-zinc-950 dark:text-white truncate">
                                 {patch.label}
                               </p>
                             </div>
@@ -476,7 +482,7 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
                               <button
                                 type="button"
                                 onClick={() => toggleDiff(patch.id)}
-                                className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-medium flex items-center gap-1 cursor-pointer"
+                                className="px-2 py-1 rounded-lg bg-white dark:bg-[#09090b] hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-[11px] font-medium flex items-center gap-1 cursor-pointer"
                                 title="Preview Before vs After change"
                               >
                                 <GitCompare className="w-3 h-3" />
@@ -485,11 +491,11 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
                               <button
                                 type="button"
                                 onClick={() => handleCopy(patch.id, patch.afterText)}
-                                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
+                                className="p-1.5 rounded-lg bg-white dark:bg-[#09090b] hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 cursor-pointer"
                                 title="Copy suggestion"
                               >
                                 {copiedId === patch.id ? (
-                                  <Check className="w-3 h-3 text-emerald-400" />
+                                  <Check className="w-3 h-3 text-violet-600 dark:text-violet-400" />
                                 ) : (
                                   <Copy className="w-3 h-3" />
                                 )}
@@ -499,16 +505,16 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
 
                           {/* Suggestion Text or Before/After Diff */}
                           {showDiff && patch.beforeText ? (
-                            <div className="space-y-1.5 text-[11px] rounded-lg bg-slate-950 p-2.5 border border-slate-800">
-                              <div className="text-rose-300/90 line-through decoration-rose-400/70">
+                            <div className="space-y-1.5 text-[11px] rounded-lg bg-white dark:bg-[#09090b] p-2.5 border border-zinc-200 dark:border-zinc-800">
+                              <div className="text-rose-700 dark:text-rose-300 line-through decoration-rose-400/70">
                                 - {patch.beforeText}
                               </div>
-                              <div className="text-emerald-300 font-medium">
+                              <div className="text-violet-700 dark:text-violet-300 font-medium">
                                 + {patch.afterText}
                               </div>
                             </div>
                           ) : (
-                            <p className="text-[11px] text-slate-200 bg-slate-950/70 p-2.5 rounded-lg border border-slate-800/80 leading-relaxed">
+                            <p className="text-[11px] text-zinc-800 dark:text-zinc-200 bg-white dark:bg-[#09090b] p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 leading-relaxed">
                               {patch.afterText}
                             </p>
                           )}
@@ -522,8 +528,8 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
                                 onClick={() => onApplyPatch(patch, msg.id)}
                                 className={`w-full py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                                   patch.applied
-                                    ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 cursor-default"
-                                    : "bg-teal-600 hover:bg-teal-500 text-white shadow-sm"
+                                    ? "bg-violet-100 dark:bg-violet-950/60 text-violet-800 dark:text-violet-200 border border-violet-300 dark:border-violet-700 cursor-default"
+                                    : "bg-violet-700 hover:bg-violet-600 text-white shadow-xs"
                                 }`}
                               >
                                 {patch.applied ? (
@@ -533,7 +539,7 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
                                   </>
                                 ) : (
                                   <>
-                                    <Sparkles className="w-3.5 h-3.5" />
+                                    <Wand2 className="w-3.5 h-3.5" />
                                     <span>Apply Fix to Resume</span>
                                   </>
                                 )}
@@ -542,7 +548,7 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
                               <button
                                 type="button"
                                 onClick={onOpenBuilder}
-                                className="w-full py-1.5 px-3 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                                className="w-full py-1.5 px-3 rounded-lg bg-violet-700 hover:bg-violet-600 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                               >
                                 <span>Open in Resume Builder</span>
                                 <ArrowRight className="w-3.5 h-3.5" />
@@ -564,7 +570,7 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
                         type="button"
                         disabled={isLoading}
                         onClick={() => sendMessage(fp)}
-                        className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] text-slate-300 hover:text-white transition-colors cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-white dark:bg-[#16161d] hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[11px] text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-colors cursor-pointer"
                       >
                         {fp}
                       </button>
@@ -577,8 +583,8 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
         })}
 
         {isLoading && (
-          <div className="flex items-center gap-2.5 text-teal-300 text-xs p-3 rounded-xl bg-slate-900 border border-slate-800">
-            <RefreshCcw className="w-3.5 h-3.5 animate-spin text-teal-400 shrink-0" />
+          <div className="flex items-center gap-2.5 text-violet-700 dark:text-violet-300 text-xs p-3 rounded-xl bg-zinc-50 dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-800">
+            <RefreshCcw className="w-3.5 h-3.5 animate-spin text-violet-600 dark:text-violet-400 shrink-0" />
             <span>
               Scanning missing gaps & preparing ready-to-apply suggestions...
             </span>
@@ -588,7 +594,7 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
       </div>
 
       {/* Input Area */}
-      <div className="p-3 border-t border-slate-800 bg-slate-900/95 shrink-0">
+      <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#09090b] shrink-0">
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -604,15 +610,15 @@ export const AtsCopilotChat: React.FC<AtsCopilotChatProps> = ({
             placeholder={
               compact
                 ? "Ask what's missing or request a fix..."
-                : "Ask Gemini what's missing, paste a bullet to rewrite, or inject JD keywords..."
+                : "Ask what's missing, paste a bullet to rewrite, or inject JD keywords..."
             }
-            className="flex-1 bg-slate-950 border border-slate-700 focus:border-teal-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-colors"
+            className="flex-1 bg-white dark:bg-[#111116] border border-zinc-300 dark:border-zinc-700 focus:border-violet-600 dark:focus:border-violet-500 rounded-xl px-3.5 py-2.5 text-xs text-zinc-950 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 outline-none transition-colors"
           />
           <button
             type="button"
             onClick={() => sendMessage()}
             disabled={!input.trim() || isLoading}
-            className="px-3.5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-40 text-white font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+            className="px-3.5 py-2.5 rounded-xl bg-violet-700 hover:bg-violet-600 disabled:opacity-40 text-white font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
             title="Send message"
           >
             <Send className="w-3.5 h-3.5" />

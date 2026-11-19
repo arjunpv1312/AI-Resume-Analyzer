@@ -124,16 +124,16 @@ export async function generateNetworkDossierPdfBlob(
   const contentWidth = pageWidth - marginX * 2;
 
   const palette = {
-    navy: rgb(0.06, 0.09, 0.16),
-    slate: rgb(0.24, 0.3, 0.4),
-    muted: rgb(0.45, 0.52, 0.62),
-    border: rgb(0.84, 0.88, 0.93),
-    surface: rgb(0.96, 0.97, 0.99),
-    surfaceDark: rgb(0.07, 0.11, 0.19),
-    teal: rgb(0.06, 0.58, 0.54),
-    blue: rgb(0.15, 0.45, 0.85),
-    emerald: rgb(0.07, 0.63, 0.42),
-    amber: rgb(0.82, 0.52, 0.06),
+    navy: rgb(0.04, 0.04, 0.05),
+    slate: rgb(0.24, 0.24, 0.28),
+    muted: rgb(0.45, 0.45, 0.5),
+    border: rgb(0.86, 0.86, 0.9),
+    surface: rgb(0.97, 0.96, 0.99),
+    surfaceDark: rgb(0.04, 0.04, 0.06),
+    teal: rgb(0.43, 0.16, 0.85), // Deep Violet primary accent
+    blue: rgb(0.58, 0.2, 0.92), // Royal Purple secondary accent
+    emerald: rgb(0.36, 0.13, 0.71), // Dark Violet high-trust accent
+    amber: rgb(0.66, 0.33, 0.97), // Soft Lavender secondary accent
     white: rgb(1, 1, 1),
   };
 
@@ -270,7 +270,7 @@ export async function generateNetworkDossierPdfBlob(
     y: y - 59,
     size: 9,
     font: regularFont,
-    color: rgb(0.76, 0.82, 0.9),
+    color: rgb(0.76, 0.76, 0.82),
   });
 
   page.drawText(`Credential ID: ${credentialId}  |  Generated: ${generatedAt}`, {
@@ -278,7 +278,7 @@ export async function generateNetworkDossierPdfBlob(
     y: y - 74,
     size: 8,
     font: regularFont,
-    color: rgb(0.58, 0.66, 0.78),
+    color: rgb(0.62, 0.62, 0.7),
   });
 
   // Right Score Callout Box inside Header Banner
@@ -291,7 +291,7 @@ export async function generateNetworkDossierPdfBlob(
     y: scoreBoxY,
     width: scoreBoxW,
     height: scoreBoxH,
-    color: rgb(0.04, 0.16, 0.2),
+    color: rgb(0.09, 0.05, 0.16),
     borderColor: palette.teal,
     borderWidth: 1,
   });
@@ -476,7 +476,7 @@ export async function generateNetworkDossierPdfBlob(
         y: y - boxH,
         width: contentWidth,
         height: boxH,
-        color: rgb(0.95, 0.98, 0.98),
+        color: rgb(0.96, 0.95, 0.99),
         borderColor: palette.border,
         borderWidth: 0.7,
       });
@@ -539,7 +539,7 @@ export async function generateNetworkDossierPdfBlob(
       start: { x: centerX, y: centerY },
       end: { x: hub.x, y: hub.y },
       thickness: 1.4,
-      color: rgb(0.12, 0.62, 0.58),
+      color: rgb(0.49, 0.23, 0.93),
     });
   });
 
@@ -570,8 +570,8 @@ export async function generateNetworkDossierPdfBlob(
         thickness: contact.degree === "1st" ? 1.1 : 0.7,
         color:
           contact.degree === "1st"
-            ? rgb(0.2, 0.78, 0.58)
-            : rgb(0.85, 0.62, 0.16),
+            ? rgb(0.55, 0.36, 0.96)
+            : rgb(0.75, 0.52, 0.99),
       });
 
       // Contact Node Circle
@@ -579,11 +579,11 @@ export async function generateNetworkDossierPdfBlob(
         x: cx,
         y: cy,
         size: contact.degree === "1st" ? 6.5 : 5.2,
-        color: rgb(0.05, 0.08, 0.14),
+        color: rgb(0.05, 0.05, 0.08),
         borderColor:
           contact.degree === "1st"
-            ? rgb(0.2, 0.85, 0.6)
-            : rgb(0.95, 0.72, 0.2),
+            ? rgb(0.55, 0.36, 0.96)
+            : rgb(0.75, 0.52, 0.99),
         borderWidth: 1.4,
       });
 
@@ -599,7 +599,7 @@ export async function generateNetworkDossierPdfBlob(
         y: ly,
         size: labelSize,
         font: regularFont,
-        color: rgb(0.88, 0.92, 0.96),
+        color: rgb(0.9, 0.9, 0.94),
       });
     });
   });
@@ -612,7 +612,7 @@ export async function generateNetworkDossierPdfBlob(
       x: hub.x,
       y: hub.y,
       size: 10,
-      color: rgb(0.08, 0.12, 0.2),
+      color: rgb(0.07, 0.07, 0.1),
       borderColor: hubColor,
       borderWidth: 1.8,
     });
@@ -632,7 +632,7 @@ export async function generateNetworkDossierPdfBlob(
     x: centerX,
     y: centerY,
     size: 16,
-    color: rgb(0.02, 0.24, 0.22),
+    color: rgb(0.14, 0.07, 0.28),
     borderColor: palette.teal,
     borderWidth: 2.2,
   });
@@ -642,18 +642,18 @@ export async function generateNetworkDossierPdfBlob(
     y: centerY - 2.5,
     size: 7.5,
     font: boldFont,
-    color: rgb(0.55, 0.95, 0.9),
+    color: rgb(0.84, 0.74, 0.99),
   });
 
   // Diagram Legend Bar at bottom inside dark frame
   page.drawText(
-    "Legend:  Teal Center = Candidate   |   Green Node = 1st-Degree Direct   |   Amber Node = 2nd-Degree Warm Intro   |   Colored Ring = Circle Hub",
+    "Legend:  Deep Violet Center = Candidate   |   Violet Node = 1st-Degree Direct   |   Lavender Node = 2nd-Degree Warm Intro   |   Ring = Circle Hub",
     {
       x: marginX + 12,
       y: y - diagramH + 9,
-      size: 6.7,
+      size: 6.5,
       font: regularFont,
-      color: rgb(0.68, 0.76, 0.85),
+      color: rgb(0.7, 0.7, 0.78),
     }
   );
 

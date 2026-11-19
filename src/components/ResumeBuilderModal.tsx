@@ -21,7 +21,6 @@ import {
   RotateCcw,
   Flame,
   AlertTriangle,
-  Sparkles,
   CheckCircle2,
   Layers,
 } from "lucide-react";
@@ -498,25 +497,25 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="dark dark-studio fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xl p-2 sm:p-5 overflow-hidden">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-[1440px] h-[94vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-2 sm:p-5 overflow-hidden">
+      <div className="bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-[1440px] h-[94vh] flex flex-col shadow-2xl overflow-hidden text-zinc-950 dark:text-zinc-100">
         {/* Top Live ATS Telemetry & Action Bar */}
-        <div className="px-5 py-3.5 border-b border-slate-800 bg-slate-950 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div className="px-5 py-3.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#09090b] flex flex-wrap items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-400 shrink-0">
-              <Sparkles className="w-5 h-5" />
+            <div className="p-2 rounded-xl bg-violet-50 dark:bg-violet-950/50 border border-violet-200 dark:border-violet-800/60 text-violet-700 dark:text-violet-400 shrink-0">
+              <Wand2 className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h3 className="text-base font-bold font-display text-white whitespace-nowrap">
+                <h3 className="text-base font-bold font-display text-zinc-950 dark:text-white whitespace-nowrap">
                   ATS Resume Studio & Gap Copilot
                 </h3>
-                <span className="text-xs text-slate-400 hidden sm:inline">
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 hidden sm:inline">
                   1-Column ATS Verified · Live Auto-Rescoring
                 </span>
               </div>
               {appliedNotification && (
-                <p className="text-xs text-emerald-400 font-medium flex items-center gap-1 mt-0.5">
+                <p className="text-xs text-violet-700 dark:text-violet-400 font-medium flex items-center gap-1 mt-0.5">
                   <CheckCircle2 className="w-3.5 h-3.5" /> {appliedNotification}
                 </p>
               )}
@@ -525,40 +524,42 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
 
           {/* Live Telemetry Metrics + Exports */}
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-4 px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+            <div className="flex items-center gap-4 px-3.5 py-1.5 rounded-xl bg-white dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-800 text-xs">
               <div className="flex items-center gap-1.5">
-                <span className="text-slate-400">ATS Score</span>
-                <span className="font-mono font-bold tabular-nums text-white text-sm">
+                <span className="text-zinc-500 dark:text-zinc-400">ATS Score</span>
+                <span className="font-mono font-bold tabular-nums text-zinc-950 dark:text-white text-sm">
                   {activeScore}%
                 </span>
                 {scoreDelta !== 0 && (
                   <span
                     className={`font-mono font-semibold tabular-nums text-[11px] ${
-                      scoreDelta > 0 ? "text-emerald-400" : "text-amber-400"
+                      scoreDelta > 0
+                        ? "text-violet-700 dark:text-violet-400"
+                        : "text-rose-700 dark:text-rose-400"
                     }`}
                   >
                     {scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta}
                   </span>
                 )}
                 {atsEngine.isCalculating && (
-                  <RefreshCcw className="w-3 h-3 text-teal-400 animate-spin" />
+                  <RefreshCcw className="w-3 h-3 text-violet-600 dark:text-violet-400 animate-spin" />
                 )}
               </div>
 
-              <span className="h-3.5 w-px bg-slate-700" aria-hidden="true" />
+              <span className="h-3.5 w-px bg-zinc-200 dark:bg-zinc-700" aria-hidden="true" />
 
               <div className="hidden md:flex items-center gap-1.5">
-                <span className="text-slate-400">Keywords</span>
-                <span className="font-mono font-bold tabular-nums text-teal-300">
+                <span className="text-zinc-500 dark:text-zinc-400">Keywords</span>
+                <span className="font-mono font-bold tabular-nums text-violet-700 dark:text-violet-300">
                   {atsEngine.keywordCoveragePct}%
                 </span>
               </div>
 
-              <span className="h-3.5 w-px bg-slate-700 hidden md:block" aria-hidden="true" />
+              <span className="h-3.5 w-px bg-zinc-200 dark:bg-zinc-700 hidden md:block" aria-hidden="true" />
 
               <div className="hidden md:flex items-center gap-1.5">
-                <span className="text-slate-400">Quantified</span>
-                <span className="font-mono font-bold tabular-nums text-indigo-300">
+                <span className="text-zinc-500 dark:text-zinc-400">Quantified</span>
+                <span className="font-mono font-bold tabular-nums text-purple-700 dark:text-purple-300">
                   {atsEngine.bulletQualityScore}%
                 </span>
               </div>
@@ -568,7 +569,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
               <button
                 type="button"
                 onClick={handleUndoLastPatch}
-                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                className="px-3 py-2 rounded-xl bg-white dark:bg-[#16161d] hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Undo ({undoStack.length})</span>
@@ -581,14 +582,14 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                   type="button"
                   onClick={handleImmediateDocxDownload}
                   disabled={isDownloadingDocx}
-                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 disabled:opacity-50 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  className="px-3.5 py-2 rounded-xl bg-white dark:bg-[#16161d] hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 disabled:opacity-50 text-zinc-950 dark:text-white font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
                   {isDownloadingDocx ? (
                     <RefreshCcw className="w-3.5 h-3.5 animate-spin" />
                   ) : docxDownloaded ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <Check className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
                   ) : (
-                    <Download className="w-3.5 h-3.5 text-blue-400" />
+                    <Download className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                   )}
                   <span>{docxDownloaded ? "DOCX Saved" : "DOCX"}</span>
                 </button>
@@ -597,7 +598,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                   type="button"
                   onClick={handleImmediatePdfDownload}
                   disabled={isDownloadingPdf}
-                  className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  className="px-3.5 py-2 rounded-xl bg-violet-700 hover:bg-violet-600 disabled:opacity-50 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
                   {isDownloadingPdf ? (
                     <RefreshCcw className="w-3.5 h-3.5 animate-spin" />
@@ -612,7 +613,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-2 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-200/70 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
               title="Close Studio"
             >
               <X className="w-5 h-5" />
@@ -622,38 +623,38 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
 
         {/* Main 12-Col Split Workspace */}
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
-          {/* Left Column (5 cols): Multi-Turn Gemini Gap Copilot + Optional Single Bullet Enhancer */}
-          <div className="lg:col-span-5 border-r border-slate-800 flex flex-col overflow-hidden bg-slate-950">
+          {/* Left Column (5 cols): Multi-Turn Gap Copilot + Optional Single Bullet Enhancer */}
+          <div className="lg:col-span-5 border-r border-zinc-200 dark:border-zinc-800 flex flex-col overflow-hidden bg-zinc-50 dark:bg-[#09090b]">
             {/* Collapsible Single-Bullet XYZ Enhancer Strip */}
-            <div className="border-b border-slate-800 bg-slate-900/60 shrink-0">
+            <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111116] shrink-0">
               <button
                 type="button"
                 onClick={() => {
                   setIsBulletImproverOpen((prev) => !prev);
                   setBulletImprovementResult(null);
                 }}
-                className="w-full px-3.5 py-2 flex items-center justify-between text-xs font-semibold text-emerald-300 hover:bg-slate-900 transition-colors cursor-pointer"
+                className="w-full px-3.5 py-2 flex items-center justify-between text-xs font-semibold text-violet-700 dark:text-violet-300 hover:bg-zinc-50 dark:hover:bg-[#16161d] transition-colors cursor-pointer"
               >
                 <span className="flex items-center gap-2">
-                  <Wand2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <Wand2 className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
                   Targeted Bullet XYZ Metric Enhancer
                 </span>
                 {isBulletImproverOpen ? (
-                  <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronUp className="w-3.5 h-3.5 text-zinc-400" />
                 ) : (
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
                 )}
               </button>
 
               {isBulletImproverOpen && (
-                <div className="p-3.5 border-t border-slate-800 bg-slate-950 space-y-2.5">
+                <div className="p-3.5 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#09090b] space-y-2.5">
                   <select
                     value={selectedExpKey}
                     onChange={(e) => {
                       setSelectedExpKey(e.target.value);
                       setBulletImprovementResult(null);
                     }}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white outline-none focus:border-emerald-500"
+                    className="w-full bg-white dark:bg-[#111116] border border-zinc-300 dark:border-zinc-700 rounded-lg p-2 text-xs text-zinc-950 dark:text-white outline-none focus:border-violet-600"
                   >
                     {resumeData?.experience?.flatMap((exp, expIdx) =>
                       exp.bulletPoints?.map((bp, bpIdx) => (
@@ -671,7 +672,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                     type="button"
                     onClick={handleExecuteImproveBullet}
                     disabled={isImprovingBullet || !selectedExpKey}
-                    className="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-2 px-3 rounded-lg bg-violet-700 hover:bg-violet-600 disabled:opacity-40 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
                     {isImprovingBullet ? (
                       <>
@@ -687,12 +688,12 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                   </button>
 
                   {bulletImprovementResult && (
-                    <div className="p-3 rounded-xl bg-slate-900 border border-emerald-500/30 space-y-2">
-                      <p className="text-xs text-white leading-relaxed">
+                    <div className="p-3 rounded-xl bg-white dark:bg-[#111116] border border-violet-300 dark:border-violet-700/60 space-y-2">
+                      <p className="text-xs text-zinc-950 dark:text-white leading-relaxed">
                         {bulletImprovementResult.improvedBullet}
                       </p>
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[11px] text-slate-400 truncate">
+                        <span className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
                           {bulletImprovementResult.explanation}
                         </span>
                         <button
@@ -700,7 +701,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                           onClick={() =>
                             handleApplyImprovedBullet(bulletImprovementResult.improvedBullet)
                           }
-                          className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shrink-0 cursor-pointer"
+                          className="px-3 py-1 rounded-lg bg-violet-700 hover:bg-violet-600 text-white font-semibold text-xs shrink-0 cursor-pointer"
                         >
                           Apply
                         </button>
@@ -711,7 +712,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
               )}
             </div>
 
-            {/* Multi-Turn Gemini Gap Copilot */}
+            {/* Multi-Turn Gap Copilot */}
             <div className="flex-1 overflow-hidden">
               <AtsCopilotChat
                 messages={chatMessages}
@@ -733,17 +734,17 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
           </div>
 
           {/* Right Column (7 cols): Live Preview, JD Heatmap, Section Grader, Editor & Export */}
-          <div className="lg:col-span-7 flex flex-col overflow-hidden bg-slate-900">
+          <div className="lg:col-span-7 flex flex-col overflow-hidden bg-zinc-50 dark:bg-[#09090b]">
             {/* Navigation Tabs & Template Preset Switcher */}
-            <div className="px-4 py-2.5 border-b border-slate-800 bg-slate-950/70 flex flex-wrap items-center justify-between gap-2 shrink-0">
-              <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 overflow-x-auto">
+            <div className="px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111116] flex flex-wrap items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-1 bg-zinc-100 dark:bg-[#16161d] p-1 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-x-auto">
                 <button
                   type="button"
                   onClick={() => setActiveTab("pdf")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === "pdf"
-                      ? "bg-teal-600 text-white"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-violet-600 text-white shadow-sm"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                   }`}
                 >
                   <FileCheck className="w-3.5 h-3.5" /> Live PDF
@@ -753,8 +754,8 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                   onClick={() => setActiveTab("heatmap")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === "heatmap"
-                      ? "bg-teal-600 text-white"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-violet-600 text-white shadow-sm"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                   }`}
                 >
                   <Flame className="w-3.5 h-3.5" /> JD Gap Heatmap
@@ -769,8 +770,8 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                   onClick={() => setActiveTab("preview")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === "preview"
-                      ? "bg-teal-600 text-white"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-violet-600 text-white shadow-sm"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                   }`}
                 >
                   <Eye className="w-3.5 h-3.5" /> HTML View
@@ -780,8 +781,8 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                   onClick={() => setActiveTab("editor")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === "editor"
-                      ? "bg-teal-600 text-white"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-violet-600 text-white shadow-sm"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                   }`}
                 >
                   <Edit3 className="w-3.5 h-3.5" /> Section Editor
@@ -791,8 +792,8 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                   onClick={() => setActiveTab("export")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === "export"
-                      ? "bg-teal-600 text-white"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-violet-600 text-white shadow-sm"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                   }`}
                 >
                   <Download className="w-3.5 h-3.5" /> Export
@@ -801,11 +802,11 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
 
               {/* Template Style Selector */}
               <div className="flex items-center gap-1.5 text-[11px]">
-                <Layers className="w-3.5 h-3.5 text-slate-400" />
+                <Layers className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
                 <select
                   value={templateStyle}
                   onChange={(e) => setTemplateStyle(e.target.value as AtsBuilderTemplateStyle)}
-                  className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 font-medium outline-none focus:border-teal-500 cursor-pointer"
+                  className="bg-zinc-50 dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-700 rounded-lg px-2.5 py-1 text-xs text-zinc-900 dark:text-zinc-100 font-medium outline-none focus:border-violet-500 cursor-pointer"
                   title="Select ATS layout preset"
                 >
                   <option value="classic-executive">Classic Executive</option>
@@ -816,51 +817,53 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
             </div>
 
             {/* Right Pane Body */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-950/30">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-zinc-50 dark:bg-[#09090b]">
               {isGeneratingInitial ? (
                 <div className="h-full flex flex-col items-center justify-center space-y-3">
-                  <RefreshCcw className="w-8 h-8 text-teal-400 animate-spin" />
-                  <p className="text-sm font-semibold text-slate-300">
+                  <RefreshCcw className="w-8 h-8 text-violet-600 dark:text-violet-400 animate-spin" />
+                  <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
                     Structuring your resume into a clean ATS layout...
                   </p>
                 </div>
               ) : activeTab === "pdf" ? (
                 <div className="h-full flex flex-col space-y-3 max-w-4xl mx-auto">
-                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-2 shrink-0">
-                    <div className="text-[11px] text-slate-400 flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <div className="p-2.5 rounded-xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2 shrink-0">
+                    <div className="text-[11px] text-zinc-600 dark:text-zinc-400 flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-violet-600 dark:text-violet-400" />
                       <span>8.5 × 11" Letter · Vector Helvetica · 1-Column Safe</span>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center bg-slate-950 rounded-lg border border-slate-800 p-0.5">
+                      <div className="flex items-center bg-zinc-100 dark:bg-[#16161d] rounded-lg border border-zinc-200 dark:border-zinc-800 p-0.5">
                         <button
                           type="button"
                           onClick={() => setPdfZoom((z) => Math.max(60, z - 10))}
                           disabled={pdfZoom <= 60}
-                          className="p-1 text-slate-400 hover:text-white disabled:opacity-30 cursor-pointer"
+                          className="p-1 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white disabled:opacity-30 cursor-pointer"
                         >
                           <ZoomOut className="w-3.5 h-3.5" />
                         </button>
-                        <span className="px-2 text-[11px] font-mono tabular-nums text-slate-200">
+                        <span className="px-2 text-[11px] font-mono tabular-nums text-zinc-900 dark:text-zinc-100">
                           {pdfZoom}%
                         </span>
                         <button
                           type="button"
                           onClick={() => setPdfZoom((z) => Math.min(150, z + 10))}
                           disabled={pdfZoom >= 150}
-                          className="p-1 text-slate-400 hover:text-white disabled:opacity-30 cursor-pointer"
+                          className="p-1 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white disabled:opacity-30 cursor-pointer"
                         >
                           <ZoomIn className="w-3.5 h-3.5" />
                         </button>
                       </div>
 
-                      <div className="flex items-center bg-slate-950 rounded-lg border border-slate-800 p-0.5 text-[11px]">
+                      <div className="flex items-center bg-zinc-100 dark:bg-[#16161d] rounded-lg border border-zinc-200 dark:border-zinc-800 p-0.5 text-[11px]">
                         <button
                           type="button"
                           onClick={() => setPdfViewType("native")}
-                          className={`px-2.5 py-1 rounded-md font-medium cursor-pointer ${
-                            pdfViewType === "native" ? "bg-teal-600 text-white" : "text-slate-400 hover:text-white"
+                          className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
+                            pdfViewType === "native"
+                              ? "bg-violet-600 text-white"
+                              : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                           }`}
                         >
                           PDF Vector
@@ -868,8 +871,10 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                         <button
                           type="button"
                           onClick={() => setPdfViewType("stage")}
-                          className={`px-2.5 py-1 rounded-md font-medium cursor-pointer ${
-                            pdfViewType === "stage" ? "bg-teal-600 text-white" : "text-slate-400 hover:text-white"
+                          className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
+                            pdfViewType === "stage"
+                              ? "bg-violet-600 text-white"
+                              : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                           }`}
                         >
                           Paper Stage
@@ -878,16 +883,16 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex-1 min-h-[580px] rounded-xl overflow-hidden relative flex items-center justify-center bg-slate-950 border border-slate-800 p-2 sm:p-4">
+                  <div className="flex-1 min-h-[580px] rounded-xl overflow-hidden relative flex items-center justify-center bg-zinc-200/70 dark:bg-[#0c0c10] border border-zinc-200 dark:border-zinc-800 p-2 sm:p-4">
                     {isGeneratingPdf && !pdfBlobUrl ? (
                       <div className="flex flex-col items-center space-y-2">
-                        <RefreshCcw className="w-7 h-7 text-teal-400 animate-spin" />
-                        <span className="text-xs text-slate-300">Compiling PDF...</span>
+                        <RefreshCcw className="w-7 h-7 text-violet-600 dark:text-violet-400 animate-spin" />
+                        <span className="text-xs text-zinc-700 dark:text-zinc-300">Compiling PDF...</span>
                       </div>
                     ) : pdfViewType === "native" && pdfBlobUrl && !vectorRenderError ? (
-                      <div className="w-full h-full min-h-[580px] max-h-[68vh] relative rounded-lg overflow-auto flex flex-col items-center py-3 px-2 bg-slate-950">
+                      <div className="w-full h-full min-h-[580px] max-h-[68vh] relative rounded-lg overflow-auto flex flex-col items-center py-3 px-2 bg-zinc-200/50 dark:bg-[#0c0c10]">
                         {isGeneratingPdf && (
-                          <div className="sticky top-2 right-2 self-end z-10 px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-700 text-teal-300 text-[11px] font-medium flex items-center gap-1.5">
+                          <div className="sticky top-2 right-2 self-end z-10 px-2.5 py-1 rounded-lg bg-white/95 dark:bg-[#16161d]/95 border border-zinc-300 dark:border-zinc-700 text-violet-700 dark:text-violet-300 text-[11px] font-medium flex items-center gap-1.5 shadow-sm">
                             <RefreshCcw className="w-3 h-3 animate-spin" />
                             <span>Updating PDF...</span>
                           </div>
@@ -901,8 +906,8 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                           onLoadError={() => setVectorRenderError(true)}
                           loading={
                             <div className="flex flex-col items-center justify-center py-16 space-y-2">
-                              <RefreshCcw className="w-6 h-6 text-teal-400 animate-spin" />
-                              <span className="text-xs text-slate-300">Rendering PDF canvas...</span>
+                              <RefreshCcw className="w-6 h-6 text-violet-600 dark:text-violet-400 animate-spin" />
+                              <span className="text-xs text-zinc-700 dark:text-zinc-300">Rendering PDF canvas...</span>
                             </div>
                           }
                           className="flex flex-col items-center gap-4"
@@ -910,7 +915,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                           {Array.from({ length: vectorNumPages }, (_, pageIdx) => (
                             <div
                               key={`vector-page-${pageIdx + 1}`}
-                              className="bg-white rounded shadow-2xl overflow-hidden border border-slate-700"
+                              className="bg-white rounded shadow-xl overflow-hidden border border-zinc-300 dark:border-zinc-700"
                             >
                               <Page
                                 pageNumber={pageIdx + 1}
@@ -928,26 +933,26 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                         style={{ transform: `scale(${pdfZoom / 100})` }}
                       >
                         <div
-                          className={`w-[816px] min-h-[1056px] bg-white text-slate-900 shadow-2xl font-sans text-xs leading-normal border border-slate-300 ${
+                          className={`w-[816px] min-h-[1056px] bg-white text-zinc-900 shadow-2xl font-sans text-xs leading-normal border border-zinc-300 ${
                             templateStyle === "compact-technical" ? "p-8 space-y-3.5" : "p-12 space-y-5"
                           }`}
                         >
                           <div
-                            className={`space-y-1 pb-3 border-b border-slate-300 ${
+                            className={`space-y-1 pb-3 border-b border-zinc-300 ${
                               templateStyle === "modern-minimalist" ? "text-left" : "text-center"
                             }`}
                           >
-                            <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-900">
+                            <h1 className="text-2xl font-bold uppercase tracking-wide text-zinc-950">
                               {resumeData?.name || "Candidate Name"}
                             </h1>
                             <p
                               className={`text-sm font-semibold ${
-                                templateStyle === "modern-minimalist" ? "text-teal-700" : "text-slate-700"
+                                templateStyle === "modern-minimalist" ? "text-violet-700" : "text-zinc-700"
                               }`}
                             >
                               {resumeData?.title || "Target Professional Title"}
                             </p>
-                            <p className="text-[11px] text-slate-600">
+                            <p className="text-[11px] text-zinc-600">
                               {[
                                 resumeData?.contact?.phone,
                                 resumeData?.contact?.email,
@@ -965,13 +970,13 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               <h2
                                 className={`text-xs font-bold uppercase tracking-wider border-b pb-0.5 ${
                                   templateStyle === "modern-minimalist"
-                                    ? "text-teal-800 border-teal-600"
-                                    : "text-slate-900 border-slate-300"
+                                    ? "text-violet-800 border-violet-600"
+                                    : "text-zinc-950 border-zinc-300"
                                 }`}
                               >
                                 Professional Summary
                               </h2>
-                              <p className="text-slate-800 leading-relaxed text-[11px]">
+                              <p className="text-zinc-800 leading-relaxed text-[11px]">
                                 {resumeData.summary}
                               </p>
                             </div>
@@ -982,26 +987,26 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               <h2
                                 className={`text-xs font-bold uppercase tracking-wider border-b pb-0.5 ${
                                   templateStyle === "modern-minimalist"
-                                    ? "text-teal-800 border-teal-600"
-                                    : "text-slate-900 border-slate-300"
+                                    ? "text-violet-800 border-violet-600"
+                                    : "text-zinc-950 border-zinc-300"
                                 }`}
                               >
                                 Professional Work Experience
                               </h2>
                               {resumeData.experience.map((exp, idx) => (
                                 <div key={`stage-exp-${exp.id || idx}`} className="space-y-1">
-                                  <div className="flex justify-between items-baseline font-bold text-slate-900 text-[11px]">
+                                  <div className="flex justify-between items-baseline font-bold text-zinc-950 text-[11px]">
                                     <span>
                                       {exp.position}{" "}
-                                      <span className="font-normal text-slate-700">
+                                      <span className="font-normal text-zinc-700">
                                         — {exp.company}
                                       </span>
                                     </span>
-                                    <span className="text-slate-600 text-[10px] font-mono tabular-nums">
+                                    <span className="text-zinc-600 text-[10px] font-mono tabular-nums">
                                       {exp.duration}
                                     </span>
                                   </div>
-                                  <ul className="list-disc list-inside space-y-1 text-slate-800 text-[11px] pl-1">
+                                  <ul className="list-disc list-inside space-y-1 text-zinc-800 text-[11px] pl-1">
                                     {exp.bulletPoints?.map((bp, bIdx) => (
                                       <li key={`stage-bp-${idx}-${bIdx}`} className="leading-snug">
                                         {bp}
@@ -1018,8 +1023,8 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               <h2
                                 className={`text-xs font-bold uppercase tracking-wider border-b pb-0.5 ${
                                   templateStyle === "modern-minimalist"
-                                    ? "text-teal-800 border-teal-600"
-                                    : "text-slate-900 border-slate-300"
+                                    ? "text-violet-800 border-violet-600"
+                                    : "text-zinc-950 border-zinc-300"
                                 }`}
                               >
                                 Core Competencies & Technical Skills
@@ -1027,8 +1032,8 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               <div className="space-y-0.5 text-[11px]">
                                 {Object.entries(resumeData.skills).map(([cat, list]) =>
                                   list && list.length > 0 ? (
-                                    <p key={`stage-sk-${cat}`} className="text-slate-800">
-                                      <strong className="capitalize text-slate-900">{cat}: </strong>
+                                    <p key={`stage-sk-${cat}`} className="text-zinc-800">
+                                      <strong className="capitalize text-zinc-950">{cat}: </strong>
                                       {list.join(", ")}
                                     </p>
                                   ) : null
@@ -1042,8 +1047,8 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               <h2
                                 className={`text-xs font-bold uppercase tracking-wider border-b pb-0.5 ${
                                   templateStyle === "modern-minimalist"
-                                    ? "text-teal-800 border-teal-600"
-                                    : "text-slate-900 border-slate-300"
+                                    ? "text-violet-800 border-violet-600"
+                                    : "text-zinc-950 border-zinc-300"
                                 }`}
                               >
                                 Education & Credentials
@@ -1051,13 +1056,13 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               {resumeData.education.map((edu, idx) => (
                                 <div
                                   key={`stage-edu-${edu.id || idx}`}
-                                  className="flex justify-between text-[11px] text-slate-800"
+                                  className="flex justify-between text-[11px] text-zinc-800"
                                 >
                                   <span>
-                                    <strong className="text-slate-900">{edu.degree}</strong>,{" "}
+                                    <strong className="text-zinc-950">{edu.degree}</strong>,{" "}
                                     {edu.institution}
                                   </span>
-                                  <span className="text-slate-600 text-[10px]">{edu.year}</span>
+                                  <span className="text-zinc-600 text-[10px]">{edu.year}</span>
                                 </div>
                               ))}
                             </div>
@@ -1068,18 +1073,18 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                   </div>
                 </div>
               ) : activeTab === "heatmap" ? (
-                /* ULTRA-LEVEL TAB: JD KEYWORD GAP HEATMAP + SECTION STRENGTH GRADER */
+                /* JD KEYWORD GAP HEATMAP + SECTION STRENGTH GRADER */
                 <div className="max-w-4xl mx-auto space-y-6">
                   {/* Section Strength Grader */}
-                  <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                  <div className="p-5 rounded-2xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-3">
                       <div>
-                        <h4 className="text-sm font-bold text-white">Section Strength Grader</h4>
-                        <p className="text-xs text-slate-400">
+                        <h4 className="text-sm font-bold text-zinc-950 dark:text-white">Section Strength Grader</h4>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400">
                           Click Fix via Copilot on any section below 85% to get a ready-to-apply upgrade.
                         </p>
                       </div>
-                      <span className="text-xs font-mono tabular-nums text-teal-400 font-semibold">
+                      <span className="text-xs font-mono tabular-nums text-violet-700 dark:text-violet-400 font-semibold">
                         Overall Live Match: {activeScore}%
                       </span>
                     </div>
@@ -1088,35 +1093,35 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                       {atsEngine.sectionMetrics.map((sec) => {
                         const statusColor =
                           sec.status === "strong"
-                            ? "text-emerald-400"
+                            ? "text-violet-700 dark:text-violet-400"
                             : sec.status === "moderate"
-                            ? "text-amber-400"
-                            : "text-rose-400";
+                            ? "text-purple-700 dark:text-purple-400"
+                            : "text-rose-700 dark:text-rose-400";
                         const barColor =
                           sec.status === "strong"
-                            ? "bg-emerald-500"
+                            ? "bg-violet-600"
                             : sec.status === "moderate"
-                            ? "bg-amber-500"
-                            : "bg-rose-500";
+                            ? "bg-purple-500"
+                            : "bg-rose-600";
                         return (
                           <div
                             key={sec.id}
-                            className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2"
+                            className="p-3.5 rounded-xl bg-zinc-50 dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-800 space-y-2"
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-semibold text-white">{sec.label}</span>
+                              <span className="text-xs font-semibold text-zinc-950 dark:text-white">{sec.label}</span>
                               <span className={`text-xs font-mono font-bold tabular-nums ${statusColor}`}>
                                 {sec.score}%
                               </span>
                             </div>
-                            <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                               <div
                                 className={`h-full rounded-full transition-all duration-300 ${barColor}`}
                                 style={{ width: `${sec.score}%` }}
                               />
                             </div>
                             <div className="flex items-center justify-between gap-2 pt-0.5">
-                              <p className="text-[11px] text-slate-400">{sec.diagnostic}</p>
+                              <p className="text-[11px] text-zinc-600 dark:text-zinc-400">{sec.diagnostic}</p>
                               {sec.score < 90 && (
                                 <button
                                   type="button"
@@ -1125,7 +1130,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                       `Fix my "${sec.label}" section (${sec.score}%): ${sec.diagnostic}. Give me a 1-click patch.`
                                     )
                                   }
-                                  className="px-2.5 py-1 rounded-lg bg-teal-600/20 hover:bg-teal-600 text-teal-300 hover:text-white border border-teal-500/30 text-[11px] font-semibold shrink-0 transition-colors cursor-pointer whitespace-nowrap"
+                                  className="px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-950/50 hover:bg-violet-600 text-violet-700 dark:text-violet-300 hover:text-white border border-violet-200 dark:border-violet-800 text-[11px] font-semibold shrink-0 transition-colors cursor-pointer whitespace-nowrap"
                                 >
                                   Fix via Copilot
                                 </button>
@@ -1138,15 +1143,15 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                   </div>
 
                   {/* Missing JD Keywords Action Matrix */}
-                  <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                  <div className="p-5 rounded-2xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-3">
                       <div>
-                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                          <Target className="w-4 h-4 text-rose-400" />
+                        <h4 className="text-sm font-bold text-zinc-950 dark:text-white flex items-center gap-2">
+                          <Target className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                           Missing Job Description Keywords ({atsEngine.jobKeywordsMissing.length})
                         </h4>
-                        <p className="text-xs text-slate-400">
-                          Click any missing term to ask Gemini Copilot for a 1-click skill or bullet insertion.
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                          Click any missing term to ask AI Copilot for a 1-click skill or bullet insertion.
                         </p>
                       </div>
                       {atsEngine.jobKeywordsMissing.length > 0 && (
@@ -1159,7 +1164,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                 .join(", ")}`
                             )
                           }
-                          className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap"
+                          className="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap"
                         >
                           Inject Top Missing Keywords
                         </button>
@@ -1177,7 +1182,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                 `Give me a short 1-click patch adding the missing keyword "${kw}" naturally into my resume.`
                               )
                             }
-                            className="px-3 py-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/40 text-rose-200 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                            className="px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
                             title="Click to ask Copilot where to place this keyword"
                           >
                             <span>+ {kw}</span>
@@ -1185,23 +1190,23 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                         ))}
                       </div>
                     ) : (
-                      <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800 text-xs text-violet-800 dark:text-violet-300 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-violet-600 dark:text-violet-400 shrink-0" />
                         <span>All tracked target keywords are now present in your resume!</span>
                       </div>
                     )}
 
                     {/* Matched Keywords */}
                     {atsEngine.jobKeywordsFound.length > 0 && (
-                      <div className="pt-3 border-t border-slate-800 space-y-2">
-                        <span className="text-xs font-semibold text-emerald-400 block">
+                      <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
+                        <span className="text-xs font-semibold text-violet-700 dark:text-violet-400 block">
                           Matched in Resume ({atsEngine.jobKeywordsFound.length})
                         </span>
-                        <div className="flex flex-wrap gap-2 text-xs text-slate-300">
+                        <div className="flex flex-wrap gap-2 text-xs">
                           {atsEngine.jobKeywordsFound.map((kw) => (
                             <span
                               key={kw}
-                              className="px-2.5 py-1 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-emerald-300 text-[11px] font-medium"
+                              className="px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800 text-violet-800 dark:text-violet-300 text-[11px] font-medium"
                             >
                               {kw}
                             </span>
@@ -1212,8 +1217,8 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
 
                     {/* Weak Verbs Warning */}
                     {atsEngine.weakPhrasesDetected.length > 0 && (
-                      <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
-                        <div className="text-xs text-amber-300 flex items-center gap-2">
+                      <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3">
+                        <div className="text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 shrink-0" />
                           <span>
                             Weak passive phrases detected:{" "}
@@ -1231,7 +1236,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               )}) in my experience bullets with executive action verbs and XYZ metrics.`
                             )
                           }
-                          className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold cursor-pointer whitespace-nowrap"
+                          className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold cursor-pointer whitespace-nowrap transition-colors"
                         >
                           Fix Weak Verbs
                         </button>
@@ -1246,23 +1251,23 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                     <button
                       type="button"
                       onClick={() => handlePdfPrint()}
-                      className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-white flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-lg bg-zinc-900 dark:bg-violet-600 hover:bg-zinc-800 dark:hover:bg-violet-700 border border-zinc-800 dark:border-violet-500 text-xs font-semibold text-white flex items-center gap-1.5 cursor-pointer transition-colors"
                     >
                       <Printer className="w-3.5 h-3.5" /> Print HTML Preview
                     </button>
                   </div>
                   <div
-                    className="bg-white text-slate-900 p-8 sm:p-12 rounded-xl shadow-2xl font-sans text-xs leading-normal border border-slate-300 space-y-5"
+                    className="bg-white text-zinc-900 p-8 sm:p-12 rounded-xl shadow-2xl font-sans text-xs leading-normal border border-zinc-300 space-y-5"
                     ref={printPreviewRef}
                   >
-                    <div className="text-center space-y-1 pb-3 border-b border-slate-300">
-                      <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-900">
+                    <div className="text-center space-y-1 pb-3 border-b border-zinc-300">
+                      <h1 className="text-2xl font-bold uppercase tracking-wide text-zinc-950">
                         {resumeData?.name || "Candidate Name"}
                       </h1>
-                      <p className="text-sm font-semibold text-slate-700">
+                      <p className="text-sm font-semibold text-violet-700">
                         {resumeData?.title || "Target Professional Title"}
                       </p>
-                      <p className="text-[11px] text-slate-600">
+                      <p className="text-[11px] text-zinc-600">
                         {[
                           resumeData?.contact?.phone,
                           resumeData?.contact?.email,
@@ -1277,10 +1282,10 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
 
                     {resumeData?.summary && (
                       <div className="space-y-1">
-                        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-0.5">
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-950 border-b border-zinc-300 pb-0.5">
                           Professional Summary
                         </h2>
-                        <p className="text-slate-800 leading-relaxed text-[11px]">
+                        <p className="text-zinc-800 leading-relaxed text-[11px]">
                           {resumeData.summary}
                         </p>
                       </div>
@@ -1288,19 +1293,19 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
 
                     {resumeData?.experience && resumeData.experience.length > 0 && (
                       <div className="space-y-3">
-                        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-0.5">
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-950 border-b border-zinc-300 pb-0.5">
                           Professional Work Experience
                         </h2>
                         {resumeData.experience.map((exp, idx) => (
                           <div key={`print-exp-${exp.id || idx}`} className="space-y-1">
-                            <div className="flex justify-between items-baseline font-bold text-slate-900 text-[11px]">
+                            <div className="flex justify-between items-baseline font-bold text-zinc-950 text-[11px]">
                               <span>
                                 {exp.position}{" "}
-                                <span className="font-normal text-slate-700">— {exp.company}</span>
+                                <span className="font-normal text-zinc-700">— {exp.company}</span>
                               </span>
-                              <span className="text-slate-600 text-[10px]">{exp.duration}</span>
+                              <span className="text-zinc-600 text-[10px]">{exp.duration}</span>
                             </div>
-                            <ul className="list-disc list-inside space-y-1 text-slate-800 text-[11px] pl-1">
+                            <ul className="list-disc list-inside space-y-1 text-zinc-800 text-[11px] pl-1">
                               {exp.bulletPoints?.map((bp, bIdx) => (
                                 <li key={`print-exp-bp-${idx}-${bIdx}`} className="leading-snug">
                                   {bp}
@@ -1314,14 +1319,14 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
 
                     {resumeData?.skills && (
                       <div className="space-y-1">
-                        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-0.5">
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-950 border-b border-zinc-300 pb-0.5">
                           Core Competencies & Technical Skills
                         </h2>
                         <div className="space-y-0.5 text-[11px]">
                           {Object.entries(resumeData.skills).map(([cat, list]) =>
                             list && list.length > 0 ? (
-                              <p key={`print-skill-${cat}`} className="text-slate-800">
-                                <strong className="capitalize text-slate-900">{cat}: </strong>
+                              <p key={`print-skill-${cat}`} className="text-zinc-800">
+                                <strong className="capitalize text-zinc-950">{cat}: </strong>
                                 {list.join(", ")}
                               </p>
                             ) : null
@@ -1332,19 +1337,19 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
 
                     {resumeData?.education && resumeData.education.length > 0 && (
                       <div className="space-y-1">
-                        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-0.5">
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-950 border-b border-zinc-300 pb-0.5">
                           Education & Certifications
                         </h2>
                         {resumeData.education.map((edu, idx) => (
                           <div
                             key={`print-edu-${edu.id || idx}`}
-                            className="flex justify-between text-[11px] text-slate-800"
+                            className="flex justify-between text-[11px] text-zinc-800"
                           >
                             <span>
-                              <strong className="text-slate-900">{edu.degree}</strong>,{" "}
+                              <strong className="text-zinc-950">{edu.degree}</strong>,{" "}
                               {edu.institution}
                             </span>
-                            <span className="text-slate-600 text-[10px]">{edu.year}</span>
+                            <span className="text-zinc-600 text-[10px]">{edu.year}</span>
                           </div>
                         ))}
                       </div>
@@ -1354,13 +1359,13 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
               ) : activeTab === "editor" ? (
                 /* INTERACTIVE SECTION EDITOR */
                 <div className="max-w-3xl mx-auto space-y-4">
-                  <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
-                    <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider">
+                  <div className="p-4 rounded-2xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 space-y-3">
+                    <h4 className="text-xs font-bold text-violet-700 dark:text-violet-400 uppercase tracking-wider">
                       Header & Contact Details
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[11px] text-slate-400 font-medium block mb-1">
+                        <label className="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium block mb-1">
                           Full Name
                         </label>
                         <input
@@ -1371,11 +1376,11 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               prev ? { ...prev, name: e.target.value } : null
                             )
                           }
-                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white"
+                          className="w-full bg-zinc-50 dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 text-xs text-zinc-950 dark:text-white focus:outline-none focus:border-violet-500"
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] text-slate-400 font-medium block mb-1">
+                        <label className="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium block mb-1">
                           Target Title
                         </label>
                         <input
@@ -1386,11 +1391,11 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               prev ? { ...prev, title: e.target.value } : null
                             )
                           }
-                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white"
+                          className="w-full bg-zinc-50 dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 text-xs text-zinc-950 dark:text-white focus:outline-none focus:border-violet-500"
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] text-slate-400 font-medium block mb-1">
+                        <label className="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium block mb-1">
                           Email Address
                         </label>
                         <input
@@ -1406,11 +1411,11 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                 : null
                             )
                           }
-                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white"
+                          className="w-full bg-zinc-50 dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 text-xs text-zinc-950 dark:text-white focus:outline-none focus:border-violet-500"
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] text-slate-400 font-medium block mb-1">
+                        <label className="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium block mb-1">
                           Phone Number
                         </label>
                         <input
@@ -1426,16 +1431,16 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                 : null
                             )
                           }
-                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white"
+                          className="w-full bg-zinc-50 dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 text-xs text-zinc-950 dark:text-white focus:outline-none focus:border-violet-500"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Summary Editor */}
-                  <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+                  <div className="p-4 rounded-2xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 space-y-2">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider">
+                      <h4 className="text-xs font-bold text-violet-700 dark:text-violet-400 uppercase tracking-wider">
                         Professional Summary
                       </h4>
                       <button
@@ -1445,7 +1450,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                             "Rewrite my Professional Summary into a tight 3-line executive hook with missing JD keywords."
                           )
                         }
-                        className="text-[11px] font-semibold text-teal-300 hover:text-white cursor-pointer"
+                        className="text-[11px] font-semibold text-violet-700 dark:text-violet-300 hover:text-violet-900 dark:hover:text-white cursor-pointer"
                       >
                         Improve with Copilot
                       </button>
@@ -1458,14 +1463,14 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                           prev ? { ...prev, summary: e.target.value } : null
                         )
                       }
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-white leading-relaxed"
+                      className="w-full bg-zinc-50 dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 text-xs text-zinc-950 dark:text-white leading-relaxed focus:outline-none focus:border-violet-500"
                     />
                   </div>
 
                   {/* Experience Editor */}
-                  <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+                  <div className="p-4 rounded-2xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 space-y-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider">
+                      <h4 className="text-xs font-bold text-violet-700 dark:text-violet-400 uppercase tracking-wider">
                         Work Experience ({resumeData?.experience?.length || 0})
                       </h4>
                       <button
@@ -1486,7 +1491,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               : null
                           );
                         }}
-                        className="px-2.5 py-1 rounded-lg bg-teal-600/20 hover:bg-teal-600 text-teal-300 hover:text-white text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                        className="px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-950/50 hover:bg-violet-600 text-violet-700 dark:text-violet-300 hover:text-white border border-violet-200 dark:border-violet-800 text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Role
                       </button>
@@ -1495,7 +1500,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                     {resumeData?.experience?.map((exp, expIdx) => (
                       <div
                         key={`edit-exp-${exp.id || expIdx}`}
-                        className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-3"
+                        className="p-3.5 rounded-xl bg-zinc-50 dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-800 space-y-3"
                       >
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <input
@@ -1511,7 +1516,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                 return { ...prev, experience: updated };
                               });
                             }}
-                            className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white font-semibold"
+                            className="bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 text-xs text-zinc-950 dark:text-white font-semibold focus:outline-none focus:border-violet-500"
                           />
                           <input
                             type="text"
@@ -1526,7 +1531,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                 return { ...prev, experience: updated };
                               });
                             }}
-                            className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white"
+                            className="bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 text-xs text-zinc-950 dark:text-white focus:outline-none focus:border-violet-500"
                           />
                           <input
                             type="text"
@@ -1541,7 +1546,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                 return { ...prev, experience: updated };
                               });
                             }}
-                            className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white"
+                            className="bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 text-xs text-zinc-950 dark:text-white focus:outline-none focus:border-violet-500"
                           />
                         </div>
 
@@ -1562,12 +1567,12 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                     return { ...prev, experience: updated };
                                   });
                                 }}
-                                className="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200"
+                                className="flex-1 bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-violet-500"
                               />
                               <button
                                 type="button"
                                 onClick={() => handleOpenBulletImprover(exp.id || `exp_${expIdx}`, bpIdx)}
-                                className="px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-[11px] font-semibold flex items-center gap-1 shrink-0 cursor-pointer transition-colors"
+                                className="px-2.5 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-600 text-purple-700 dark:text-purple-300 hover:text-white border border-purple-200 dark:border-purple-800 text-[11px] font-semibold flex items-center gap-1 shrink-0 cursor-pointer transition-colors"
                               >
                                 <Wand2 className="w-3 h-3" />
                                 <span className="hidden sm:inline">Quantify</span>
@@ -1583,7 +1588,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                     return { ...prev, experience: updated };
                                   });
                                 }}
-                                className="text-rose-400 hover:text-rose-300 p-1.5 cursor-pointer"
+                                className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 p-1.5 cursor-pointer"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -1605,7 +1610,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                 return { ...prev, experience: updated };
                               });
                             }}
-                            className="text-xs text-teal-400 hover:text-teal-300 font-semibold flex items-center gap-1 pt-1 cursor-pointer"
+                            className="text-xs text-violet-700 dark:text-violet-400 hover:text-violet-900 dark:hover:text-violet-300 font-semibold flex items-center gap-1 pt-1 cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" /> Add Bullet
                           </button>
@@ -1615,13 +1620,13 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                   </div>
 
                   {/* Skills Editor */}
-                  <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
-                    <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider">
+                  <div className="p-4 rounded-2xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 space-y-3">
+                    <h4 className="text-xs font-bold text-violet-700 dark:text-violet-400 uppercase tracking-wider">
                       Skills & Competencies
                     </h4>
                     <div className="space-y-2.5">
                       <div>
-                        <label className="text-[11px] text-slate-400 font-medium block mb-1">
+                        <label className="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium block mb-1">
                           Core Skills (comma separated)
                         </label>
                         <input
@@ -1633,11 +1638,11 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               prev ? { ...prev, skills: { ...prev.skills, core: arr } } : null
                             );
                           }}
-                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white"
+                          className="w-full bg-zinc-50 dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 text-xs text-zinc-950 dark:text-white focus:outline-none focus:border-violet-500"
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] text-slate-400 font-medium block mb-1">
+                        <label className="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium block mb-1">
                           Tools & Frameworks (comma separated)
                         </label>
                         <input
@@ -1649,16 +1654,16 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               prev ? { ...prev, skills: { ...prev.skills, tools: arr } } : null
                             );
                           }}
-                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white"
+                          className="w-full bg-zinc-50 dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 text-xs text-zinc-950 dark:text-white focus:outline-none focus:border-violet-500"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Education Editor */}
-                  <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+                  <div className="p-4 rounded-2xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 space-y-3">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider">
+                      <h4 className="text-xs font-bold text-violet-700 dark:text-violet-400 uppercase tracking-wider">
                         Education & Credentials
                       </h4>
                       <button
@@ -1681,7 +1686,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               : null
                           );
                         }}
-                        className="px-2.5 py-1 rounded-lg bg-teal-600/20 hover:bg-teal-600 text-teal-300 hover:text-white text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                        className="px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-950/50 hover:bg-violet-600 text-violet-700 dark:text-violet-300 hover:text-white border border-violet-200 dark:border-violet-800 text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Education
                       </button>
@@ -1689,7 +1694,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                     {resumeData?.education?.map((edu, eduIdx) => (
                       <div
                         key={`edit-edu-${edu.id || eduIdx}`}
-                        className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-2.5 rounded-xl bg-slate-950 border border-slate-800"
+                        className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-2.5 rounded-xl bg-zinc-50 dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-800"
                       >
                         <input
                           type="text"
@@ -1704,7 +1709,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               return { ...prev, education: updated };
                             });
                           }}
-                          className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white font-semibold"
+                          className="bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 text-xs text-zinc-950 dark:text-white font-semibold focus:outline-none focus:border-violet-500"
                         />
                         <input
                           type="text"
@@ -1719,7 +1724,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                               return { ...prev, education: updated };
                             });
                           }}
-                          className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white"
+                          className="bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 text-xs text-zinc-950 dark:text-white focus:outline-none focus:border-violet-500"
                         />
                         <div className="flex items-center gap-2">
                           <input
@@ -1735,7 +1740,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                 return { ...prev, education: updated };
                               });
                             }}
-                            className="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white"
+                            className="flex-1 bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 text-xs text-zinc-950 dark:text-white focus:outline-none focus:border-violet-500"
                           />
                           <button
                             type="button"
@@ -1748,7 +1753,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                                 };
                               });
                             }}
-                            className="text-rose-400 hover:text-rose-300 p-1.5 cursor-pointer"
+                            className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 p-1.5 cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -1760,22 +1765,22 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
               ) : (
                 /* DEDICATED EXPORT OPTIONS */
                 <div className="max-w-3xl mx-auto space-y-5">
-                  <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-6">
-                    <div className="border-b border-slate-800 pb-4">
-                      <h3 className="text-base font-bold text-white">Export Optimized Resume</h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        All AI-applied patches and template presets are immediately included in both exports.
+                  <div className="p-6 rounded-2xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 space-y-6">
+                    <div className="border-b border-zinc-200 dark:border-zinc-800 pb-4">
+                      <h3 className="text-base font-bold text-zinc-950 dark:text-white">Export Optimized Resume</h3>
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
+                        All applied patches and template presets are immediately included in both exports.
                       </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col justify-between space-y-4">
+                      <div className="p-5 rounded-xl bg-zinc-50 dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between space-y-4">
                         <div className="space-y-2">
-                          <div className="flex items-center justify-between text-xs text-teal-400 font-semibold">
+                          <div className="flex items-center justify-between text-xs text-violet-700 dark:text-violet-400 font-semibold">
                             <span>ATS Vector PDF</span>
-                            <span className="font-mono text-slate-500">.PDF</span>
+                            <span className="font-mono text-zinc-500 dark:text-zinc-400">.PDF</span>
                           </div>
-                          <p className="text-xs text-slate-300 leading-relaxed">
+                          <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed">
                             Single-column Letter layout using clean Helvetica text streams verified for Workday, Greenhouse, and Lever.
                           </p>
                         </div>
@@ -1783,20 +1788,20 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                           type="button"
                           onClick={handleImmediatePdfDownload}
                           disabled={isDownloadingPdf || !resumeData}
-                          className="w-full py-2.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                          className="w-full py-2.5 px-4 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
                         >
                           <Download className="w-4 h-4" />
                           <span>{isDownloadingPdf ? "Compiling PDF..." : "Download PDF Resume"}</span>
                         </button>
                       </div>
 
-                      <div className="p-5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col justify-between space-y-4">
+                      <div className="p-5 rounded-xl bg-zinc-50 dark:bg-[#16161d] border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between space-y-4">
                         <div className="space-y-2">
-                          <div className="flex items-center justify-between text-xs text-blue-400 font-semibold">
+                          <div className="flex items-center justify-between text-xs text-purple-700 dark:text-purple-400 font-semibold">
                             <span>Editable Word Document</span>
-                            <span className="font-mono text-slate-500">.DOCX</span>
+                            <span className="font-mono text-zinc-500 dark:text-zinc-400">.DOCX</span>
                           </div>
-                          <p className="text-xs text-slate-300 leading-relaxed">
+                          <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed">
                             Structured Microsoft Word file preserving Heading styles, bullet lists, and clean section breaks.
                           </p>
                         </div>
@@ -1804,7 +1809,7 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({
                           type="button"
                           onClick={handleImmediateDocxDownload}
                           disabled={isDownloadingDocx || !resumeData}
-                          className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                          className="w-full py-2.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
                         >
                           <Download className="w-4 h-4" />
                           <span>

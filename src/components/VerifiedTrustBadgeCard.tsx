@@ -13,7 +13,7 @@ import {
   RefreshCw,
   Link2,
   Image as ImageIcon,
-  Sparkles,
+  Compass,
 } from "lucide-react";
 
 export interface VerifiedTrustBadgeCardProps {
@@ -63,7 +63,6 @@ export const VerifiedTrustBadgeCard: React.FC<VerifiedTrustBadgeCardProps> = ({
   const [isExportingImage, setIsExportingImage] = useState(false);
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Derive effective score (use live credibilityScore if verified, or calculated initial readiness score)
   const effectiveScore = useMemo(() => {
     if (typeof credibilityScore === "number") return credibilityScore;
     return linkedinUrl.trim() ? 86 : 78;
@@ -88,7 +87,6 @@ export const VerifiedTrustBadgeCard: React.FC<VerifiedTrustBadgeCardProps> = ({
     return "Baseline Verification";
   }, [credibilityTier, effectiveScore]);
 
-  // Deterministic Verification Credential ID
   const credentialId = useMemo(() => {
     const seed = `${candidateName}-${cleanHandle}-${effectiveScore}`;
     let hash = 0;
@@ -96,7 +94,11 @@ export const VerifiedTrustBadgeCard: React.FC<VerifiedTrustBadgeCardProps> = ({
       hash = (hash << 5) - hash + seed.charCodeAt(i);
       hash |= 0;
     }
-    const hex = Math.abs(hash).toString(16).toUpperCase().padStart(6, "0").slice(0, 6);
+    const hex = Math.abs(hash)
+      .toString(16)
+      .toUpperCase()
+      .padStart(6, "0")
+      .slice(0, 6);
     return `VT-${effectiveScore}-${hex}`;
   }, [candidateName, cleanHandle, effectiveScore]);
 
@@ -114,7 +116,9 @@ export const VerifiedTrustBadgeCard: React.FC<VerifiedTrustBadgeCardProps> = ({
   );
 
   const originUrl =
-    typeof window !== "undefined" ? window.location.origin : "https://career-intelligence.app";
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "https://career-intelligence.app";
 
   const badgeSvgUrl = useMemo(() => {
     const params = new URLSearchParams({
@@ -135,13 +139,12 @@ export const VerifiedTrustBadgeCard: React.FC<VerifiedTrustBadgeCardProps> = ({
     return originUrl;
   }, [linkedinUrl, originUrl]);
 
-  // Pre-built snippets for quick sharing & embedding
   const shareSnippets = useMemo(() => {
-    const linkedinPost = `🛡️ Verified Trust Credential Unlocked: ${effectiveScore}% LinkedIn Credibility Score (${resolvedTier})
+    const linkedinPost = `Verified Trust Credential: ${effectiveScore}% LinkedIn Credibility Score (${resolvedTier})
 
-I just completed a cross-vector verification of my public LinkedIn profile (${cleanHandle}) against my executive resume targeting ${targetRole}.
+I completed a cross-vector verification of my public LinkedIn profile (${cleanHandle}) against my executive resume targeting ${targetRole}.
 
-✅ Verification ID: ${credentialId}
+Verification ID: ${credentialId}
 • Endorsements & Skill Alignment Verified
 • Work History & Tenure Consistency Audited
 • Education & Credential Validation Passed
@@ -179,7 +182,6 @@ Credential URL: ${badgeSvgUrl}`;
     badgeSvgUrl,
   ]);
 
-  // Helper to draw rounded rectangle on canvas
   const drawRoundedRect = (
     ctx: CanvasRenderingContext2D,
     x: number,
@@ -202,7 +204,6 @@ Credential URL: ${badgeSvgUrl}`;
     ctx.closePath();
   };
 
-  // Render the LinkedIn Post Header Graphic (1200x627 or 1584x396) onto an HTML5 Canvas
   const renderLinkedInGraphicToCanvas = useCallback(
     (canvas: HTMLCanvasElement) => {
       const isBanner = dimensionPreset === "profile-banner";
@@ -215,26 +216,24 @@ Credential URL: ${badgeSvgUrl}`;
       if (!ctx) return;
 
       const isLight = badgeStyle === "light";
-      const accentPrimary =
-        effectiveScore >= 85 ? "#14b8a6" : effectiveScore >= 70 ? "#38bdf8" : "#f59e0b";
-      const accentSecondary = "#3b82f6";
+      const accentPrimary = isLight ? "#6d28d9" : "#8b5cf6";
+      const accentSecondary = isLight ? "#9333ea" : "#a855f7";
 
-      // 1. Background Fill & Gradient
       const bgGrad = ctx.createLinearGradient(0, 0, width, height);
       if (isLight) {
-        bgGrad.addColorStop(0, "#f8fafc");
-        bgGrad.addColorStop(0.5, "#f1f5f9");
-        bgGrad.addColorStop(1, "#e2e8f0");
+        bgGrad.addColorStop(0, "#fafafa");
+        bgGrad.addColorStop(0.5, "#f4f4f5");
+        bgGrad.addColorStop(1, "#ede9fe");
       } else {
-        bgGrad.addColorStop(0, "#050814");
-        bgGrad.addColorStop(0.55, "#0b1224");
-        bgGrad.addColorStop(1, "#071a24");
+        bgGrad.addColorStop(0, "#09090b");
+        bgGrad.addColorStop(0.6, "#111116");
+        bgGrad.addColorStop(1, "#1e1038");
       }
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, width, height);
 
-      // 2. Subtle Architectural Grid Pattern
-      ctx.strokeStyle = isLight ? "rgba(15, 23, 42, 0.04)" : "rgba(255, 255, 255, 0.03)";
+      // Subtle hairline grid
+      ctx.strokeStyle = isLight ? "rgba(9, 9, 11, 0.04)" : "rgba(255, 255, 255, 0.03)";
       ctx.lineWidth = 1;
       const gridStep = 48;
       for (let gx = 0; gx < width; gx += gridStep) {
@@ -250,46 +249,13 @@ Credential URL: ${badgeSvgUrl}`;
         ctx.stroke();
       }
 
-      // 3. Ambient Glow Accents
-      const glowLeft = ctx.createRadialGradient(
-        width * 0.2,
-        height * 0.45,
-        20,
-        width * 0.2,
-        height * 0.45,
-        360
-      );
-      glowLeft.addColorStop(
-        0,
-        isLight ? "rgba(20, 184, 166, 0.14)" : "rgba(20, 184, 166, 0.18)"
-      );
-      glowLeft.addColorStop(1, "rgba(20, 184, 166, 0)");
-      ctx.fillStyle = glowLeft;
-      ctx.fillRect(0, 0, width, height);
-
-      const glowRight = ctx.createRadialGradient(
-        width * 0.85,
-        height * 0.25,
-        20,
-        width * 0.85,
-        height * 0.25,
-        380
-      );
-      glowRight.addColorStop(
-        0,
-        isLight ? "rgba(59, 130, 246, 0.12)" : "rgba(59, 130, 246, 0.16)"
-      );
-      glowRight.addColorStop(1, "rgba(59, 130, 246, 0)");
-      ctx.fillStyle = glowRight;
-      ctx.fillRect(0, 0, width, height);
-
-      // 4. Outer Card Frame
+      // Outer Card Frame
       const pad = isBanner ? 24 : 36;
-      drawRoundedRect(ctx, pad, pad, width - pad * 2, height - pad * 2, 24);
-      ctx.fillStyle = isLight ? "rgba(255, 255, 255, 0.88)" : "rgba(11, 17, 32, 0.82)";
+      drawRoundedRect(ctx, pad, pad, width - pad * 2, height - pad * 2, 20);
+      ctx.fillStyle = isLight ? "#ffffff" : "#111116";
       ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = isLight ? "rgba(20, 184, 166, 0.4)" : "rgba(20, 184, 166, 0.45)";
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = isLight ? "#d4d4d8" : "#27272a";
       ctx.stroke();
 
       // Top Accent Line
@@ -297,23 +263,20 @@ Credential URL: ${badgeSvgUrl}`;
       ctx.fillStyle = accentPrimary;
       ctx.fill();
 
-      const textMain = isLight ? "#0f172a" : "#f8fafc";
-      const textMuted = isLight ? "#475569" : "#94a3b8";
-      const cardSurface = isLight ? "#f1f5f9" : "#111c33";
-      const cardBorder = isLight ? "#cbd5e1" : "rgba(255, 255, 255, 0.08)";
+      const textMain = isLight ? "#09090b" : "#fafafa";
+      const textMuted = isLight ? "#52525b" : "#a1a1aa";
+      const cardSurface = isLight ? "#f4f4f5" : "#18181b";
+      const cardBorder = isLight ? "#e4e4e7" : "#27272a";
 
       if (isBanner) {
-        // 1584 x 396 LinkedIn Profile Banner Layout
         const centerY = height / 2;
-
-        // Score Circle on Left
         const gaugeX = pad + 135;
         const gaugeY = centerY;
         const gaugeR = 86;
 
         ctx.beginPath();
         ctx.arc(gaugeX, gaugeY, gaugeR, 0, Math.PI * 2);
-        ctx.strokeStyle = isLight ? "#e2e8f0" : "#1e293b";
+        ctx.strokeStyle = isLight ? "#e4e4e7" : "#27272a";
         ctx.lineWidth = 14;
         ctx.stroke();
 
@@ -331,38 +294,36 @@ Credential URL: ${badgeSvgUrl}`;
         ctx.stroke();
 
         ctx.fillStyle = textMain;
-        ctx.font = "900 44px Inter, system-ui, sans-serif";
+        ctx.font = "900 44px Outfit, system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(`${effectiveScore}%`, gaugeX, gaugeY + 8);
 
         ctx.fillStyle = accentPrimary;
-        ctx.font = "800 11px Inter, system-ui, sans-serif";
+        ctx.font = "800 11px Outfit, system-ui, sans-serif";
         ctx.fillText("CREDIBILITY", gaugeX, gaugeY + 32);
 
-        // Middle Identity & Role Details
         ctx.textAlign = "left";
         const midX = pad + 265;
 
-        drawRoundedRect(ctx, midX, pad + 38, 220, 30, 8);
-        ctx.fillStyle = "rgba(20, 184, 166, 0.16)";
+        drawRoundedRect(ctx, midX, pad + 38, 228, 30, 8);
+        ctx.fillStyle = isLight ? "#f3e8ff" : "rgba(124, 58, 237, 0.2)";
         ctx.fill();
         ctx.fillStyle = accentPrimary;
-        ctx.font = "800 13px Inter, system-ui, sans-serif";
-        ctx.fillText(`✓ VERIFIED TRUST · ${credentialId}`, midX + 14, pad + 58);
+        ctx.font = "800 13px Outfit, system-ui, sans-serif";
+        ctx.fillText(`VERIFIED TRUST · ${credentialId}`, midX + 14, pad + 58);
 
         ctx.fillStyle = textMain;
-        ctx.font = "900 32px Inter, system-ui, sans-serif";
+        ctx.font = "900 32px Outfit, system-ui, sans-serif";
         ctx.fillText(targetRole.slice(0, 44), midX, pad + 114);
 
         ctx.fillStyle = textMuted;
-        ctx.font = "600 18px monospace";
+        ctx.font = "600 17px monospace";
         ctx.fillText(
           `${candidateName}  ·  linkedin.com/${cleanHandle}  ·  ${resolvedTier}`,
           midX,
           pad + 148
         );
 
-        // 4 Factor Mini Cards in Banner Row
         const factorW = 280;
         const factorGap = 16;
         defaultFactors.forEach((tf, idx) => {
@@ -378,16 +339,15 @@ Credential URL: ${badgeSvgUrl}`;
           ctx.stroke();
 
           ctx.fillStyle = textMuted;
-          ctx.font = "700 13px Inter, system-ui, sans-serif";
+          ctx.font = "700 13px Outfit, system-ui, sans-serif";
           ctx.fillText(tf.name.slice(0, 26), fx + 18, fy + 34);
 
           ctx.fillStyle = textMain;
           ctx.font = "900 26px monospace";
           ctx.fillText(`${tf.score}%`, fx + 18, fy + 70);
 
-          // Bar
           drawRoundedRect(ctx, fx + 18, fy + 84, factorW - 36, 8, 4);
-          ctx.fillStyle = isLight ? "#cbd5e1" : "#1e293b";
+          ctx.fillStyle = isLight ? "#d4d4d8" : "#27272a";
           ctx.fill();
 
           drawRoundedRect(
@@ -404,26 +364,23 @@ Credential URL: ${badgeSvgUrl}`;
         return;
       }
 
-      // Standard LinkedIn Post Header Layout (1200 x 627 px)
-      // Top Header Strip inside frame
+      // Standard Post Header Layout (1200 x 627)
       const innerX = pad + 40;
       const innerY = pad + 38;
       const innerW = width - (pad + 40) * 2;
 
-      // Pill: VERIFIED TRUST CREDENTIAL
-      drawRoundedRect(ctx, innerX, innerY, 248, 36, 10);
-      ctx.fillStyle = "rgba(20, 184, 166, 0.15)";
+      drawRoundedRect(ctx, innerX, innerY, 248, 36, 8);
+      ctx.fillStyle = isLight ? "#f3e8ff" : "rgba(124, 58, 237, 0.18)";
       ctx.fill();
-      ctx.strokeStyle = "rgba(20, 184, 166, 0.4)";
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = isLight ? "#c4b5fd" : "rgba(139, 92, 246, 0.45)";
+      ctx.lineWidth = 1.2;
       ctx.stroke();
 
       ctx.fillStyle = accentPrimary;
       ctx.textAlign = "left";
-      ctx.font = "800 14px Inter, system-ui, sans-serif";
-      ctx.fillText("✓ VERIFIED TRUST CREDENTIAL", innerX + 16, innerY + 23);
+      ctx.font = "800 14px Outfit, system-ui, sans-serif";
+      ctx.fillText("VERIFIED TRUST CREDENTIAL", innerX + 16, innerY + 23);
 
-      // Right Metadata: Credential ID & Date
       const dateStr = new Date().toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
@@ -438,13 +395,12 @@ Credential URL: ${badgeSvgUrl}`;
         innerY + 23
       );
 
-      // Left Panel: Large Radial Credibility Score Gauge Card
       const leftCardX = innerX;
       const leftCardY = innerY + 58;
       const leftCardW = 340;
       const leftCardH = 385;
 
-      drawRoundedRect(ctx, leftCardX, leftCardY, leftCardW, leftCardH, 20);
+      drawRoundedRect(ctx, leftCardX, leftCardY, leftCardW, leftCardH, 16);
       ctx.fillStyle = cardSurface;
       ctx.fill();
       ctx.strokeStyle = cardBorder;
@@ -455,15 +411,18 @@ Credential URL: ${badgeSvgUrl}`;
       const cy = leftCardY + 158;
       const radius = 102;
 
-      // Track ring
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-      ctx.strokeStyle = isLight ? "#cbd5e1" : "#1e293b";
+      ctx.strokeStyle = isLight ? "#e4e4e7" : "#27272a";
       ctx.lineWidth = 18;
       ctx.stroke();
 
-      // Active score arc
-      const arcGrad = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
+      const arcGrad = ctx.createLinearGradient(
+        cx - radius,
+        cy - radius,
+        cx + radius,
+        cy + radius
+      );
       arcGrad.addColorStop(0, accentPrimary);
       arcGrad.addColorStop(1, accentSecondary);
 
@@ -480,50 +439,46 @@ Credential URL: ${badgeSvgUrl}`;
       ctx.lineCap = "round";
       ctx.stroke();
 
-      // Score Value inside ring
       ctx.textAlign = "center";
       ctx.fillStyle = textMain;
-      ctx.font = "900 62px Inter, system-ui, sans-serif";
+      ctx.font = "900 62px Outfit, system-ui, sans-serif";
       ctx.fillText(`${effectiveScore}%`, cx, cy + 14);
 
       ctx.fillStyle = accentPrimary;
-      ctx.font = "800 13px Inter, system-ui, sans-serif";
+      ctx.font = "800 13px Outfit, system-ui, sans-serif";
       ctx.fillText("CREDIBILITY SCORE", cx, cy + 44);
 
-      // Tier Badge below ring
-      drawRoundedRect(ctx, leftCardX + 32, leftCardY + 292, leftCardW - 64, 40, 10);
-      ctx.fillStyle = "rgba(20, 184, 166, 0.14)";
+      drawRoundedRect(ctx, leftCardX + 32, leftCardY + 292, leftCardW - 64, 40, 8);
+      ctx.fillStyle = isLight ? "#f3e8ff" : "rgba(124, 58, 237, 0.16)";
       ctx.fill();
-      ctx.strokeStyle = "rgba(20, 184, 166, 0.35)";
+      ctx.strokeStyle = isLight ? "#c4b5fd" : "rgba(139, 92, 246, 0.4)";
       ctx.lineWidth = 1;
       ctx.stroke();
 
       ctx.fillStyle = accentPrimary;
-      ctx.font = "800 14px Inter, system-ui, sans-serif";
+      ctx.font = "800 13px Outfit, system-ui, sans-serif";
       ctx.fillText(resolvedTier.toUpperCase(), cx, leftCardY + 317);
 
       ctx.fillStyle = textMuted;
-      ctx.font = "600 13px Inter, system-ui, sans-serif";
-      ctx.fillText("Real-Time Profile vs. Resume Audit", cx, leftCardY + 358);
+      ctx.font = "600 13px Outfit, system-ui, sans-serif";
+      ctx.fillText("Profile vs. Resume Audit", cx, leftCardY + 358);
 
-      // Right Panel: Candidate Profile Details & 4 Trust Factor Cards
       const rightX = leftCardX + leftCardW + 32;
       const rightW = innerW - leftCardW - 32;
 
       ctx.textAlign = "left";
       ctx.fillStyle = accentPrimary;
-      ctx.font = "800 13px Inter, system-ui, sans-serif";
+      ctx.font = "800 13px Outfit, system-ui, sans-serif";
       ctx.fillText("CANDIDATE IDENTITY & TARGET BENCHMARK", rightX, leftCardY + 24);
 
       ctx.fillStyle = textMain;
-      ctx.font = "900 34px Inter, system-ui, sans-serif";
+      ctx.font = "900 34px Outfit, system-ui, sans-serif";
       ctx.fillText(targetRole.slice(0, 36), rightX, leftCardY + 66);
 
       ctx.fillStyle = textMuted;
       ctx.font = "600 17px monospace";
       ctx.fillText(`linkedin.com/${cleanHandle}`, rightX, leftCardY + 98);
 
-      // 2x2 Grid of Trust Factor Breakdown Cards
       const gridY = leftCardY + 126;
       const colGap = 18;
       const rowGap = 18;
@@ -536,16 +491,16 @@ Credential URL: ${badgeSvgUrl}`;
         const bx = rightX + col * (boxW + colGap);
         const by = gridY + row * (boxH + rowGap);
 
-        drawRoundedRect(ctx, bx, by, boxW, boxH, 16);
+        drawRoundedRect(ctx, bx, by, boxW, boxH, 14);
         ctx.fillStyle = cardSurface;
         ctx.fill();
         ctx.strokeStyle = cardBorder;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 1.2;
         ctx.stroke();
 
         ctx.textAlign = "left";
         ctx.fillStyle = textMuted;
-        ctx.font = "700 14px Inter, system-ui, sans-serif";
+        ctx.font = "700 14px Outfit, system-ui, sans-serif";
         ctx.fillText(tf.name.slice(0, 26), bx + 20, by + 36);
 
         ctx.fillStyle = textMain;
@@ -553,19 +508,18 @@ Credential URL: ${badgeSvgUrl}`;
         ctx.fillText(`${tf.score}%`, bx + 20, by + 76);
 
         ctx.textAlign = "right";
-        ctx.fillStyle = tf.score >= 80 ? "#10b981" : "#f59e0b";
-        ctx.font = "800 12px Inter, system-ui, sans-serif";
+        ctx.fillStyle = tf.score >= 80 ? accentPrimary : "#be123c";
+        ctx.font = "800 12px Outfit, system-ui, sans-serif";
         ctx.fillText(
-          tf.score >= 80 ? "✓ VERIFIED" : "● AUDITED",
+          tf.score >= 80 ? "VERIFIED" : "AUDITED",
           bx + boxW - 20,
           by + 74
         );
 
-        // Progress Bar inside factor card
         const barW = boxW - 40;
         const barY = by + boxH - 26;
         drawRoundedRect(ctx, bx + 20, barY, barW, 8, 4);
-        ctx.fillStyle = isLight ? "#cbd5e1" : "#1e293b";
+        ctx.fillStyle = isLight ? "#e4e4e7" : "#27272a";
         ctx.fill();
 
         drawRoundedRect(
@@ -576,15 +530,14 @@ Credential URL: ${badgeSvgUrl}`;
           8,
           4
         );
-        ctx.fillStyle = tf.score >= 80 ? accentPrimary : "#38bdf8";
+        ctx.fillStyle = tf.score >= 80 ? accentPrimary : accentSecondary;
         ctx.fill();
       });
 
-      // Bottom Footer Strip
       const footerY = height - pad - 24;
       ctx.textAlign = "left";
       ctx.fillStyle = textMuted;
-      ctx.font = "600 13px Inter, system-ui, sans-serif";
+      ctx.font = "600 13px Outfit, system-ui, sans-serif";
       ctx.fillText(
         "Executive Career Intelligence  ·  Cross-Vector LinkedIn & Resume Verification",
         innerX,
@@ -609,14 +562,12 @@ Credential URL: ${badgeSvgUrl}`;
     ]
   );
 
-  // Re-render preview canvas whenever drawer is open or graphic props change
   useEffect(() => {
     if (isShareDrawerOpen && previewCanvasRef.current) {
       renderLinkedInGraphicToCanvas(previewCanvasRef.current);
     }
   }, [isShareDrawerOpen, activeEmbedTab, renderLinkedInGraphicToCanvas]);
 
-  // Export graphic as PNG or JPEG download
   const handleExportGraphic = (format: ImageExportFormat = exportFormat) => {
     setIsExportingImage(true);
     try {
@@ -628,7 +579,8 @@ Credential URL: ${badgeSvgUrl}`;
 
       const link = document.createElement("a");
       link.href = dataUrl;
-      const suffix = dimensionPreset === "profile-banner" ? "banner" : "post-header";
+      const suffix =
+        dimensionPreset === "profile-banner" ? "banner" : "post-header";
       link.download = `linkedin-verified-trust-${effectiveScore}-${suffix}.${format}`;
       document.body.appendChild(link);
       link.click();
@@ -641,7 +593,6 @@ Credential URL: ${badgeSvgUrl}`;
     }
   };
 
-  // Copy graphic image directly to clipboard so user can paste into a LinkedIn post
   const handleCopyGraphicToClipboard = async () => {
     try {
       const offscreen = document.createElement("canvas");
@@ -674,38 +625,37 @@ Credential URL: ${badgeSvgUrl}`;
   };
 
   const handleDownloadSvg = () => {
-    const accentColor =
-      effectiveScore >= 85 ? "#14b8a6" : effectiveScore >= 70 ? "#38bdf8" : "#f59e0b";
-    const bgFill = badgeStyle === "light" ? "#ffffff" : "#0b1120";
-    const cardStroke = badgeStyle === "light" ? "#cbd5e1" : "#1e293b";
-    const titleColor = badgeStyle === "light" ? "#0f172a" : "#f8fafc";
-    const subColor = badgeStyle === "light" ? "#475569" : "#94a3b8";
+    const accentColor = "#7c3aed";
+    const bgFill = badgeStyle === "light" ? "#ffffff" : "#09090b";
+    const cardStroke = badgeStyle === "light" ? "#e4e4e7" : "#27272a";
+    const titleColor = badgeStyle === "light" ? "#09090b" : "#fafafa";
+    const subColor = badgeStyle === "light" ? "#52525b" : "#a1a1aa";
     const safeRole = targetRole.replace(/[<>&"']/g, "").slice(0, 46);
     const safeHandle = cleanHandle.replace(/[<>&"']/g, "").slice(0, 40);
 
     const svgContent =
       badgeStyle === "compact"
         ? `<svg xmlns="http://www.w3.org/2000/svg" width="310" height="36" viewBox="0 0 310 36" fill="none">
-  <rect width="310" height="36" rx="8" fill="#0f172a" stroke="${accentColor}" stroke-opacity="0.45" stroke-width="1.5"/>
-  <rect x="1" y="1" width="142" height="34" rx="7" fill="#1e293b"/>
-  <path d="M18 11L24 13.5V18.5C24 22.1 21.4 25.4 18 26.5C14.6 25.4 12 22.1 12 18.5V13.5L18 11Z" stroke="${accentColor}" stroke-width="1.75" fill="${accentColor}" fill-opacity="0.15"/>
-  <path d="M15.5 18.5L17.2 20.2L20.8 16.6" stroke="${accentColor}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="31" y="22" fill="#f8fafc" font-family="Inter, sans-serif" font-size="11" font-weight="800" letter-spacing="0.06em">VERIFIED TRUST</text>
-  <text x="155" y="22" fill="${accentColor}" font-family="JetBrains Mono, monospace" font-size="12" font-weight="800">${effectiveScore}% CREDIBILITY</text>
+  <rect width="310" height="36" rx="8" fill="#09090b" stroke="#7c3aed" stroke-opacity="0.6" stroke-width="1.5"/>
+  <rect x="1" y="1" width="142" height="34" rx="7" fill="#18181b"/>
+  <path d="M18 11L24 13.5V18.5C24 22.1 21.4 25.4 18 26.5C14.6 25.4 12 22.1 12 18.5V13.5L18 11Z" stroke="#a855f7" stroke-width="1.75" fill="#7c3aed" fill-opacity="0.2"/>
+  <path d="M15.5 18.5L17.2 20.2L20.8 16.6" stroke="#a855f7" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="31" y="22" fill="#fafafa" font-family="Outfit, sans-serif" font-size="11" font-weight="800" letter-spacing="0.06em">VERIFIED TRUST</text>
+  <text x="155" y="22" fill="#c084fc" font-family="monospace" font-size="12" font-weight="800">${effectiveScore}% CREDIBILITY</text>
 </svg>`
         : `<svg xmlns="http://www.w3.org/2000/svg" width="420" height="116" viewBox="0 0 420 116" fill="none">
   <rect width="420" height="116" rx="16" fill="${bgFill}" stroke="${accentColor}" stroke-opacity="0.5" stroke-width="1.5"/>
   <rect x="14" y="14" width="88" height="88" rx="12" fill="${accentColor}" fill-opacity="0.1" stroke="${accentColor}" stroke-opacity="0.3"/>
-  <text x="58" y="58" text-anchor="middle" fill="${accentColor}" font-family="JetBrains Mono, monospace" font-size="26" font-weight="800">${effectiveScore}%</text>
-  <text x="58" y="76" text-anchor="middle" fill="${titleColor}" font-family="Inter, sans-serif" font-size="8.5" font-weight="800" letter-spacing="0.1em">CREDIBILITY</text>
-  <text x="58" y="90" text-anchor="middle" fill="${subColor}" font-family="Inter, sans-serif" font-size="7.5" font-weight="600">${credentialId}</text>
+  <text x="58" y="58" text-anchor="middle" fill="${accentColor}" font-family="monospace" font-size="26" font-weight="800">${effectiveScore}%</text>
+  <text x="58" y="76" text-anchor="middle" fill="${titleColor}" font-family="Outfit, sans-serif" font-size="8.5" font-weight="800" letter-spacing="0.1em">CREDIBILITY</text>
+  <text x="58" y="90" text-anchor="middle" fill="${subColor}" font-family="Outfit, sans-serif" font-size="7.5" font-weight="600">${credentialId}</text>
   <rect x="118" y="18" width="116" height="20" rx="5" fill="${accentColor}" fill-opacity="0.15"/>
-  <text x="128" y="31.5" fill="${accentColor}" font-family="Inter, sans-serif" font-size="9" font-weight="800" letter-spacing="0.08em">✓ VERIFIED TRUST</text>
-  <text x="242" y="31.5" fill="${subColor}" font-family="Inter, sans-serif" font-size="8.5" font-weight="700" letter-spacing="0.05em">${resolvedTier.toUpperCase()}</text>
-  <text x="118" y="58" fill="${titleColor}" font-family="Inter, sans-serif" font-size="14" font-weight="800">${safeRole}</text>
-  <text x="118" y="77" fill="${subColor}" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="600">${safeHandle}</text>
+  <text x="128" y="31.5" fill="${accentColor}" font-family="Outfit, sans-serif" font-size="9" font-weight="800" letter-spacing="0.08em">VERIFIED TRUST</text>
+  <text x="242" y="31.5" fill="${subColor}" font-family="Outfit, sans-serif" font-size="8.5" font-weight="700" letter-spacing="0.05em">${resolvedTier.toUpperCase()}</text>
+  <text x="118" y="58" fill="${titleColor}" font-family="Outfit, sans-serif" font-size="14" font-weight="800">${safeRole}</text>
+  <text x="118" y="77" fill="${subColor}" font-family="monospace" font-size="10.5" font-weight="600">${safeHandle}</text>
   <line x1="118" y1="88" x2="402" y2="88" stroke="${cardStroke}" stroke-width="1"/>
-  <text x="118" y="102" fill="${subColor}" font-family="Inter, sans-serif" font-size="8.5" font-weight="600">Endorsements · Work History · Education · Identity Verified</text>
+  <text x="118" y="102" fill="${subColor}" font-family="Outfit, sans-serif" font-size="8.5" font-weight="600">Endorsements · Work History · Education · Identity Verified</text>
 </svg>`;
 
     const blob = new Blob([svgContent], { type: "image/svg+xml;charset=utf-8" });
@@ -722,105 +672,104 @@ Credential URL: ${badgeSvgUrl}`;
   return (
     <div
       id="verified-trust-badge-section"
-      className="dark dark-studio mb-8 rounded-3xl bg-slate-900/95 border border-teal-500/35 shadow-xl overflow-hidden transition-all"
+      className="mb-8 rounded-2xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden transition-all"
     >
       {/* Main Verified Trust Badge Banner */}
-      <div className="p-6 md:p-7 flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-gradient-to-r from-slate-950 via-slate-900 to-teal-950/30">
-        {/* Left: Interactive 'Verified Trust' Shield & Score Readout */}
+      <div className="p-6 md:p-7 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-5">
           {/* Verified Trust Shield Emblem */}
-          <div className="relative flex items-center gap-4 px-5 py-4 rounded-2xl bg-slate-950/90 border border-teal-500/40 shadow-[0_0_25px_rgba(20,184,166,0.15)] shrink-0">
-            <div className="relative flex items-center justify-center w-14 h-14 rounded-2xl bg-teal-500/15 border border-teal-500/40 text-teal-400">
-              <ShieldCheck className="w-8 h-8" />
+          <div className="relative flex items-center gap-4 px-5 py-4 rounded-xl bg-zinc-50 dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shrink-0">
+            <div className="relative flex items-center justify-center w-13 h-13 rounded-xl bg-violet-100 dark:bg-violet-950/60 border border-violet-200 dark:border-violet-800/60 text-violet-700 dark:text-violet-300">
+              <ShieldCheck className="w-7 h-7" />
               <span
-                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-slate-950 flex items-center justify-center"
+                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-violet-700 dark:bg-purple-500 border-2 border-white dark:border-[#09090b] flex items-center justify-center"
                 title="Verified Trust Seal"
               >
-                <Check className="w-2.5 h-2.5 text-slate-950 stroke-[3]" />
+                <Check className="w-2.5 h-2.5 text-white stroke-[3]" />
               </span>
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-black uppercase tracking-widest text-teal-400">
+              <div className="flex items-center gap-1.5 text-[11px]">
+                <span className="font-bold text-violet-700 dark:text-violet-300">
                   Verified Trust
                 </span>
-                <span className="text-slate-600" aria-hidden="true">
+                <span className="text-zinc-400" aria-hidden="true">
                   ·
                 </span>
-                <span className="text-[10px] font-mono font-semibold text-slate-400">
+                <span className="font-mono font-semibold text-zinc-500 dark:text-zinc-400">
                   {credentialId}
                 </span>
               </div>
               <div className="flex items-baseline gap-2 mt-0.5">
-                <span className="text-3xl font-black font-mono tabular-nums text-white">
+                <span className="text-3xl font-extrabold font-mono tabular-nums text-zinc-950 dark:text-white">
                   {effectiveScore}%
                 </span>
-                <span className="text-xs font-bold text-slate-300">
+                <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
                   Credibility Score
                 </span>
               </div>
-              <div className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1 mt-0.5">
+              <div className="text-[11px] font-semibold text-violet-700 dark:text-purple-300 flex items-center gap-1 mt-0.5">
                 <CheckCircle2 className="w-3 h-3 shrink-0" />
                 <span>{resolvedTier}</span>
               </div>
             </div>
           </div>
 
-          {/* Center: Context & 4-Vector Mini Metrics */}
+          {/* Context & 4-Vector Mini Metrics */}
           <div className="space-y-2.5">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-base font-black text-white tracking-tight">
-                Professional Credibility & Verified Trust Badge
+              <h3 className="text-base font-bold text-zinc-950 dark:text-white tracking-tight">
+                Professional Credibility & Verified Trust Credential
               </h3>
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                  isLiveVerified
-                    ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                    : "bg-blue-500/15 text-blue-300 border-blue-500/30"
-                }`}
-              >
-                {isLiveVerified ? "Live Audited" : "Ready to Share"}
+              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                · {isLiveVerified ? "Live Audited" : "Ready to Share"}
               </span>
             </div>
 
-            <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
-              Reflects your real-time LinkedIn Credibility Score for{" "}
-              <strong className="text-white">{targetRole}</strong> (
-              <span className="font-mono text-teal-300">{cleanHandle}</span>). Export as a
-              high-resolution LinkedIn post header graphic (PNG/JPEG) or embed on your
-              portfolio.
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 max-w-xl leading-relaxed">
+              Reflects your LinkedIn Credibility Score for{" "}
+              <strong className="text-zinc-950 dark:text-white">{targetRole}</strong> (
+              <span className="font-mono text-violet-700 dark:text-violet-300">
+                {cleanHandle}
+              </span>
+              ). Export as a high-resolution LinkedIn header graphic or embed on your portfolio.
             </p>
 
             {/* 4 Factor Readout Strip */}
-            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            <div className="flex flex-wrap items-center gap-3 pt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
               {defaultFactors.map((tf, idx) => (
                 <div
                   key={`badge-tf-${tf.name}-${idx}`}
-                  className="inline-flex items-center gap-1.5 text-[11px] bg-white/[0.04] border border-white/10 px-2.5 py-1 rounded-lg text-slate-300"
+                  className="inline-flex items-center gap-1.5"
                 >
-                  <span className="text-slate-400">{tf.name.split(" ")[0]}:</span>
-                  <span className="font-mono font-bold tabular-nums text-teal-300">
+                  <span>{tf.name.split(" ")[0]}:</span>
+                  <span className="font-mono font-bold tabular-nums text-zinc-950 dark:text-white">
                     {tf.score}%
                   </span>
+                  {idx < defaultFactors.length - 1 && (
+                    <span className="text-zinc-300 dark:text-zinc-700 ml-1" aria-hidden="true">
+                      /
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Right: Quick Export Graphic, Share, Embed & Audit Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+        {/* Right: Quick Export, Share, Embed & Audit Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={() => handleExportGraphic("png")}
             disabled={isExportingImage}
-            className="px-4 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shadow-sm"
+            className="px-3.5 py-2 rounded-xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-200 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
             title="Export 1200×627 LinkedIn Post Header Graphic (PNG)"
           >
             {copiedKey === "exported-png" ? (
               <>
-                <Check className="w-3.5 h-3.5 text-slate-950" />
-                <span>Header PNG Downloaded!</span>
+                <Check className="w-3.5 h-3.5" />
+                <span>PNG Downloaded</span>
               </>
             ) : (
               <>
@@ -834,17 +783,17 @@ Credential URL: ${badgeSvgUrl}`;
             type="button"
             onClick={() => handleExportGraphic("jpeg")}
             disabled={isExportingImage}
-            className="px-3.5 py-2.5 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/40 text-teal-300 hover:text-white font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+            className="px-3.5 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
             title="Export 1200×627 LinkedIn Post Header Graphic (JPEG)"
           >
             {copiedKey === "exported-jpeg" ? (
               <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-300">JPEG Downloaded!</span>
+                <Check className="w-3.5 h-3.5 text-violet-700 dark:text-violet-400" />
+                <span>JPEG Downloaded</span>
               </>
             ) : (
               <>
-                <Download className="w-3.5 h-3.5 text-teal-400" />
+                <Download className="w-3.5 h-3.5" />
                 <span>Export JPEG</span>
               </>
             )}
@@ -860,7 +809,7 @@ Credential URL: ${badgeSvgUrl}`;
                 setIsShareDrawerOpen(true);
               }
             }}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white font-black text-xs transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shadow-md shadow-teal-500/25 active:scale-95"
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-violet-700 to-purple-700 hover:from-violet-600 hover:to-purple-600 text-white font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 shadow-sm active:scale-[0.98]"
             title="Generate a social media-ready image card of your verified credibility score"
           >
             <Share2 className="w-3.5 h-3.5" />
@@ -871,10 +820,10 @@ Credential URL: ${badgeSvgUrl}`;
             <button
               type="button"
               onClick={onOpenWalkthrough}
-              className="px-3 py-2.5 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-              title="Interactive tutorial: how to share and customize your verified trust score card"
+              className="px-3 py-2 rounded-xl bg-violet-50 dark:bg-violet-950/50 hover:bg-violet-100 dark:hover:bg-violet-950/80 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800/60 text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+              title="Guided tour: how to share and customize your verified trust score card"
             >
-              <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+              <Compass className="w-3.5 h-3.5" />
               <span>Tour</span>
             </button>
           )}
@@ -882,25 +831,27 @@ Credential URL: ${badgeSvgUrl}`;
           <button
             type="button"
             onClick={() => setIsShareDrawerOpen((prev) => !prev)}
-            className={`px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap border ${
+            className={`px-3.5 py-2 rounded-xl font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 border ${
               isShareDrawerOpen
-                ? "bg-white/15 text-white border-white/30"
-                : "bg-white/5 hover:bg-white/10 text-slate-200 hover:text-white border-white/10"
+                ? "bg-violet-700 text-white border-violet-700"
+                : "bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700"
             }`}
           >
-            <Share2 className="w-3.5 h-3.5 text-teal-400" />
-            <span>{isShareDrawerOpen ? "Hide Studio" : "Graphic & Embed Studio"}</span>
+            <Code className="w-3.5 h-3.5" />
+            <span>
+              {isShareDrawerOpen ? "Hide Studio" : "Graphic & Embed Studio"}
+            </span>
           </button>
 
           <button
             type="button"
             onClick={onVerifyNow}
             disabled={isVerifying}
-            className="px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap disabled:opacity-50"
-            title="Refresh real-time LinkedIn vs. Resume Credibility Score"
+            className="px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-50"
+            title="Refresh LinkedIn vs. Resume Credibility Score"
           >
             <RefreshCw
-              className={`w-3.5 h-3.5 text-teal-400 ${isVerifying ? "animate-spin" : ""}`}
+              className={`w-3.5 h-3.5 ${isVerifying ? "animate-spin" : ""}`}
             />
             <span>{isVerifying ? "Verifying..." : "Refresh"}</span>
           </button>
@@ -908,10 +859,10 @@ Credential URL: ${badgeSvgUrl}`;
           <button
             type="button"
             onClick={onOpenVerificationModal}
-            className="px-3.5 py-2.5 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 text-blue-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-            title="Open LinkedIn Verification Modal to adjust trust factor weights and view 5-audit trend"
+            className="px-3.5 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-violet-700 dark:text-violet-300 text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+            title="Adjust trust factor weights and view 5-audit trend"
           >
-            <Sliders className="w-3.5 h-3.5 text-blue-400" />
+            <Sliders className="w-3.5 h-3.5" />
             <span>Weights & Trend</span>
           </button>
         </div>
@@ -919,27 +870,26 @@ Credential URL: ${badgeSvgUrl}`;
 
       {/* Expandable LinkedIn Header Graphic & Embed Studio Drawer */}
       {isShareDrawerOpen && (
-        <div className="p-6 bg-slate-950/90 border-t border-white/10 space-y-6">
-          {/* Top Navigation Tabs & Theme Controls */}
+        <div className="p-6 bg-zinc-50 dark:bg-[#09090b] border-t border-zinc-200 dark:border-zinc-800 space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-white/10">
+            <div className="flex flex-wrap items-center gap-1 bg-white dark:bg-[#111116] p-1 rounded-xl border border-zinc-200 dark:border-zinc-800">
               {(
                 [
-                  { id: "graphic", label: "LinkedIn Header Graphic (PNG / JPEG)" },
-                  { id: "linkedin", label: "LinkedIn Post Text" },
-                  { id: "html", label: "HTML Website Embed" },
-                  { id: "markdown", label: "Markdown / GitHub" },
-                  { id: "credential", label: "LinkedIn Credential" },
+                  { id: "graphic", label: "Header Graphic (PNG / JPEG)" },
+                  { id: "linkedin", label: "LinkedIn Post" },
+                  { id: "html", label: "HTML Embed" },
+                  { id: "markdown", label: "Markdown" },
+                  { id: "credential", label: "Credential Fields" },
                 ] as const
               ).map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveEmbedTab(tab.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
                     activeEmbedTab === tab.id
-                      ? "bg-teal-500/20 text-teal-300 border border-teal-500/40"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-violet-700 text-white"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                   }`}
                 >
                   {tab.label}
@@ -947,25 +897,26 @@ Credential URL: ${badgeSvgUrl}`;
               ))}
             </div>
 
-            {/* Theme Switcher */}
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-400">Theme:</span>
-              <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-white/10">
+              <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                Card Style:
+              </span>
+              <div className="flex items-center gap-1 bg-white dark:bg-[#111116] p-1 rounded-xl border border-zinc-200 dark:border-zinc-800">
                 {(
                   [
-                    { id: "executive", label: "Executive Dark" },
+                    { id: "executive", label: "Obsidian Dark" },
                     { id: "compact", label: "Compact Shield" },
-                    { id: "light", label: "Clean Light" },
+                    { id: "light", label: "White Studio" },
                   ] as const
                 ).map((st) => (
                   <button
                     key={st.id}
                     type="button"
                     onClick={() => setBadgeStyle(st.id)}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
                       badgeStyle === st.id
-                        ? "bg-teal-500 text-slate-950"
-                        : "text-slate-400 hover:text-white"
+                        ? "bg-zinc-950 dark:bg-violet-700 text-white"
+                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                     }`}
                   >
                     {st.label}
@@ -976,126 +927,118 @@ Credential URL: ${badgeSvgUrl}`;
           </div>
 
           {activeEmbedTab === "graphic" ? (
-            /* LinkedIn Post Header Graphic Exporter & Live Canvas Preview */
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Left (7 cols): Live High-Res Canvas Preview */}
               <div className="lg:col-span-7 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <ImageIcon className="w-4 h-4 text-teal-400" />
-                    <span className="text-xs font-bold text-white">
+                    <ImageIcon className="w-4 h-4 text-violet-700 dark:text-violet-400" />
+                    <span className="text-xs font-bold text-zinc-950 dark:text-white">
                       {dimensionPreset === "post-header"
-                        ? "LinkedIn Post Header Preview (1200 × 627 px · 1.91:1)"
-                        : "LinkedIn Profile Banner Preview (1584 × 396 px · 4:1)"}
+                        ? "LinkedIn Post Header (1200 × 627 px)"
+                        : "LinkedIn Profile Banner (1584 × 396 px)"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-white/10">
+                  <div className="flex items-center gap-1 bg-white dark:bg-[#111116] p-1 rounded-xl border border-zinc-200 dark:border-zinc-800">
                     <button
                       type="button"
                       onClick={() => setDimensionPreset("post-header")}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
                         dimensionPreset === "post-header"
-                          ? "bg-teal-500/20 text-teal-300 border border-teal-500/40"
-                          : "text-slate-400 hover:text-white"
+                          ? "bg-violet-700 text-white"
+                          : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                       }`}
                     >
-                      Post Header (1200×627)
+                      Post Header
                     </button>
                     <button
                       type="button"
                       onClick={() => setDimensionPreset("profile-banner")}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
                         dimensionPreset === "profile-banner"
-                          ? "bg-teal-500/20 text-teal-300 border border-teal-500/40"
-                          : "text-slate-400 hover:text-white"
+                          ? "bg-violet-700 text-white"
+                          : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                       }`}
                     >
-                      Profile Banner (1584×396)
+                      Profile Banner
                     </button>
                   </div>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-slate-900 border border-white/10 shadow-inner overflow-hidden flex items-center justify-center">
+                <div className="p-3 rounded-xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 overflow-hidden flex items-center justify-center">
                   <canvas
                     ref={previewCanvasRef}
-                    className="w-full h-auto rounded-xl border border-white/10 shadow-lg"
+                    className="w-full h-auto rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm"
                   />
                 </div>
               </div>
 
-              {/* Right (5 cols): Export Format & Download Controls */}
-              <div className="lg:col-span-5 p-5 rounded-2xl bg-slate-900/90 border border-white/10 space-y-4">
+              <div className="lg:col-span-5 p-5 rounded-xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 space-y-4">
                 <div>
-                  <h4 className="text-sm font-black text-white flex items-center gap-2">
-                    <Award className="w-4 h-4 text-teal-400" />
-                    <span>Export Shareable LinkedIn Graphic</span>
+                  <h4 className="text-sm font-bold text-zinc-950 dark:text-white flex items-center gap-2">
+                    <Award className="w-4 h-4 text-violet-700 dark:text-violet-400" />
+                    <span>Export Shareable Graphic</span>
                   </h4>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    Optimized specifically for LinkedIn post headers and featured media cards.
-                    Includes your verified Credibility Score ({effectiveScore}%), credential ID (
-                    <span className="font-mono text-slate-300">{credentialId}</span>), and
-                    4-factor verification bars.
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 leading-relaxed">
+                    Formatted for LinkedIn feed headers and featured media. Includes your verified score ({effectiveScore}%), credential ID (<span className="font-mono">{credentialId}</span>), and verification pillars.
                   </p>
                 </div>
 
-                {/* Format Selection */}
                 <div className="space-y-1.5">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                  <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block">
                     Image Format
                   </span>
                   <div className="grid grid-cols-2 gap-2.5">
                     <button
                       type="button"
                       onClick={() => setExportFormat("png")}
-                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
                         exportFormat === "png"
-                          ? "bg-teal-500/15 border-teal-500/40 text-white"
-                          : "bg-slate-950/60 border-white/10 text-slate-400 hover:text-white"
+                          ? "bg-violet-50 dark:bg-violet-950/50 border-violet-600 text-zinc-950 dark:text-white"
+                          : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
                       }`}
                     >
                       <div className="text-xs font-bold flex items-center justify-between">
                         <span>PNG (Lossless)</span>
                         {exportFormat === "png" && (
-                          <Check className="w-3.5 h-3.5 text-teal-400" />
+                          <Check className="w-3.5 h-3.5 text-violet-700 dark:text-violet-400" />
                         )}
                       </div>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">
-                        Crisp typography & vector-sharp edges
+                      <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block mt-0.5">
+                        Crisp vector-sharp edges
                       </span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setExportFormat("jpeg")}
-                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
                         exportFormat === "jpeg"
-                          ? "bg-teal-500/15 border-teal-500/40 text-white"
-                          : "bg-slate-950/60 border-white/10 text-slate-400 hover:text-white"
+                          ? "bg-violet-50 dark:bg-violet-950/50 border-violet-600 text-zinc-950 dark:text-white"
+                          : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
                       }`}
                     >
                       <div className="text-xs font-bold flex items-center justify-between">
                         <span>JPEG (95% HQ)</span>
                         {exportFormat === "jpeg" && (
-                          <Check className="w-3.5 h-3.5 text-teal-400" />
+                          <Check className="w-3.5 h-3.5 text-violet-700 dark:text-violet-400" />
                         )}
                       </div>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">
-                        Compact file size for instant feed upload
+                      <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block mt-0.5">
+                        Compact feed upload size
                       </span>
                     </button>
                   </div>
                 </div>
 
-                {/* Primary Export Actions */}
                 <div className="space-y-2.5 pt-1">
                   <button
                     type="button"
                     onClick={() => handleExportGraphic(exportFormat)}
-                    className="w-full py-3 px-4 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-teal-500/20"
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-violet-700 to-purple-700 hover:from-violet-600 hover:to-purple-600 text-white font-bold text-xs tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                   >
                     <Download className="w-4 h-4" />
                     <span>
-                      Download LinkedIn{" "}
+                      Download{" "}
                       {dimensionPreset === "post-header" ? "Post Header" : "Banner"} (.
                       {exportFormat.toUpperCase()})
                     </span>
@@ -1105,16 +1048,16 @@ Credential URL: ${badgeSvgUrl}`;
                     <button
                       type="button"
                       onClick={handleCopyGraphicToClipboard}
-                      className="py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-200 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                      className="py-2 px-3 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-800 dark:text-zinc-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                     >
                       {copiedKey === "copy-graphic-img" ? (
                         <>
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-emerald-300">Image Copied!</span>
+                          <Check className="w-3.5 h-3.5 text-violet-700 dark:text-violet-400" />
+                          <span>Image Copied</span>
                         </>
                       ) : (
                         <>
-                          <Copy className="w-3.5 h-3.5 text-teal-400" />
+                          <Copy className="w-3.5 h-3.5" />
                           <span>Copy Image</span>
                         </>
                       )}
@@ -1123,18 +1066,17 @@ Credential URL: ${badgeSvgUrl}`;
                     <button
                       type="button"
                       onClick={handleDownloadSvg}
-                      className="py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-200 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                      className="py-2 px-3 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-800 dark:text-zinc-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                     >
-                      <Code className="w-3.5 h-3.5 text-blue-400" />
+                      <Code className="w-3.5 h-3.5 text-violet-700 dark:text-violet-400" />
                       <span>Download .SVG</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Quick Share to LinkedIn Feed */}
-                <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
-                  <span className="text-[11px] text-slate-400">
-                    Ready to post on LinkedIn?
+                <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2">
+                  <span className="text-xs text-zinc-600 dark:text-zinc-400">
+                    Share externally:
                   </span>
                   <a
                     href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
@@ -1142,7 +1084,7 @@ Credential URL: ${badgeSvgUrl}`;
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3.5 py-1.5 rounded-xl bg-[#0A66C2] hover:bg-[#004182] text-white text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap"
+                    className="px-3.5 py-1.5 rounded-lg bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 text-xs font-bold transition-colors flex items-center gap-1.5 whitespace-nowrap"
                   >
                     <span>Open LinkedIn Composer</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -1151,34 +1093,32 @@ Credential URL: ${badgeSvgUrl}`;
               </div>
             </div>
           ) : (
-            /* Code & Text Embed Tabs (LinkedIn Post Text, HTML, Markdown, Credential) */
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Left (5 cols): Live Compact/Executive Badge Preview */}
               <div className="lg:col-span-5 space-y-4">
-                <div className="p-5 rounded-2xl bg-slate-900/90 border border-white/10 flex flex-col items-center justify-center min-h-[148px]">
+                <div className="p-5 rounded-xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 flex flex-col items-center justify-center min-h-[148px]">
                   {badgeStyle === "compact" ? (
-                    <div className="inline-flex items-center rounded-xl overflow-hidden border border-teal-500/40 bg-slate-950 shadow-lg">
-                      <div className="px-3.5 py-2 bg-slate-800 flex items-center gap-2 text-xs font-black tracking-wider text-white">
-                        <ShieldCheck className="w-4 h-4 text-teal-400" />
+                    <div className="inline-flex items-center rounded-lg overflow-hidden border border-violet-600/50 bg-[#09090b] shadow-sm">
+                      <div className="px-3.5 py-2 bg-zinc-900 flex items-center gap-2 text-xs font-bold tracking-wider text-white">
+                        <ShieldCheck className="w-4 h-4 text-violet-400" />
                         <span>VERIFIED TRUST</span>
                       </div>
-                      <div className="px-3.5 py-2 bg-slate-950 font-mono text-xs font-extrabold text-teal-400 tabular-nums">
+                      <div className="px-3.5 py-2 bg-[#09090b] font-mono text-xs font-bold text-purple-300 tabular-nums">
                         {effectiveScore}% CREDIBILITY
                       </div>
                     </div>
                   ) : (
                     <div
-                      className={`w-full max-w-md rounded-2xl p-4 border transition-all flex items-center gap-4 shadow-lg ${
+                      className={`w-full max-w-md rounded-xl p-4 border transition-colors flex items-center gap-4 shadow-sm ${
                         badgeStyle === "light"
-                          ? "bg-white border-slate-300 text-slate-900"
-                          : "bg-slate-950 border-teal-500/40 text-white"
+                          ? "bg-white border-zinc-300 text-zinc-950"
+                          : "bg-[#09090b] border-violet-600/40 text-white"
                       }`}
                     >
-                      <div className="w-20 h-20 rounded-xl bg-teal-500/10 border border-teal-500/30 flex flex-col items-center justify-center shrink-0">
-                        <span className="text-2xl font-black font-mono tabular-nums text-teal-500">
+                      <div className="w-20 h-20 rounded-xl bg-violet-600/10 border border-violet-600/30 flex flex-col items-center justify-center shrink-0">
+                        <span className="text-2xl font-extrabold font-mono tabular-nums text-violet-600 dark:text-violet-400">
                           {effectiveScore}%
                         </span>
-                        <span className="text-[8px] font-black uppercase tracking-widest opacity-75">
+                        <span className="text-[8px] font-bold uppercase tracking-widest opacity-75">
                           CREDIBILITY
                         </span>
                         <span className="text-[8px] font-mono opacity-60 mt-0.5">
@@ -1186,19 +1126,20 @@ Credential URL: ${badgeSvgUrl}`;
                         </span>
                       </div>
                       <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded bg-teal-500/15 text-teal-500 text-[9px] font-black uppercase tracking-wider">
-                            ✓ Verified Trust
+                        <div className="flex items-center gap-2 text-[10px]">
+                          <span className="font-bold text-violet-700 dark:text-violet-300">
+                            Verified Trust
                           </span>
-                          <span className="text-[9px] font-bold uppercase tracking-wider opacity-60 truncate">
+                          <span aria-hidden="true">·</span>
+                          <span className="font-semibold opacity-70 truncate">
                             {resolvedTier}
                           </span>
                         </div>
-                        <div className="text-sm font-extrabold truncate">{targetRole}</div>
+                        <div className="text-sm font-bold truncate">{targetRole}</div>
                         <div className="text-[11px] font-mono opacity-75 truncate">
                           {cleanHandle}
                         </div>
-                        <div className="text-[9px] opacity-60 pt-1 border-t border-current/10 truncate">
+                        <div className="text-[10px] opacity-60 pt-1 border-t border-current/10 truncate">
                           Endorsements · Work History · Education · Identity Verified
                         </div>
                       </div>
@@ -1210,24 +1151,24 @@ Credential URL: ${badgeSvgUrl}`;
                   <button
                     type="button"
                     onClick={handleDownloadSvg}
-                    className="flex-1 px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-200 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                    className="flex-1 px-3.5 py-2 rounded-xl bg-white dark:bg-[#111116] hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-semibold text-zinc-900 dark:text-white transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                   >
-                    <Download className="w-3.5 h-3.5 text-teal-400" />
+                    <Download className="w-3.5 h-3.5 text-violet-700 dark:text-violet-400" />
                     <span>Download Badge (.SVG)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleCopy("badge-url", badgeSvgUrl)}
-                    className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-200 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                    className="px-3.5 py-2 rounded-xl bg-white dark:bg-[#111116] hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-semibold text-zinc-900 dark:text-white transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                   >
                     {copiedKey === "badge-url" ? (
                       <>
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-emerald-300">Badge URL Copied</span>
+                        <Check className="w-3.5 h-3.5 text-violet-700 dark:text-violet-400" />
+                        <span>Badge URL Copied</span>
                       </>
                     ) : (
                       <>
-                        <Link2 className="w-3.5 h-3.5 text-slate-400" />
+                        <Link2 className="w-3.5 h-3.5" />
                         <span>Copy SVG URL</span>
                       </>
                     )}
@@ -1235,18 +1176,17 @@ Credential URL: ${badgeSvgUrl}`;
                 </div>
               </div>
 
-              {/* Right (7 cols): Active Snippet Box */}
-              <div className="lg:col-span-7 relative rounded-2xl bg-slate-900 border border-white/10 p-4 space-y-3">
+              <div className="lg:col-span-7 relative rounded-xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 p-4 space-y-3">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-300">
+                  <span className="font-bold text-zinc-900 dark:text-zinc-200">
                     {activeEmbedTab === "linkedin" &&
-                      "Ready-to-post LinkedIn Credibility Announcement"}
+                      "LinkedIn Credibility Announcement Copy"}
                     {activeEmbedTab === "html" &&
-                      "Embeddable HTML Snippet for Personal Website / Portfolio"}
+                      "Embeddable HTML Snippet for Portfolio"}
                     {activeEmbedTab === "markdown" &&
-                      "Markdown Badge for GitHub Profile README / Notion"}
+                      "Markdown Badge for GitHub README"}
                     {activeEmbedTab === "credential" &&
-                      "LinkedIn 'Licenses & Certifications' Profile Fields"}
+                      "LinkedIn Licenses & Certifications Fields"}
                   </span>
                   <button
                     type="button"
@@ -1259,12 +1199,12 @@ Credential URL: ${badgeSvgUrl}`;
                       };
                       handleCopy(activeEmbedTab, map[activeEmbedTab]);
                     }}
-                    className="px-3 py-1 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 border border-teal-500/40 text-teal-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                    className="px-3 py-1 rounded-lg bg-violet-700 hover:bg-violet-600 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
                     {copiedKey === activeEmbedTab ? (
                       <>
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-emerald-300">Copied to Clipboard!</span>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Copied</span>
                       </>
                     ) : (
                       <>
@@ -1275,22 +1215,22 @@ Credential URL: ${badgeSvgUrl}`;
                   </button>
                 </div>
 
-                <pre className="p-3.5 rounded-xl bg-slate-950 border border-white/5 text-[11px] font-mono text-slate-300 overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-44">
+                <pre className="p-3.5 rounded-lg bg-zinc-50 dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 text-[11px] font-mono text-zinc-800 dark:text-zinc-300 overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-44">
                   {activeEmbedTab === "linkedin" && shareSnippets.linkedinPost}
                   {activeEmbedTab === "html" && shareSnippets.htmlEmbed}
                   {activeEmbedTab === "markdown" && shareSnippets.markdownEmbed}
                   {activeEmbedTab === "credential" && shareSnippets.credentialDetails}
                 </pre>
 
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                   {activeEmbedTab === "linkedin" &&
-                    "Tip: Copy this post and attach your exported PNG/JPEG LinkedIn post header graphic above."}
+                    "Copy this post and attach your exported PNG or JPEG LinkedIn header graphic."}
                   {activeEmbedTab === "html" &&
-                    "Tip: Paste this HTML block into your portfolio header or footer to display your live Verified Trust score."}
+                    "Paste this HTML block into your portfolio header or footer."}
                   {activeEmbedTab === "markdown" &&
-                    "Tip: Add this Markdown line to your GitHub profile README.md to showcase your verified Credibility Score."}
+                    "Add this Markdown snippet to your GitHub README.md."}
                   {activeEmbedTab === "credential" &&
-                    "Tip: Paste these fields into LinkedIn → Add Profile Section → Licenses & Certifications."}
+                    "Paste these fields into LinkedIn -> Add Profile Section -> Licenses & Certifications."}
                 </p>
               </div>
             </div>
