@@ -471,9 +471,9 @@ export function runAtsSimulation(
       impact: `-${pen} pts`,
       impactValue: -pen,
       status: "critical",
-      reason: "Enterprise ATS parsers require Email, Phone, and LinkedIn URL in the top 15 lines to populate candidate contact fields.",
-      evidence: `Email: ${hasEmail ? "Present" : "Missing"} · Phone: ${hasPhone ? "Present" : "Missing"} · LinkedIn: ${hasLinkedIn ? "Present" : "Missing"}`,
-      actionableFix: "Place Email, Phone, Location, and canonical LinkedIn URL on a single plain-text line directly below your name.",
+      reason: "ATS parsers require a valid Email address and Phone number near the top of your resume to create your candidate profile.",
+      evidence: `Email: ${hasEmail ? "Present" : "Missing"} · Phone: ${hasPhone ? "Present" : "Missing"}`,
+      actionableFix: "Place your Email, Phone number, and City/State on a clean plain-text line directly below your name.",
     });
   } else {
     scoreReasons.push({
@@ -483,9 +483,9 @@ export function runAtsSimulation(
       impact: "+6 pts",
       impactValue: 6,
       status: "positive",
-      reason: "Email, phone number, and profile links are cleanly positioned for 100% ATS contact field extraction.",
+      reason: "Email and phone number are cleanly positioned in plain text so ATS software extracts your contact info accurately.",
       evidence: `Email: Verified · Phone: Verified${hasLinkedIn ? " · LinkedIn URL: Verified" : ""}`,
-      actionableFix: hasLinkedIn ? "Contact block is fully optimized." : "Include your public linkedin.com/in/ handle in the header for +15% recruiter trust.",
+      actionableFix: "Contact header is clean and ATS-readable.",
     });
   }
 
@@ -1121,6 +1121,11 @@ export function buildCalibratedAnalysisResult(
     }
   }
 
+  const hasLinkedInProvided = Boolean(
+    (linkedinUrl && linkedinUrl.trim().length > 3) ||
+      (linkedinData && linkedinData.trim().length > 10)
+  );
+
   // Deep, specific, evidence-backed recommendations (NEVER vague!)
   const specificRecommendations: string[] = [
     ...(atsSim.jobKeywordsMissing.length > 0
@@ -1141,7 +1146,11 @@ export function buildCalibratedAnalysisResult(
       : [
           `Maintain Single-Column ATS Structural Hygiene: Keep standard section headers (${atsSim.foundHeaders.join(", ")}) on isolated lines with uniform 'MMM YYYY – Present' date alignment to guarantee 100% parsing fidelity in Workday and Greenhouse.`,
         ]),
-    `Strengthen Cross-Vector LinkedIn & Resume Narrative Parity (+7 pts): Align your LinkedIn headline and About section with your resume's core architectural wins (${foundSkills.slice(0, 3).join(", ")}) so executive recruiters verifying your profile see identical scope and seniority.`,
+    ...(hasLinkedInProvided
+      ? [
+          `Strengthen Cross-Vector LinkedIn & Resume Narrative Parity (+7 pts): Align your LinkedIn headline and About section with your resume's core architectural wins (${foundSkills.slice(0, 3).join(", ")}) so executive recruiters verifying your profile see identical scope and seniority.`,
+        ]
+      : []),
   ];
 
   const mergedRecommendations =
@@ -1170,8 +1179,6 @@ export function buildCalibratedAnalysisResult(
       `Engineered scalable microservices and automated pipelines integrating ${kw}, supporting high-concurrency enterprise workloads with 99.99% uptime SLA.`,
     ],
   }));
-
-  const hasLinkedInProvided = Boolean(linkedinUrl && linkedinUrl.trim().length > 3);
 
   return {
     overallScore,
@@ -1256,22 +1263,30 @@ export function buildCalibratedAnalysisResult(
           ],
         },
     careerTimeline,
-    linkedinComparison: {
-      hasLinkedIn: hasLinkedInProvided,
-      resumeHeadline: `${inferredRole} (${foundSkills.slice(0, 3).join(", ")})`,
-      linkedinHeadline:
-        linkedinData
-          ? linkedinData.split("\n")[0].replace(/^Headline:\s*/i, "")
-          : `${inferredRole} | ${foundSkills.slice(0, 3).join(" · ")} | High-Scale Architecture`,
-      matchAnalysis: hasLinkedInProvided
-        ? `Cross-vector verification of ${linkedinUrl} against your resume confirms alignment in core role positioning (${inferredRole}). Synchronizing your quantified resume metrics (${atsSim.extractedMetrics.slice(0, 2).join(", ") || "key KPIs"}) onto your public LinkedIn summary will increase recruiter inbound velocity by ~35%.`
-        : "Connect your LinkedIn profile URL to unlock cross-vector headline, timeline, and skill endorsement verification.",
-      missingFromResume: missingSkills.slice(0, 3),
-      missingFromLinkedIn:
-        atsSim.extractedMetrics.length > 0
-          ? atsSim.extractedMetrics.slice(0, 3).map((m) => `Quantified Milestone: ${m}`)
-          : ["Quantified Architectural Latency & Cost Metrics", "Cloud Certification Verification Badges"],
-    },
+    linkedinComparison: hasLinkedInProvided
+      ? {
+          hasLinkedIn: true,
+          resumeHeadline: `${inferredRole} (${foundSkills.slice(0, 3).join(", ")})`,
+          linkedinHeadline:
+            linkedinData && linkedinData.trim()
+              ? linkedinData.split("\n")[0].replace(/^Headline:\s*/i, "")
+              : `${inferredRole} | ${foundSkills.slice(0, 3).join(" · ")}`,
+          matchAnalysis: `Cross-vector verification of ${linkedinUrl || "your linked profile"} against your resume confirms alignment in core role positioning (${inferredRole}). Synchronizing your quantified resume metrics (${atsSim.extractedMetrics.slice(0, 2).join(", ") || "key KPIs"}) onto your public LinkedIn summary strengthens recruiter consistency.`,
+          missingFromResume: missingSkills.slice(0, 3),
+          missingFromLinkedIn:
+            atsSim.extractedMetrics.length > 0
+              ? atsSim.extractedMetrics.slice(0, 3).map((m) => `Quantified Milestone: ${m}`)
+              : ["Quantified Architectural Latency & Cost Metrics", "Cloud Certification Verification Badges"],
+        }
+      : {
+          hasLinkedIn: false,
+          resumeHeadline: "",
+          linkedinHeadline: "",
+          matchAnalysis:
+            "LinkedIn profile is missing. Your resume was scored independently without any LinkedIn penalty.",
+          missingFromResume: [],
+          missingFromLinkedIn: [],
+        },
     atsAnalysis: {
       formattingScore: formattingHealthScore,
       keywordDensity: atsSim.keywordDensity,

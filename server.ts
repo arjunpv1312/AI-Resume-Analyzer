@@ -794,15 +794,24 @@ async function startServer() {
           weights = null,
         } = req.body || {};
 
-        // 1. Resolve LinkedIn URL & handle (from input or fallback to URL embedded in resumeText)
-        let rawUrl = String(linkedinUrl || "").trim();
-        if (!rawUrl && typeof resumeText === "string") {
-          const embeddedMatch = resumeText.match(
-            /(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/([a-zA-Z0-9\-_%]+)/i
-          );
-          if (embeddedMatch) {
-            rawUrl = `https://www.linkedin.com/in/${embeddedMatch[1]}`;
-          }
+        // 1. Resolve LinkedIn URL & handle (ONLY from explicit linkedinUrl or pasted linkedinData — never fabricate)
+        const rawUrl = String(linkedinUrl || "").trim();
+        const rawProfileText = String(linkedinData || "").trim();
+
+        if (!rawUrl && !rawProfileText) {
+          return res.json({
+            success: false,
+            status: "missing",
+            trustScore: null,
+            credibilityScore: null,
+            credibilityTier: "LinkedIn Missing",
+            normalizedUrl: "",
+            handle: "",
+            message:
+              "LinkedIn profile is missing. Connect your linkedin.com/in/ URL or paste profile text to verify.",
+            trustFactors: [],
+            auditChecks: [],
+          });
         }
 
         let username = "";
@@ -1278,13 +1287,14 @@ async function startServer() {
         );
 
         const hasLinkedInProvided = Boolean(
-          linkedinUrl && typeof linkedinUrl === "string" && linkedinUrl.trim().length > 3
+          (linkedinUrl && typeof linkedinUrl === "string" && linkedinUrl.trim().length > 3) ||
+            (linkedinData && typeof linkedinData === "string" && linkedinData.trim().length > 10)
         );
 
         const prompt = `
         You are an Elite Executive Search Consultant, C-Suite Talent Assessor, and Calibrated ATS Intelligence Engine (${activeCalibration.version}, Strictness Mode: ${activeCalibration.strictness.toUpperCase()}, Epoch #${activeCalibration.trainingEpoch}).
         ${activeCalibration.customPromptFocus ? `USER-DEFINED CALIBRATION FOCUS: "${activeCalibration.customPromptFocus}" — Prioritize this directive in your scoring reasons and recommendations.` : ""}
-        Your primary directive is to provide a ruthless, evidence-backed, and highly strategic assessment of the candidate's resume against the target role.
+        Your primary directive is to provide a clear, evidence-backed, easy-to-understand assessment of the candidate's resume against the target role.
         Every score and recommendation MUST cite concrete evidence from the resume and explain WHY points were awarded or deducted.
 
         RESUME TEXT:
@@ -1296,9 +1306,9 @@ async function startServer() {
         LINKEDIN CONNECTION DATA:
         ${hasLinkedInProvided ? `
         - Profile Connected: YES
-        - LinkedIn Profile URL: ${linkedinUrl.trim()}
+        - LinkedIn Profile URL: ${String(linkedinUrl || "").trim()}
         ${linkedinData ? `- Candidate Provided Profile Context/Headline/About:\n${linkedinData}\n` : "- Profile link provided by candidate. Perform deep cross-vector comparison."}
-        ` : "No LinkedIn profile connected."}
+        ` : "No LinkedIn profile connected. CRITICAL: Do NOT invent any LinkedIn profile, headline, or comparison items, and do NOT penalize the resume for missing LinkedIn. Set linkedinComparison.hasLinkedIn = false, headlines = '', arrays = [], and matchAnalysis = 'LinkedIn profile is missing. Resume scored independently.'"}
 
         CALIBRATED RULE-ENGINE BASELINE METRICS (Do NOT contradict verified skill/metric extractions):
         - Reported Pages: ${pageCount}
@@ -1414,6 +1424,18 @@ async function startServer() {
           linkedinData,
           aiPartialResult
         );
+
+        if (!hasLinkedInProvided) {
+          finalAnalysis.linkedinComparison = {
+            hasLinkedIn: false,
+            resumeHeadline: "",
+            linkedinHeadline: "",
+            matchAnalysis:
+              "LinkedIn profile is missing. Your resume was scored independently without any LinkedIn penalty.",
+            missingFromResume: [],
+            missingFromLinkedIn: [],
+          };
+        }
 
         return res.json(finalAnalysis);
       } catch (error: any) {
@@ -1597,7 +1619,7 @@ Return strictly a valid JSON object matching this schema:
               email: emailMatch ? emailMatch[0] : "candidate@email.com",
               phone: phoneMatch ? phoneMatch[0] : "+1 (555) 234-5678",
               location: "United States",
-              linkedin: liMatch ? liMatch[0] : "linkedin.com/in/candidate",
+              linkedin: liMatch ? liMatch[0] : "",
               portfolio: "github.com/candidate",
             },
             summary:

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -159,11 +158,11 @@ export const LinkedInVerificationModal: React.FC<
   }, [initialLinkedinUrl, initialLinkedinData, isOpen]);
 
   const candidateInfo = useMemo(() => {
-    const candidateName = resumeData?.name || "Alex Mercer";
+    const candidateName = resumeData?.name || "Candidate";
     const targetRole =
       resumeData?.targetRole ||
       resumeData?.careerPath?.topRole ||
-      "Senior Staff Software Engineer";
+      "Target Role";
     const skills: string[] = resumeData?.foundSkills || [];
     const timeline: Array<{ role: string; company: string; duration?: string }> =
       resumeData?.careerTimeline || [];
@@ -204,6 +203,29 @@ export const LinkedInVerificationModal: React.FC<
   const verificationResult = useMemo(() => {
     const urlProvided = !!linkedinUrl.trim();
     const textProvided = !!profileText.trim();
+    const isMissing = !urlProvided && !textProvided;
+
+    if (isMissing) {
+      return {
+        isMissing: true,
+        compositeTrustScore: null as number | null,
+        equalBaselineScore: null as number | null,
+        weightDelta: 0,
+        endorsementsScore: 0,
+        workHistoryScore: 0,
+        educationScore: 0,
+        identityRoleScore: 0,
+        trustFactors: [] as TrustFactor[],
+        auditChecks: [
+          {
+            title: "LinkedIn Profile Status",
+            passed: false,
+            details: "LinkedIn is missing — enter your URL or paste profile summary below.",
+          },
+        ],
+      };
+    }
+
     const normUrl = linkedinUrl.toLowerCase();
     const normText = profileText.toLowerCase();
     const normResume = (resumeText || resumeData?.summary || "").toLowerCase();
@@ -435,8 +457,9 @@ export const LinkedInVerificationModal: React.FC<
     ];
 
     return {
-      compositeTrustScore,
-      equalBaselineScore,
+      isMissing: false,
+      compositeTrustScore: compositeTrustScore as number | null,
+      equalBaselineScore: equalBaselineScore as number | null,
       weightDelta,
       endorsementsScore,
       workHistoryScore,
@@ -529,6 +552,10 @@ export const LinkedInVerificationModal: React.FC<
       auditLabel: `Audit #${idx + 1}`,
     }));
 
+    if (verificationResult.isMissing || verificationResult.compositeTrustScore === null) {
+      return recentFour;
+    }
+
     const currentAudit: VerificationAuditEntry = {
       id: "audit-current",
       auditLabel: "Audit #5 (Current)",
@@ -548,17 +575,20 @@ export const LinkedInVerificationModal: React.FC<
     const scores = fiveAuditTrendData.map((d) => d.credibilityScore);
     const firstScore = scores[0] ?? 68;
     const currentScore =
-      scores[scores.length - 1] ?? verificationResult.compositeTrustScore;
+      scores[scores.length - 1] ?? (verificationResult.compositeTrustScore ?? 0);
     const netChange = currentScore - firstScore;
-    const peakScore = Math.max(...scores);
-    const avgScore = Math.round(
-      scores.reduce((a, b) => a + b, 0) / scores.length
-    );
+    const peakScore = scores.length > 0 ? Math.max(...scores) : 0;
+    const avgScore =
+      scores.length > 0
+        ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+        : 0;
     return { firstScore, currentScore, netChange, peakScore, avgScore };
   }, [fiveAuditTrendData, verificationResult.compositeTrustScore]);
 
   const recordAuditSnapshot = (customScore?: number) => {
-    const scoreToRecord = customScore ?? verificationResult.compositeTrustScore;
+    const resolved = customScore ?? verificationResult.compositeTrustScore;
+    if (resolved === null) return;
+    const scoreToRecord = resolved;
     const timeLabel = new Date().toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
@@ -665,35 +695,45 @@ export const LinkedInVerificationModal: React.FC<
           ? data.credibilityScore
           : verificationResult.compositeTrustScore;
 
-      recordAuditSnapshot(resolvedScore);
+      if (typeof resolvedScore === "number") {
+        recordAuditSnapshot(resolvedScore);
+      }
 
       setTimeout(() => {
         setIsVerifying(false);
-        if (onSaveVerifiedData) {
+        if (onSaveVerifiedData && typeof resolvedScore === "number") {
           onSaveVerifiedData(finalUrl, finalProfile, resolvedScore);
         }
-      }, 350);
+      }, 200);
     } catch {
       clearInterval(interval);
       setVerificationProgress(100);
       setCurrentVerificationStep(
         "5/5: Verification complete. Credibility score updated."
       );
-      recordAuditSnapshot(verificationResult.compositeTrustScore);
+      if (typeof verificationResult.compositeTrustScore === "number") {
+        recordAuditSnapshot(verificationResult.compositeTrustScore);
+      }
       setTimeout(() => {
         setIsVerifying(false);
-        if (onSaveVerifiedData) {
+        if (
+          onSaveVerifiedData &&
+          typeof verificationResult.compositeTrustScore === "number"
+        ) {
           onSaveVerifiedData(
             linkedinUrl,
             profileText,
             verificationResult.compositeTrustScore
           );
         }
-      }, 350);
+      }, 200);
     }
   };
 
   const handleCopyReport = () => {
+    if (verificationResult.isMissing || verificationResult.compositeTrustScore === null) {
+      return;
+    }
     const reportText = `PROFESSIONAL IDENTITY & CREDIBILITY VERIFICATION REPORT:
 Candidate: ${candidateInfo.candidateName}
 Target Role: ${candidateInfo.targetRole}
@@ -723,7 +763,8 @@ ${verificationResult.auditChecks
     setTimeout(() => setCopiedReport(false), 2500);
   };
 
-  const getTrustTierLabel = (score: number) => {
+  const getTrustTierLabel = (score: number | null) => {
+    if (score === null) return "LinkedIn Missing";
     if (score >= 88) return "Verified High Credibility";
     if (score >= 75) return "Strong Profile Credibility";
     if (score >= 60) return "Moderate Fit (Review Discrepancies)";
@@ -734,38 +775,33 @@ ${verificationResult.auditChecks
   const gridStroke = isDark ? "rgba(255,255,255,0.08)" : "rgba(9,9,11,0.08)";
 
   return (
-    <AnimatePresence>
-      <div
-        key="linkedin-verification-backdrop"
-        className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md overflow-y-auto"
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 12 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: 12 }}
-          transition={{ duration: 0.2 }}
-          className="bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto text-zinc-950 dark:text-zinc-100"
-        >
-          {/* Header */}
-          <div className="px-6 py-5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#111116] flex flex-wrap items-center justify-between gap-4 shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-violet-100 dark:bg-violet-950/60 border border-violet-200 dark:border-violet-800/60 text-violet-700 dark:text-violet-300">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-lg font-bold font-display text-zinc-950 dark:text-white">
-                    LinkedIn Identity & Credibility Verification
-                  </h2>
-                  <span className="text-xs font-semibold text-violet-700 dark:text-violet-300">
-                    · {getTrustTierLabel(verificationResult.compositeTrustScore)}
-                  </span>
-                </div>
-                <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
-                  Customizable trust factor weighting and 5-audit credibility trend analysis
-                </p>
-              </div>
+    <div
+      key="linkedin-verification-backdrop"
+      className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-6 bg-[#09090b]/80 backdrop-blur-sm overflow-y-auto"
+    >
+      <div className="bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto text-zinc-950 dark:text-zinc-100">
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#09090b] flex flex-wrap items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-[#4c1d95]/10 dark:bg-[#4c1d95]/40 border border-[#4c1d95]/25 dark:border-[#7e22ce]/50 text-[#4c1d95] dark:text-purple-300">
+              <ShieldCheck className="w-6 h-6" />
             </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-bold font-display text-zinc-950 dark:text-white">
+                  LinkedIn Identity & Credibility Verification
+                </h2>
+                <span className="text-xs font-semibold text-[#7e22ce] dark:text-purple-300">
+                  · {getTrustTierLabel(verificationResult.compositeTrustScore)}
+                </span>
+              </div>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
+                {verificationResult.isMissing
+                  ? "LinkedIn profile is missing — enter your profile URL or summary below to verify"
+                  : "Customizable trust factor weighting and verification audit"}
+              </p>
+            </div>
+          </div>
 
             <div className="flex items-center gap-2">
               <button
@@ -799,7 +835,25 @@ ${verificationResult.auditChecks
 
           {/* Body Content */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* Credibility Score Highlight Banner */}
+            {/* Credibility Score Highlight Banner OR LinkedIn Missing Banner */}
+            {verificationResult.isMissing || verificationResult.compositeTrustScore === null ? (
+              <div className="p-6 rounded-2xl bg-zinc-50 dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="space-y-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#7e22ce] dark:text-purple-300 block">
+                    LinkedIn Profile Missing
+                  </span>
+                  <h3 className="text-base font-bold text-zinc-950 dark:text-white">
+                    No LinkedIn Profile Connected
+                  </h3>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 max-w-xl leading-relaxed">
+                    Your resume score is evaluated independently without any LinkedIn penalty. Enter your public <strong className="text-zinc-950 dark:text-white">linkedin.com/in/</strong> URL or paste your profile headline &amp; summary below to run a cross-check.
+                  </p>
+                </div>
+                <span className="px-3 py-1.5 rounded-lg bg-zinc-200/70 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-xs font-mono font-bold text-zinc-700 dark:text-zinc-300 shrink-0">
+                  Status: Not Linked
+                </span>
+              </div>
+            ) : (
             <div className="p-6 rounded-2xl bg-zinc-50 dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 relative overflow-hidden">
               <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-6">
@@ -826,7 +880,7 @@ ${verificationResult.auditChecks
                           (301.6 * verificationResult.compositeTrustScore) / 100
                         }
                         strokeLinecap="round"
-                        className="text-violet-700 dark:text-purple-500 transition-all duration-500"
+                        className="text-[#7e22ce] dark:text-purple-500"
                         fill="transparent"
                       />
                     </svg>
@@ -834,7 +888,7 @@ ${verificationResult.auditChecks
                       <span className="text-3xl font-extrabold font-mono tabular-nums text-zinc-950 dark:text-white">
                         {verificationResult.compositeTrustScore}%
                       </span>
-                      <span className="text-[9px] font-bold uppercase tracking-widest text-violet-700 dark:text-violet-300">
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-[#4c1d95] dark:text-purple-300">
                         CREDIBILITY
                       </span>
                     </div>
@@ -842,7 +896,7 @@ ${verificationResult.auditChecks
 
                   <div className="space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <span className="font-bold text-violet-700 dark:text-violet-300">
+                      <span className="font-bold text-[#4c1d95] dark:text-purple-300">
                         Weighted Credibility Score
                       </span>
                       {verificationResult.weightDelta !== 0 && (
@@ -876,8 +930,8 @@ ${verificationResult.auditChecks
                   <button
                     type="button"
                     onClick={handleRunLiveVerification}
-                    disabled={isVerifying}
-                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-700 to-purple-700 hover:from-violet-600 hover:to-purple-600 disabled:opacity-50 text-white font-bold text-xs tracking-wide transition-all flex items-center gap-2 shadow-sm active:scale-[0.98] cursor-pointer whitespace-nowrap"
+                    disabled={isVerifying || verificationResult.isMissing}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#4c1d95] to-[#7e22ce] hover:from-[#5b21b6] hover:to-[#6b21a8] disabled:opacity-50 text-white font-bold text-xs tracking-wide transition-colors duration-150 flex items-center gap-2 shadow-sm cursor-pointer whitespace-nowrap"
                   >
                     {isVerifying ? (
                       <>
@@ -892,26 +946,27 @@ ${verificationResult.auditChecks
                     )}
                   </button>
                   <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                    Updates score & logs audit to 5-run trend chart
+                    Updates score &amp; logs audit snapshot
                   </span>
                 </div>
               </div>
 
               {isVerifying && (
                 <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
-                  <div className="flex justify-between text-xs text-violet-700 dark:text-violet-300 font-semibold tabular-nums">
+                  <div className="flex justify-between text-xs text-[#4c1d95] dark:text-purple-300 font-semibold tabular-nums">
                     <span>{currentVerificationStep}</span>
                     <span>{verificationProgress}%</span>
                   </div>
                   <div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-violet-700 to-purple-500 rounded-full transition-all duration-300"
+                      className="h-full bg-gradient-to-r from-[#4c1d95] to-[#7e22ce] rounded-full transition-all duration-150"
                       style={{ width: `${verificationProgress}%` }}
                     />
                   </div>
                 </div>
               )}
             </div>
+            )}
 
             {/* Trust Factor Weighting Controls & 5-Audit Trend Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -1236,17 +1291,18 @@ ${verificationResult.auditChecks
                           type="monotone"
                           dataKey="credibilityScore"
                           name="Credibility Score"
-                          stroke={isDark ? "#a855f7" : "#6d28d9"}
+                          isAnimationActive={false}
+                          stroke={isDark ? "#a855f7" : "#4c1d95"}
                           strokeWidth={3}
                           dot={{
                             r: 4,
-                            fill: isDark ? "#a855f7" : "#6d28d9",
+                            fill: isDark ? "#a855f7" : "#4c1d95",
                             strokeWidth: 2,
                             stroke: isDark ? "#09090b" : "#ffffff",
                           }}
                           activeDot={{
                             r: 6,
-                            fill: "#7c3aed",
+                            fill: "#7e22ce",
                             stroke: "#ffffff",
                             strokeWidth: 2,
                           }}
@@ -1257,24 +1313,27 @@ ${verificationResult.auditChecks
                               type="monotone"
                               dataKey="workHistory"
                               name="Work History Consistency"
-                              stroke={isDark ? "#d8b4fe" : "#9333ea"}
+                              isAnimationActive={false}
+                              stroke={isDark ? "#d8b4fe" : "#7e22ce"}
                               strokeWidth={1.5}
                               strokeDasharray="4 3"
-                              dot={{ r: 2.5, fill: isDark ? "#d8b4fe" : "#9333ea" }}
+                              dot={{ r: 2.5, fill: isDark ? "#d8b4fe" : "#7e22ce" }}
                             />
                             <Line
                               type="monotone"
                               dataKey="endorsements"
                               name="Endorsements"
-                              stroke={isDark ? "#c026d3" : "#7e22ce"}
+                              isAnimationActive={false}
+                              stroke={isDark ? "#c084fc" : "#6b21a8"}
                               strokeWidth={1.5}
                               strokeDasharray="4 3"
-                              dot={{ r: 2.5, fill: isDark ? "#c026d3" : "#7e22ce" }}
+                              dot={{ r: 2.5, fill: isDark ? "#c084fc" : "#6b21a8" }}
                             />
                             <Line
                               type="monotone"
                               dataKey="education"
                               name="Education Verification"
+                              isAnimationActive={false}
                               stroke={isDark ? "#71717a" : "#3f3f46"}
                               strokeWidth={1.5}
                               strokeDasharray="4 3"
@@ -1527,9 +1586,11 @@ ${verificationResult.auditChecks
           </div>
 
           {/* Footer Actions */}
-          <div className="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#111116] flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#09090b] flex flex-wrap items-center justify-between gap-3 shrink-0">
             <span className="text-xs text-zinc-600 dark:text-zinc-400">
-              Custom-weighted multi-vector evaluation · 5-audit history active
+              {verificationResult.isMissing
+                ? "Enter a LinkedIn profile URL or summary above to unlock verification"
+                : "Custom-weighted multi-vector evaluation active"}
             </span>
             <div className="flex items-center gap-2.5">
               <button
@@ -1541,28 +1602,28 @@ ${verificationResult.auditChecks
               </button>
               <button
                 type="button"
+                disabled={verificationResult.isMissing || verificationResult.compositeTrustScore === null}
                 onClick={() => {
-                  recordAuditSnapshot(verificationResult.compositeTrustScore);
+                  const score = verificationResult.compositeTrustScore;
+                  if (score === null) return;
+                  recordAuditSnapshot(score);
                   if (onSaveVerifiedData) {
-                    onSaveVerifiedData(
-                      linkedinUrl,
-                      profileText,
-                      verificationResult.compositeTrustScore
-                    );
+                    onSaveVerifiedData(linkedinUrl, profileText, score);
                   }
                   onClose();
                 }}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-violet-700 to-purple-700 hover:from-violet-600 hover:to-purple-600 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#4c1d95] to-[#7e22ce] hover:from-[#5b21b6] hover:to-[#6b21a8] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold transition-colors duration-150 shadow-sm flex items-center gap-1.5 cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>
-                  Save Verified Score ({verificationResult.compositeTrustScore}%)
+                  {verificationResult.compositeTrustScore !== null
+                    ? `Save Verified Score (${verificationResult.compositeTrustScore}%)`
+                    : "Enter LinkedIn to Save"}
                 </span>
               </button>
             </div>
           </div>
-        </motion.div>
       </div>
-    </AnimatePresence>
+    </div>
   );
 };
