@@ -53,7 +53,7 @@ function sanitizeWinAnsi(input: unknown): string {
 
 function hexToRgb(hex: string): RGB {
   const cleaned = hex.replace("#", "");
-  if (cleaned.length !== 6) return rgb(0.08, 0.72, 0.65);
+  if (cleaned.length !== 6) return rgb(0.43, 0.16, 0.85);
   const r = parseInt(cleaned.slice(0, 2), 16) / 255;
   const g = parseInt(cleaned.slice(2, 4), 16) / 255;
   const b = parseInt(cleaned.slice(4, 6), 16) / 255;

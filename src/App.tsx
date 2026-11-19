@@ -15,7 +15,7 @@ import {
   Layout,
   TrendingUp,
   Award,
-  Sparkles,
+  Wand2,
   Search,
   RefreshCw,
   Info,
@@ -56,7 +56,6 @@ import {
   Sliders,
   Bot
 } from "lucide-react";
-import confetti from "canvas-confetti";
 import { ResumeBuilderModal } from "./components/ResumeBuilderModal";
 import { AtsCopilotChat } from "./components/AtsCopilotChat";
 import { AtsResumeData } from "./utils/docxExport";
@@ -138,53 +137,53 @@ const STICKY_COLOR_CONFIG: Record<
 > = {
   yellow: {
     label: "Edit",
-    dotColor: "#f59e0b",
-    headerBg: "bg-amber-400/90 text-amber-950 hover:bg-amber-400",
-    bodyBg: "bg-amber-100/95 text-slate-900 border-amber-400",
-    borderColor: "border-amber-400",
-    textColor: "text-amber-950",
-    placeholderColor: "placeholder:text-amber-800/50",
-    badgeBg: "bg-amber-400/30 text-amber-900 border-amber-500/40",
+    dotColor: "#7c3aed",
+    headerBg: "bg-violet-600 text-white hover:bg-violet-700",
+    bodyBg: "bg-violet-50/95 text-zinc-950 border-violet-400",
+    borderColor: "border-violet-400",
+    textColor: "text-zinc-900",
+    placeholderColor: "placeholder:text-violet-700/60",
+    badgeBg: "bg-violet-500/20 text-violet-900 border-violet-500/40",
   },
   green: {
     label: "Keep",
-    dotColor: "#10b981",
-    headerBg: "bg-emerald-400/90 text-emerald-950 hover:bg-emerald-400",
-    bodyBg: "bg-emerald-100/95 text-slate-900 border-emerald-400",
-    borderColor: "border-emerald-400",
-    textColor: "text-emerald-950",
-    placeholderColor: "placeholder:text-emerald-800/50",
-    badgeBg: "bg-emerald-400/30 text-emerald-900 border-emerald-500/40",
+    dotColor: "#9333ea",
+    headerBg: "bg-purple-600 text-white hover:bg-purple-700",
+    bodyBg: "bg-purple-50/95 text-zinc-950 border-purple-400",
+    borderColor: "border-purple-400",
+    textColor: "text-zinc-900",
+    placeholderColor: "placeholder:text-purple-700/60",
+    badgeBg: "bg-purple-500/20 text-purple-900 border-purple-500/40",
   },
   red: {
     label: "Remove",
-    dotColor: "#f43f5e",
-    headerBg: "bg-rose-400/90 text-rose-950 hover:bg-rose-400",
-    bodyBg: "bg-rose-100/95 text-slate-900 border-rose-400",
+    dotColor: "#e11d48",
+    headerBg: "bg-rose-600 text-white hover:bg-rose-700",
+    bodyBg: "bg-rose-50/95 text-zinc-950 border-rose-400",
     borderColor: "border-rose-400",
-    textColor: "text-rose-950",
-    placeholderColor: "placeholder:text-rose-800/50",
-    badgeBg: "bg-rose-400/30 text-rose-900 border-rose-500/40",
+    textColor: "text-zinc-900",
+    placeholderColor: "placeholder:text-rose-700/60",
+    badgeBg: "bg-rose-500/20 text-rose-900 border-rose-500/40",
   },
   blue: {
     label: "Idea",
-    dotColor: "#0284c7",
-    headerBg: "bg-sky-400/90 text-sky-950 hover:bg-sky-400",
-    bodyBg: "bg-sky-100/95 text-slate-900 border-sky-400",
-    borderColor: "border-sky-400",
-    textColor: "text-sky-950",
-    placeholderColor: "placeholder:text-sky-800/50",
-    badgeBg: "bg-sky-400/30 text-sky-900 border-sky-500/40",
+    dotColor: "#5b21b6",
+    headerBg: "bg-violet-800 text-white hover:bg-violet-900",
+    bodyBg: "bg-zinc-50/95 text-zinc-950 border-violet-500",
+    borderColor: "border-violet-500",
+    textColor: "text-zinc-900",
+    placeholderColor: "placeholder:text-zinc-500",
+    badgeBg: "bg-violet-600/20 text-violet-950 border-violet-600/40",
   },
   purple: {
     label: "Question",
-    dotColor: "#9333ea",
-    headerBg: "bg-purple-400/90 text-purple-950 hover:bg-purple-400",
-    bodyBg: "bg-purple-100/95 text-slate-900 border-purple-400",
-    borderColor: "border-purple-400",
-    textColor: "text-purple-950",
-    placeholderColor: "placeholder:text-purple-800/50",
-    badgeBg: "bg-purple-400/30 text-purple-900 border-purple-500/40",
+    dotColor: "#18181b",
+    headerBg: "bg-zinc-900 text-white hover:bg-zinc-800",
+    bodyBg: "bg-white/95 text-zinc-950 border-zinc-400",
+    borderColor: "border-zinc-400",
+    textColor: "text-zinc-900",
+    placeholderColor: "placeholder:text-zinc-500",
+    badgeBg: "bg-zinc-800/15 text-zinc-900 border-zinc-400/50",
   },
 };
 
@@ -259,14 +258,11 @@ const GlassCard = ({
   <motion.div
     id={id}
     style={style}
-    initial={{ opacity: 0, y: 40, scale: 0.98 }}
+    initial={{ opacity: 0, y: 18, scale: 0.99 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
-    transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }}
-    whileHover={{ y: -4, transition: { duration: 0.4, ease: "easeOut" } }}
+    transition={{ duration: 0.55, delay, ease: [0.16, 1, 0.3, 1] }}
     className={`glass-card p-8 relative overflow-hidden group ${className}`}
   >
-    <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-    <div className="absolute inset-0 border border-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-[inherit]" />
     {children}
   </motion.div>
 );
@@ -275,29 +271,29 @@ const getScoreLevel = (score: number) => {
   if (score >= 90)
     return {
       label: "Exceptional (Top 5%)",
-      color: "text-emerald-400",
-      bg: "bg-emerald-400/10",
-      border: "border-emerald-400/20",
+      color: "text-violet-700 dark:text-violet-300",
+      bg: "bg-violet-500/10",
+      border: "border-violet-500/30",
     };
   if (score >= 80)
     return {
-      label: "Much Better",
-      color: "text-teal-400",
-      bg: "bg-teal-400/10",
-      border: "border-teal-400/20",
+      label: "Strong Match",
+      color: "text-purple-700 dark:text-purple-300",
+      bg: "bg-purple-500/10",
+      border: "border-purple-500/30",
     };
   if (score >= 60)
     return {
       label: "Moderate Fit",
-      color: "text-amber-400",
-      bg: "bg-amber-400/10",
-      border: "border-amber-400/20",
+      color: "text-zinc-700 dark:text-zinc-300",
+      bg: "bg-zinc-500/10",
+      border: "border-zinc-400/30 dark:border-zinc-700",
     };
   return {
     label: "Needs Opt",
-    color: "text-rose-400",
-    bg: "bg-rose-400/10",
-    border: "border-rose-400/20",
+    color: "text-rose-700 dark:text-rose-400",
+    bg: "bg-rose-500/10",
+    border: "border-rose-500/30",
   };
 };
 
@@ -320,9 +316,9 @@ const ScoringCircle = ({
   useEffect(() => {
     motionVal.set(0);
     const controls = animate(motionVal, score, {
-      duration: 1.8,
-      delay: Math.max(0, delay) + 0.15,
-      ease: [0.16, 1, 0.3, 1], // Smooth exponential ease-out
+      duration: 1.35,
+      delay: Math.max(0, delay) + 0.12,
+      ease: [0.16, 1, 0.3, 1],
       onUpdate: (latest) => {
         setDisplayScore(Math.round(latest));
       },
@@ -336,22 +332,9 @@ const ScoringCircle = ({
 
   return (
     <motion.div
-      animate={
-        isNeedsOptimization
-          ? {
-              scale: [1, 1.025, 1],
-            }
-          : {}
-      }
-      transition={
-        isNeedsOptimization
-          ? {
-              duration: 2.4,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }
-          : undefined
-      }
+      initial={{ opacity: 0, y: 14, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.6, delay: Math.max(0, delay), ease: [0.16, 1, 0.3, 1] }}
       className="flex flex-col items-center justify-center relative w-full pt-4 pb-2 group"
     >
       <div className="h-40 w-full max-w-[220px] relative overflow-hidden -mb-10">
@@ -367,7 +350,7 @@ const ScoringCircle = ({
             endAngle={180 - 1.8 * displayScore}
           >
             <RadialBar
-              background={{ fill: "rgba(255,255,255,0.05)" }}
+              background={{ fill: "rgba(113,113,122,0.14)" }}
               dataKey="value"
               cornerRadius={8}
             />
@@ -375,48 +358,29 @@ const ScoringCircle = ({
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-start pt-16">
           <motion.span
-            initial={{ scale: 0.6, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: delay + 0.1, type: "spring", stiffness: 120, damping: 14 }}
-            className="text-5xl font-black font-display flex flex-col items-center leading-none text-white tracking-tighter"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: Math.max(0, delay) + 0.1, ease: [0.16, 1, 0.3, 1] }}
+            className="text-5xl font-black font-display flex flex-col items-center leading-none text-zinc-950 dark:text-white tracking-tighter"
           >
             <span className="tabular-nums font-mono">{displayScore}</span>
-            <span className="text-[10px] text-slate-500 font-sans tracking-widest uppercase mt-2">
+            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-sans tracking-widest uppercase mt-2">
               out of 100
             </span>
           </motion.span>
         </div>
-        <div className="absolute bottom-11 w-full flex justify-between px-6 text-[9px] font-black tracking-widest text-slate-600">
+        <div className="absolute bottom-11 w-full flex justify-between px-6 text-[9px] font-black tracking-widest text-zinc-400 dark:text-zinc-500">
           <span>0</span>
           <span>100</span>
         </div>
-        <div
-          className={`absolute top-1/4 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full blur-3xl -z-10 transition-opacity duration-500 group-hover:opacity-100 ${
-            isNeedsOptimization
-              ? "bg-amber-500/30 animate-pulse opacity-90"
-              : "bg-teal-500/20 opacity-60"
-          }`}
-        />
       </div>
 
       <div className="mt-10 flex flex-col items-center justify-center gap-2.5">
         <motion.div
-          initial={{ y: 5, opacity: 0 }}
-          animate={
-            isNeedsOptimization
-              ? { y: 0, opacity: 1, scale: [1, 1.03, 1] }
-              : { y: 0, opacity: 1 }
-          }
-          transition={
-            isNeedsOptimization
-              ? { duration: 2.2, repeat: Infinity, ease: "easeInOut" }
-              : { delay: delay + 0.5 }
-          }
-          className={`px-6 py-2 rounded-full border shadow-xl ${level.bg} ${level.border} ${
-            isNeedsOptimization
-              ? "ring-2 ring-amber-400/40 shadow-[0_0_15px_rgba(245,158,11,0.25)]"
-              : ""
-          } transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(var(--brand-glow),0.1)]`}
+          initial={{ y: 6, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.45, delay: Math.max(0, delay) + 0.2, ease: [0.16, 1, 0.3, 1] }}
+          className={`px-5 py-1.5 rounded-full border shadow-sm ${level.bg} ${level.border} transition-all duration-300`}
         >
           <span
             className={`text-xs font-black uppercase tracking-widest ${level.color}`}
@@ -425,33 +389,24 @@ const ScoringCircle = ({
           </span>
         </motion.div>
         {isNeedsOptimization && (
-          <motion.div
-            animate={{ opacity: [0.7, 1, 0.7] }}
-            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-            className="px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-[9px] font-black uppercase text-amber-300 flex items-center gap-1.5 shadow-sm"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+          <div className="px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-[9px] font-black uppercase text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-600 dark:bg-rose-400" />
             <span>Optimization Needed (&lt;70%)</span>
-          </motion.div>
+          </div>
         )}
         {label && (
           <div className="flex items-center gap-1.5 mt-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
               {label}
             </p>
             {tooltip && (
               <div className="group/tooltip relative cursor-help">
-                <Info className="h-3.5 w-3.5 text-slate-500 hover:text-teal-400 transition-colors" />
-                <motion.div 
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  whileHover={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 bg-slate-800 text-white text-[11px] font-medium p-4 rounded-xl opacity-0 group-hover/tooltip:opacity-100 transition-all pointer-events-none z-50 border border-white/10 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] leading-relaxed text-center"
-                >
-                  <strong className="text-teal-400 block mb-1 uppercase tracking-widest text-[9px] font-black">What this means</strong>
+                <Info className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 bg-zinc-950 text-zinc-100 text-[11px] font-medium p-4 rounded-xl opacity-0 group-hover/tooltip:opacity-100 transition-all pointer-events-none z-50 border border-zinc-800 shadow-2xl leading-relaxed text-center">
+                  <strong className="text-violet-400 block mb-1 uppercase tracking-widest text-[9px] font-black">What this means</strong>
                   {tooltip}
-                  <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 rotate-45 border-r border-b border-white/10"></div>
-                </motion.div>
+                  <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-zinc-950 rotate-45 border-r border-b border-zinc-800"></div>
+                </div>
               </div>
             )}
           </div>
@@ -543,60 +498,58 @@ const SkillCloud = ({
       <div className="flex flex-wrap items-center justify-center gap-2 px-2">
         <button
           onClick={() => setFilterMode("all")}
-          className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+          className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
             filterMode === "all"
-              ? "bg-slate-700 text-white shadow-md border border-white/20"
-              : "bg-white/5 text-slate-400 hover:text-white border border-white/5"
+              ? "bg-zinc-900 dark:bg-violet-600 text-white shadow-sm border border-zinc-800 dark:border-violet-500"
+              : "bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white border border-zinc-200 dark:border-zinc-800"
           }`}
         >
           All Skill Vectors ({combined.length})
         </button>
         <button
           onClick={() => setFilterMode("action")}
-          className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
             filterMode === "action"
-              ? "bg-emerald-500/30 text-emerald-300 border border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
-              : "bg-emerald-500/10 text-emerald-400/70 hover:text-emerald-300 border border-emerald-500/20"
+              ? "bg-violet-600 text-white border border-violet-600 shadow-sm"
+              : "bg-violet-500/10 text-violet-700 dark:text-violet-300 hover:bg-violet-500/20 border border-violet-500/25"
           }`}
         >
-          <Zap className="w-3 h-3 text-emerald-400" /> Strong Action Verbs ({combined.filter((i) => i.isAction).length})
+          <Zap className="w-3 h-3" /> Strong Action Verbs ({combined.filter((i) => i.isAction).length})
         </button>
         <button
           onClick={() => setFilterMode("passive")}
-          className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
             filterMode === "passive"
-              ? "bg-amber-500/30 text-amber-300 border border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.3)]"
-              : "bg-amber-500/10 text-amber-400/70 hover:text-amber-300 border border-amber-500/20"
+              ? "bg-rose-600 text-white border border-rose-600 shadow-sm"
+              : "bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 border border-rose-500/25"
           }`}
         >
-          <AlertCircle className="w-3 h-3 text-amber-400" /> Passive / Weak Phrasing ({combined.filter((i) => i.isPassive).length})
+          <AlertCircle className="w-3 h-3" /> Passive / Weak Phrasing ({combined.filter((i) => i.isPassive).length})
         </button>
       </div>
 
       <div className="flex flex-wrap items-center justify-center gap-3 py-6 px-4 relative overflow-hidden min-h-[160px]">
-        {/* Background ambient glow matching the cloud */}
-        <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 via-transparent to-rose-500/5 blur-3xl pointer-events-none" />
         {filteredItems.map((skill, i) => {
-          const size = Math.max(10, Math.floor(skill.weight * 22));
+          const size = Math.max(10, Math.floor(skill.weight * 20));
           const isMissing = skill.type === "missing";
 
           let styleClasses = "";
           if (filterMode === "action" || skill.isAction) {
-            styleClasses = "bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.2)]";
+            styleClasses = "bg-violet-500/12 text-violet-800 dark:text-violet-200 border border-violet-500/35";
           } else if (filterMode === "passive" || skill.isPassive) {
-            styleClasses = "bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.2)]";
+            styleClasses = "bg-rose-500/12 text-rose-700 dark:text-rose-300 border border-rose-500/35";
           } else if (isMissing) {
-            styleClasses = "bg-rose-500/10 text-rose-300 border border-rose-500/30 hover:bg-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.15)]";
+            styleClasses = "bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/30 hover:bg-rose-500/20";
           } else {
-            styleClasses = "bg-teal-500/10 text-teal-300 border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.1)]";
+            styleClasses = "bg-purple-500/10 text-purple-800 dark:text-purple-200 border border-purple-500/25";
           }
 
           return (
             <motion.span
               key={`${skill.text}-${i}`}
-              initial={{ opacity: 0, scale: 0 }}
+              initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.02, type: "spring" }}
+              transition={{ delay: i * 0.015, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
               onClick={() => {
                 if ((isMissing || skill.isPassive) && onSkillClick) {
                   onSkillClick(skill.text);
@@ -611,27 +564,26 @@ const SkillCloud = ({
                   ? "Click to frame this skill in AI Coach"
                   : "Matched Skill"
               }
-              className={`inline-block rounded-full px-3.5 py-1.5 ${styleClasses} ${
+              className={`inline-flex items-center rounded-xl px-3 py-1.5 ${styleClasses} ${
                 isMissing || skill.isPassive ? "cursor-pointer" : "cursor-default"
-              } font-black uppercase tracking-widest hover:scale-110 hover:z-10 transition-transform relative`}
+              } font-bold uppercase tracking-wider hover:scale-[1.03] hover:z-10 transition-transform relative`}
               style={{
                 fontSize: `${size}px`,
               }}
-              whileHover={{ scale: 1.12 }}
             >
               {skill.text}
               {skill.isAction && (
-                <span className="ml-1.5 text-[7px] bg-emerald-500/30 text-emerald-200 px-1.5 py-0.5 rounded-full font-extrabold uppercase tracking-tighter">
+                <span className="ml-1.5 text-[7px] bg-violet-600/20 text-violet-800 dark:text-violet-200 px-1.5 py-0.5 rounded font-extrabold uppercase tracking-tighter">
                   Power
                 </span>
               )}
               {skill.isPassive && (
-                <span className="ml-1.5 text-[7px] bg-amber-500/40 text-amber-200 px-1.5 py-0.5 rounded-full font-extrabold uppercase tracking-tighter">
+                <span className="ml-1.5 text-[7px] bg-rose-600/20 text-rose-800 dark:text-rose-200 px-1.5 py-0.5 rounded font-extrabold uppercase tracking-tighter">
                   Rewrite
                 </span>
               )}
               {isMissing && !skill.isAction && !skill.isPassive && (
-                <span className="ml-1.5 text-[8px] bg-rose-500/30 text-rose-200 px-1.5 py-0.5 rounded-full font-extrabold uppercase">
+                <span className="ml-1.5 text-[8px] bg-rose-500/25 text-rose-800 dark:text-rose-200 px-1.5 py-0.5 rounded font-extrabold uppercase">
                   Frame
                 </span>
               )}
@@ -671,10 +623,10 @@ function SkillDemandTrend({ role }: { role: string }) {
   return (
     <GlassCard className="mt-8">
       <div className="flex flex-col items-center justify-center space-y-2 mb-8 relative">
-        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] text-center">
+        <h3 className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-[0.3em] text-center">
           Market Demand Trend
         </h3>
-        <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase text-center">
+        <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase text-center">
           Historical demand for {role}
         </p>
         
@@ -682,7 +634,7 @@ function SkillDemandTrend({ role }: { role: string }) {
           <select 
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
-            className="bg-slate-800/50 border border-white/10 text-slate-300 text-[10px] font-bold uppercase tracking-widest py-1.5 px-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500/50 transition-all cursor-pointer"
+            className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 text-[10px] font-bold uppercase tracking-widest py-1.5 px-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-violet-500/50 transition-all cursor-pointer"
           >
             <option value="1-month">1 Month</option>
             <option value="3-month">3 Months</option>
@@ -694,8 +646,8 @@ function SkillDemandTrend({ role }: { role: string }) {
 
       <div className="h-64 w-full">
         {loading ? (
-          <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs uppercase tracking-widest font-bold">
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Fetching Trend
+          <div className="w-full h-full flex items-center justify-center text-zinc-500 text-xs uppercase tracking-widest font-bold">
+            <Loader2 className="w-4 h-4 mr-2 animate-spin text-violet-600 dark:text-violet-400" /> Fetching Trend
             Data...
           </div>
         ) : data.length > 0 ? (
@@ -706,38 +658,38 @@ function SkillDemandTrend({ role }: { role: string }) {
             >
               <defs>
                 <linearGradient id="colorDemand" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#14b8a6" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.32} />
+                  <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="rgba(255,255,255,0.05)"
+                stroke="rgba(113,113,122,0.18)"
                 vertical={false}
               />
               <XAxis
                 dataKey="month"
-                stroke="rgba(255,255,255,0.3)"
+                stroke="#71717a"
                 tick={{
-                  fill: "rgba(255,255,255,0.5)",
+                  fill: "#71717a",
                   fontSize: 10,
                   fontWeight: 700,
                 }}
                 tickMargin={10}
               />
               <YAxis
-                stroke="rgba(255,255,255,0.3)"
-                tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 10 }}
+                stroke="#71717a"
+                tick={{ fill: "#71717a", fontSize: 10 }}
               />
               <RechartsTooltip
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="bg-[#0A0A15]/90 border border-white/10 p-3 rounded-lg shadow-xl backdrop-blur-md">
+                      <div className="bg-zinc-950 border border-zinc-800 p-3 rounded-lg shadow-xl">
                         <p className="text-white text-xs font-bold uppercase">
                           {label}
                         </p>
-                        <p className="text-teal-400 text-[10px] font-black uppercase mt-1">
+                        <p className="text-violet-400 text-[10px] font-black uppercase mt-1">
                           Demand Index: {payload[0].value}
                         </p>
                       </div>
@@ -749,15 +701,15 @@ function SkillDemandTrend({ role }: { role: string }) {
               <Area
                 type="monotone"
                 dataKey="demand"
-                stroke="#14b8a6"
-                strokeWidth={3}
+                stroke="#7c3aed"
+                strokeWidth={2.5}
                 fillOpacity={1}
                 fill="url(#colorDemand)"
               />
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs font-bold">
+          <div className="w-full h-full flex items-center justify-center text-zinc-500 text-xs font-bold">
             No data available
           </div>
         )}
@@ -1088,15 +1040,15 @@ export default function App() {
     "sticky",
   );
   const [highlightColor, setHighlightColor] = useState<string>(
-    "rgba(250, 204, 21, 0.4)",
-  ); // amber-400 transparent
+    "rgba(139, 92, 246, 0.35)",
+  );
   const [visibleStickyNotes, setVisibleStickyNotes] = useState(true);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [visibleHighlightColors, setVisibleHighlightColors] = useState<string[]>([
-    "rgba(250, 204, 21, 0.4)",
-    "rgba(52, 211, 153, 0.4)",
-    "rgba(56, 189, 248, 0.4)",
-    "rgba(244, 114, 182, 0.4)",
+    "rgba(139, 92, 246, 0.35)",
+    "rgba(168, 85, 247, 0.35)",
+    "rgba(109, 40, 217, 0.32)",
+    "rgba(225, 29, 72, 0.32)",
   ]);
   const [batchInput, setBatchInput] = useState("");
   const [batchFeedback, setBatchFeedback] = useState<string | null>(null);
@@ -1327,10 +1279,10 @@ export default function App() {
   }, []);
 
   const colorPalette = [
-    "rgba(250, 204, 21, 0.4)",
-    "rgba(52, 211, 153, 0.4)",
-    "rgba(56, 189, 248, 0.4)",
-    "rgba(244, 114, 182, 0.4)",
+    "rgba(139, 92, 246, 0.35)",
+    "rgba(168, 85, 247, 0.35)",
+    "rgba(109, 40, 217, 0.32)",
+    "rgba(225, 29, 72, 0.32)",
   ];
 
   const handleBatchHighlight = (targetKeyword: string, customColor?: string) => {
@@ -1560,8 +1512,8 @@ export default function App() {
         const scale = pdfWidth / renderWidth;
         
         const match = h.color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
-        let colorObj = rgb(1, 1, 0);
-        let opacity = 0.4;
+        let colorObj = rgb(0.55, 0.36, 0.96);
+        let opacity = 0.35;
         
         if (match) {
           colorObj = rgb(parseInt(match[1])/255, parseInt(match[2])/255, parseInt(match[3])/255);
@@ -1598,11 +1550,11 @@ export default function App() {
           
           const colorKey = note.color && STICKY_COLOR_CONFIG[note.color] ? note.color : "yellow";
           const catLabel = STICKY_COLOR_CONFIG[colorKey].label;
-          let fillRgb = rgb(1, 0.9, 0.4);
-          if (colorKey === "green") fillRgb = rgb(0.55, 0.95, 0.7);
-          else if (colorKey === "red") fillRgb = rgb(0.98, 0.6, 0.65);
-          else if (colorKey === "blue") fillRgb = rgb(0.55, 0.85, 0.98);
-          else if (colorKey === "purple") fillRgb = rgb(0.85, 0.65, 0.98);
+          let fillRgb = rgb(0.93, 0.90, 0.99);
+          if (colorKey === "green") fillRgb = rgb(0.95, 0.91, 0.99);
+          else if (colorKey === "red") fillRgb = rgb(0.99, 0.88, 0.90);
+          else if (colorKey === "blue") fillRgb = rgb(0.91, 0.87, 0.98);
+          else if (colorKey === "purple") fillRgb = rgb(0.94, 0.89, 0.99);
 
           const textContent = note.text ? note.text.trim() : "";
           const rawLines = textContent ? textContent.split(/\r?\n/) : ["(Empty Note)"];
@@ -2193,14 +2145,6 @@ export default function App() {
           ],
         },
       ]);
-      if (analysis.overallScore >= 75) {
-        confetti({
-          particleCount: 150,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ["#14b8a6", "#0ea5e9", "#8b5cf6"],
-        });
-      }
       saveToHistory(analysis, file, jobDescription);
     } catch (err: any) {
       console.error("Analysis Error:", err);
@@ -2298,8 +2242,8 @@ export default function App() {
     <div className="min-h-screen">
       <div className="bg-gradient-body"></div>
 
-      {/* Canva & Figma Studio Navigation */}
-      <nav className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm">
+      {/* Executive Studio Navigation */}
+      <nav className="sticky top-0 z-50 bg-white/95 dark:bg-[#09090b]/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 h-[72px] flex items-center justify-between">
           <div 
             onClick={() => {
@@ -2308,27 +2252,27 @@ export default function App() {
             }}
             className="flex items-center gap-3.5 cursor-pointer group"
           >
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center shadow-sm text-white group-hover:scale-105 transition-transform">
-              <Sparkles className="h-5 w-5" />
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-violet-700 via-violet-600 to-purple-600 flex items-center justify-center shadow-sm text-white group-hover:scale-105 transition-transform">
+              <Wand2 className="h-5 w-5" />
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="text-lg font-black font-display tracking-tight text-slate-900 dark:text-white">
+                <span className="text-lg font-black font-display tracking-tight text-zinc-950 dark:text-white">
                   Resume Studio
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 text-[10px] font-extrabold uppercase tracking-wide border border-indigo-200 dark:border-indigo-800">
+                <span className="px-2 py-0.5 rounded-full bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 text-[10px] font-extrabold uppercase tracking-wide border border-violet-200 dark:border-violet-800">
                   AI Canvas
                 </span>
               </div>
-              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+              <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
                 Executive ATS & Career Workspace
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 text-xs font-bold text-slate-600 dark:text-slate-300">
-            {/* Theme Toggle: Studio Light vs Figma Dark */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3 text-xs font-bold text-zinc-600 dark:text-zinc-300">
+            {/* Theme Toggle: White Studio vs Obsidian Dark */}
+            <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 p-1 rounded-xl border border-zinc-200 dark:border-zinc-800">
               <button
                 type="button"
                 onClick={() => {
@@ -2337,10 +2281,10 @@ export default function App() {
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   currentTheme === "canva-light"
-                    ? "bg-white text-indigo-600 shadow-sm font-extrabold"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white"
+                    ? "bg-white text-violet-700 shadow-sm font-extrabold"
+                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                 }`}
-                title="Switch to Canva Light Theme"
+                title="Switch to White Studio Theme"
               >
                 <Sun className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Light</span>
@@ -2353,10 +2297,10 @@ export default function App() {
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   currentTheme === "figma-dark"
-                    ? "bg-slate-900 text-white shadow-sm font-extrabold"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white"
+                    ? "bg-zinc-950 text-white shadow-sm font-extrabold border border-zinc-800"
+                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                 }`}
-                title="Switch to Figma Dark Theme"
+                title="Switch to Obsidian Dark Theme"
               >
                 <Moon className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Dark</span>
@@ -2367,28 +2311,28 @@ export default function App() {
             {result && (
               <button
                 onClick={() => setIsResumeBuilderOpen(true)}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-sm hover:from-indigo-500 hover:to-violet-500 active:scale-95 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-violet-700 to-purple-700 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-sm hover:from-violet-600 hover:to-purple-600 active:scale-95 cursor-pointer"
               >
-                <Sparkles className="h-3.5 w-3.5" />
+                <Wand2 className="h-3.5 w-3.5" />
                 <span>ATS Builder</span>
               </button>
             )}
 
             {/* Version Dropdown Selector if session history exists */}
             {history.length > 0 && (
-              <div className="hidden lg:flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl no-print">
-                <Layers className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+              <div className="hidden lg:flex items-center gap-2 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-3 py-1.5 rounded-xl no-print">
+                <Layers className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 shrink-0" />
                 <select
                   value={activeVersionId || (history[0]?.id ?? "")}
                   onChange={(e) => switchActiveVersion(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer max-w-[140px] truncate"
+                  className="bg-transparent text-xs font-semibold text-zinc-800 dark:text-zinc-200 focus:outline-none cursor-pointer max-w-[140px] truncate"
                 >
                   {history.map((ver, idx) => (
-                    <option key={`top-ver-${ver.id || idx}-${idx}`} value={ver.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                    <option key={`top-ver-${ver.id || idx}-${idx}`} value={ver.id} className="bg-white dark:bg-zinc-950 text-zinc-950 dark:text-white">
                       {ver.versionName || `Version ${history.length - idx}`} ({ver.result?.overallScore || 0}%)
                     </option>
                   ))}
-                  <option key="opt-new" value="__new__" className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 font-bold">
+                  <option key="opt-new" value="__new__" className="bg-violet-50 text-violet-700 dark:bg-violet-950 dark:text-violet-300 font-bold">
                     + Snapshot
                   </option>
                 </select>
@@ -2397,16 +2341,16 @@ export default function App() {
 
             <button
               onClick={() => setIsGuideOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <BookOpen className="h-3.5 w-3.5" />
+              <BookOpen className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
               <span className="hidden sm:inline">Guide</span>
             </button>
             <button
               onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-              className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <Layers className="h-3.5 w-3.5" />
+              <Layers className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
               <span>History {history.length > 0 && `(${history.length})`}</span>
             </button>
           </div>
@@ -2416,57 +2360,58 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-6 py-12">
         <AnimatePresence>
           {isGuideOpen && (
-            <div key="guide-modal" className="dark dark-studio fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm overflow-y-auto">
+            <div key="guide-modal" className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/75 backdrop-blur-sm overflow-y-auto">
               <motion.div
-                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                initial={{ scale: 0.96, opacity: 0, y: 12 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                className="max-w-4xl w-full bg-brand-deep rounded-3xl border border-white/10 p-8 md:p-12 space-y-8 my-auto"
+                exit={{ scale: 0.96, opacity: 0, y: 12 }}
+                className="max-w-4xl w-full bg-white dark:bg-[#111116] rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl p-8 md:p-12 space-y-8 my-auto"
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="text-3xl font-black text-white font-display uppercase tracking-tighter mb-2">
+                    <h3 className="text-3xl font-black text-zinc-950 dark:text-white font-display uppercase tracking-tighter mb-2">
                       Resume Formatting Protocol
                     </h3>
-                    <p className="text-slate-400 text-sm font-bold uppercase tracking-[0.2em]">
+                    <p className="text-zinc-500 dark:text-zinc-400 text-sm font-bold uppercase tracking-[0.2em]">
                       Best Practices for ATS & Human Readability
                     </p>
                   </div>
                   <button
                     onClick={() => setIsGuideOpen(false)}
-                    className="h-10 w-10 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                    aria-label="Close Formatting Guide"
+                    className="h-10 w-10 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-full flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-colors cursor-pointer"
                   >
                     <XCircle className="h-5 w-5" />
                   </button>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-8 h-[60vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                <div className="grid md:grid-cols-2 gap-8 h-[60vh] overflow-y-auto pr-4">
                   {/* Typography & Spacing */}
                   <div className="space-y-6">
-                    <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+                    <div className="p-6 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-2xl">
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="h-8 w-8 bg-teal-500/10 rounded-lg flex items-center justify-center text-teal-400">
+                        <div className="h-8 w-8 bg-violet-500/10 border border-violet-500/25 rounded-lg flex items-center justify-center text-violet-700 dark:text-violet-400">
                           <FileText className="h-4 w-4" />
                         </div>
-                        <h4 className="text-sm font-black text-white uppercase tracking-widest">
+                        <h4 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest">
                           Typography & Layout
                         </h4>
                       </div>
-                      <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
+                      <div className="space-y-4 text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
                         <div>
-                          <strong className="text-white block mb-1">
+                          <strong className="text-zinc-950 dark:text-white block mb-1">
                             Fonts:
                           </strong>{" "}
                           Avoid complex serif fonts. Stick to clean, modern
                           sans-serif fonts like{" "}
                           <strong>
-                            Helvetica, Arial, Calibri, Arial, or Roboto
+                            Helvetica, Arial, Calibri, or Roboto
                           </strong>
                           . Size should be <strong>10-12pt</strong> for body,
                           and <strong>14-16pt</strong> for headers.
                         </div>
                         <div>
-                          <strong className="text-white block mb-1">
+                          <strong className="text-zinc-950 dark:text-white block mb-1">
                             Margins:
                           </strong>{" "}
                           Maintain <strong>0.5 to 1-inch margins</strong> on all
@@ -2474,7 +2419,7 @@ export default function App() {
                           whitespace.
                         </div>
                         <div>
-                          <strong className="text-white block mb-1">
+                          <strong className="text-zinc-950 dark:text-white block mb-1">
                             Formats:
                           </strong>{" "}
                           Always export to <strong>PDF</strong>. Word documents
@@ -2485,42 +2430,42 @@ export default function App() {
                     </div>
 
                     {/* Section Structuring */}
-                    <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+                    <div className="p-6 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-2xl">
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="h-8 w-8 bg-sky-500/10 rounded-lg flex items-center justify-center text-sky-400">
+                        <div className="h-8 w-8 bg-purple-500/10 border border-purple-500/25 rounded-lg flex items-center justify-center text-purple-700 dark:text-purple-400">
                           <Layout className="h-4 w-4" />
                         </div>
-                        <h4 className="text-sm font-black text-white uppercase tracking-widest">
+                        <h4 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest">
                           Section Structuring
                         </h4>
                       </div>
-                      <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
+                      <div className="space-y-4 text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
                         <div>
-                          <strong className="text-white">
+                          <strong className="text-zinc-950 dark:text-white">
                             1. Contact Header:
                           </strong>{" "}
                           Name, Phone, Email, Location, LinkedIn/Portfolio. (No
                           photos or exact street addresses).
                         </div>
                         <div>
-                          <strong className="text-white">
+                          <strong className="text-zinc-950 dark:text-white">
                             2. Professional Summary:
                           </strong>{" "}
                           2-3 sentences targeting the specific role. No
                           objective statements.
                         </div>
                         <div>
-                          <strong className="text-white">3. Experience:</strong>{" "}
+                          <strong className="text-zinc-950 dark:text-white">3. Experience:</strong>{" "}
                           Reverse-chronological order. Use 3-5 bullet points per
                           role focusing on impact.
                         </div>
                         <div>
-                          <strong className="text-white">4. Skills:</strong>{" "}
+                          <strong className="text-zinc-950 dark:text-white">4. Skills:</strong>{" "}
                           Group by category (e.g., Languages, Frameworks,
                           Tools). Keep it scannable.
                         </div>
                         <div>
-                          <strong className="text-white">5. Education:</strong>{" "}
+                          <strong className="text-zinc-950 dark:text-white">5. Education:</strong>{" "}
                           Degree, Major, Institution, Year (Optional if 5+ years
                           exp).
                         </div>
@@ -2530,33 +2475,33 @@ export default function App() {
 
                   {/* Bullet Points & Visual Example */}
                   <div className="space-y-6">
-                    <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+                    <div className="p-6 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-2xl">
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="h-8 w-8 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-400">
+                        <div className="h-8 w-8 bg-violet-500/10 border border-violet-500/25 rounded-lg flex items-center justify-center text-violet-700 dark:text-violet-400">
                           <Zap className="h-4 w-4" />
                         </div>
-                        <h4 className="text-sm font-black text-white uppercase tracking-widest">
+                        <h4 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest">
                           The XYZ Formula
                         </h4>
                       </div>
-                      <p className="text-xs text-slate-300 mb-4 leading-relaxed">
-                        Google recruiters recommend the{" "}
+                      <p className="text-xs text-zinc-600 dark:text-zinc-300 mb-4 leading-relaxed">
+                        Executive recruiters recommend the{" "}
                         <strong>XYZ formula</strong> for achievements:
                         "Accomplished [X] as measured by [Y], by doing [Z]."
                       </p>
 
                       <div className="space-y-3">
-                        <div className="p-3 bg-rose-500/5 border-l-2 border-rose-500 text-xs">
-                          <span className="text-rose-400 font-bold uppercase text-[10px] block mb-1">
-                            Bad Example
+                        <div className="p-3 bg-rose-500/5 border-l-2 border-rose-500 text-xs rounded-r-lg">
+                          <span className="text-rose-700 dark:text-rose-400 font-bold uppercase text-[10px] block mb-1">
+                            Weak Example
                           </span>
-                          <span className="text-slate-400 line-through">
+                          <span className="text-zinc-500 dark:text-zinc-400 line-through">
                             Helped increase sales for the company.
                           </span>
                         </div>
-                        <div className="p-3 bg-emerald-500/5 border-l-2 border-emerald-500 text-xs text-slate-200">
-                          <span className="text-emerald-400 font-bold uppercase text-[10px] block mb-1">
-                            Good Example
+                        <div className="p-3 bg-violet-500/10 border-l-2 border-violet-600 text-xs text-zinc-900 dark:text-zinc-200 rounded-r-lg">
+                          <span className="text-violet-700 dark:text-violet-400 font-bold uppercase text-[10px] block mb-1">
+                            Executive Example
                           </span>
                           "Grew Q3 revenue by 24% ($1.2M) mapping new sales
                           territories and introducing a CRM automation
@@ -2565,18 +2510,18 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="p-6 bg-teal-500/5 border border-teal-500/20 rounded-2xl">
+                    <div className="p-6 bg-violet-500/5 border border-violet-500/25 rounded-2xl">
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="h-8 w-8 bg-teal-500/20 rounded-lg flex items-center justify-center text-teal-400">
+                        <div className="h-8 w-8 bg-violet-500/15 rounded-lg flex items-center justify-center text-violet-700 dark:text-violet-400">
                           <Target className="h-4 w-4" />
                         </div>
-                        <h4 className="text-sm font-black text-teal-400 uppercase tracking-widest">
+                        <h4 className="text-sm font-black text-violet-700 dark:text-violet-300 uppercase tracking-widest">
                           ATS Anti-Patterns
                         </h4>
                       </div>
-                      <ul className="text-xs text-slate-300 space-y-3">
+                      <ul className="text-xs text-zinc-700 dark:text-zinc-300 space-y-3">
                         <li className="flex gap-2">
-                          <XCircle className="h-4 w-4 text-rose-500 shrink-0" />
+                          <XCircle className="h-4 w-4 text-rose-600 dark:text-rose-400 shrink-0" />
                           <span>
                             <strong>2-Column Layouts:</strong> Many ATS parse
                             left-to-right, completely scrambling two-column
@@ -2584,7 +2529,7 @@ export default function App() {
                           </span>
                         </li>
                         <li className="flex gap-2">
-                          <XCircle className="h-4 w-4 text-rose-500 shrink-0" />
+                          <XCircle className="h-4 w-4 text-rose-600 dark:text-rose-400 shrink-0" />
                           <span>
                             <strong>Tables & Graphics:</strong> Exclude images,
                             complex tables, progress bars, or skill rating
@@ -2592,7 +2537,7 @@ export default function App() {
                           </span>
                         </li>
                         <li className="flex gap-2">
-                          <XCircle className="h-4 w-4 text-rose-500 shrink-0" />
+                          <XCircle className="h-4 w-4 text-rose-600 dark:text-rose-400 shrink-0" />
                           <span>
                             <strong>Headers/Footers:</strong> Don't put contact
                             info in the document header/footer; some parsers
@@ -2608,24 +2553,24 @@ export default function App() {
           )}
 
           {isLinkedInModalOpen && (
-            <div key="linkedin-post-modal" className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+            <div key="linkedin-post-modal" className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/75 backdrop-blur-sm">
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
+                initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="max-w-xl w-full bg-brand-deep rounded-3xl border border-white/10 p-10 space-y-6"
+                className="max-w-xl w-full bg-white dark:bg-[#111116] rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl p-10 space-y-6"
               >
                 <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-black text-white uppercase tracking-tighter">
+                  <h3 className="text-xl font-black text-zinc-950 dark:text-white uppercase tracking-tighter">
                     LinkedIn Post Content
                   </h3>
                   <button
                     onClick={() => setIsLinkedInModalOpen(false)}
-                    className="text-slate-500 hover:text-white"
+                    className="text-zinc-500 hover:text-zinc-950 dark:hover:text-white cursor-pointer"
                   >
-                    <RefreshCw className="h-5 w-5" />
+                    <X className="h-5 w-5" />
                   </button>
                 </div>
-                <div className="p-6 bg-white/5 rounded-2xl border border-white/5 text-slate-300 text-sm italic">
+                <div className="p-6 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 text-sm italic">
                   {linkedinCopy}
                 </div>
                 <button
@@ -2835,44 +2780,31 @@ export default function App() {
           />
 
           {isPurgePromptOpen && (
-            <div key="purge-prompt-modal" className="dark dark-studio fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+            <div key="purge-prompt-modal" className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/75 backdrop-blur-sm">
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
+                initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="max-w-md w-full bg-brand-deep rounded-3xl border border-rose-500/30 p-10 space-y-6 shadow-2xl shadow-rose-500/20"
+                className="max-w-md w-full bg-white dark:bg-[#111116] rounded-3xl border border-rose-500/35 p-10 space-y-6 shadow-2xl"
               >
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-rose-500/10 flex items-center justify-center">
-                      <AlertCircle className="h-5 w-5 text-rose-400" />
+                      <AlertCircle className="h-5 w-5 text-rose-600 dark:text-rose-400" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-rose-400 font-display uppercase tracking-widest">
+                      <h3 className="text-lg font-black text-rose-700 dark:text-rose-400 font-display uppercase tracking-widest">
                         Confirm Purge
                       </h3>
                     </div>
                   </div>
                   <button
                     onClick={() => setIsPurgePromptOpen(false)}
-                    className="text-slate-500 hover:text-white"
+                    className="text-zinc-500 hover:text-zinc-950 dark:hover:text-white cursor-pointer"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
-                <p className="text-sm text-slate-300 font-medium leading-relaxed">
+                <p className="text-sm text-zinc-600 dark:text-zinc-300 font-medium leading-relaxed">
                   Are you sure you want to permanently delete all session data?
                   This action cannot be undone and you will lose all analysis
                   history and uploaded files.
@@ -2880,13 +2812,13 @@ export default function App() {
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     onClick={() => setIsPurgePromptOpen(false)}
-                    className="py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-[11px] uppercase tracking-widest transition-all"
+                    className="py-3 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white font-bold text-[11px] uppercase tracking-widest transition-all cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={purgeSession}
-                    className="py-3 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500 hover:text-white border border-rose-500/20 text-rose-400 font-bold text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-rose-500/10"
+                    className="py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] uppercase tracking-widest transition-all shadow-sm cursor-pointer"
                   >
                     Delete Data
                   </button>
@@ -2901,45 +2833,45 @@ export default function App() {
               initial={{ opacity: 0, x: 100 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 100 }}
-              className="fixed inset-y-0 right-0 w-96 bg-brand-deep/95 backdrop-blur-3xl border-l border-white/5 z-[60] shadow-2xl p-6 overflow-y-auto"
+              className="fixed inset-y-0 right-0 w-96 bg-white/95 dark:bg-[#09090b]/95 backdrop-blur-3xl border-l border-zinc-200 dark:border-zinc-800 z-[60] shadow-2xl p-6 overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-                  <Layers className="h-4 w-4 text-teal-400" />
+                <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                   Analysis Archive
                 </h3>
                 <button
                   onClick={() => setIsHistoryOpen(false)}
-                  className="text-slate-500 hover:text-white transition-colors"
+                  className="text-zinc-500 hover:text-zinc-950 dark:hover:text-white transition-colors cursor-pointer"
                 >
-                  <RefreshCw className="h-4 w-4" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
 
               {result && (
                 <button
                   onClick={() => takeSnapshot()}
-                  className="w-full mb-6 py-2.5 px-3 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/30 hover:text-white font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/10 active:scale-95"
+                  className="w-full mb-6 py-2.5 px-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 cursor-pointer"
                 >
-                  <BookmarkPlus className="w-4 h-4 text-cyan-400" />
+                  <BookmarkPlus className="w-4 h-4" />
                   Snapshot Current State
                 </button>
               )}
 
               {history.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center text-slate-600">
-                  <Info className="h-12 w-12 mb-4 opacity-20" />
+                <div className="flex flex-col items-center justify-center py-20 text-center text-zinc-500">
+                  <Info className="h-12 w-12 mb-4 opacity-25" />
                   <p className="text-[10px] font-black uppercase tracking-widest">
                     No archival data found
                   </p>
                 </div>
               ) : (
-                <div className="relative pl-6 space-y-6 before:absolute before:inset-y-0 before:left-[11px] before:w-px before:bg-gradient-to-b before:from-teal-500/50 before:to-transparent">
+                <div className="relative pl-6 space-y-6 before:absolute before:inset-y-0 before:left-[11px] before:w-px before:bg-gradient-to-b before:from-violet-600/50 before:to-transparent">
                   {history.map((item, mapIdx) => (
                     <motion.div
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: mapIdx * 0.1 }}
+                      transition={{ delay: mapIdx * 0.06 }}
                       key={item.id + "-" + mapIdx}
                       onClick={() => {
                         setResult(item.result);
@@ -2954,14 +2886,14 @@ export default function App() {
                       className={`p-5 rounded-2xl border transition-all cursor-pointer group relative
                         ${
                           compareIds.includes(item.id)
-                            ? "bg-teal-500/10 border-teal-500/50"
-                            : "bg-white/5 border-white/5 hover:border-white/20"
+                            ? "bg-violet-500/10 border-violet-500/50"
+                            : "bg-zinc-50 dark:bg-zinc-900/60 border-zinc-200 dark:border-zinc-800 hover:border-violet-400/50"
                         }`}
                     >
-                      <div className="absolute left-[-29px] top-5 w-3 h-3 rounded-full bg-[#0A0A15] border-2 border-teal-500/50 z-10 transition-colors group-hover:border-teal-400 group-hover:bg-teal-500 shadow-[0_0_10px_rgba(20,184,166,0)] group-hover:shadow-[0_0_10px_rgba(20,184,166,0.5)]"></div>
+                      <div className="absolute left-[-29px] top-5 w-3 h-3 rounded-full bg-white dark:bg-[#09090b] border-2 border-violet-500/50 z-10 transition-colors group-hover:border-violet-500 group-hover:bg-violet-600"></div>
 
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase">
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase">
                           {new Date(item.date).toLocaleDateString()}
                         </span>
                         <div className="flex gap-2">
@@ -2971,20 +2903,20 @@ export default function App() {
                               setEditingVersionId(item.id);
                               setEditVersionName(item.versionName || `Draft ${mapIdx + 1}`);
                             }}
-                            className="h-6 w-6 rounded bg-white/5 text-slate-500 hover:text-white transition-colors flex items-center justify-center"
+                            className="h-6 w-6 rounded bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-colors flex items-center justify-center"
                           >
                             <Edit2 className="h-3.5 w-3.5" />
                           </button>
                           <button
                             onClick={(e) => toggleCompare(item.id, e)}
                             className={`h-6 w-6 rounded flex items-center justify-center transition-colors
-                              ${compareIds.includes(item.id) ? "bg-teal-500 text-white" : "bg-white/5 text-slate-500 hover:text-white"}`}
+                              ${compareIds.includes(item.id) ? "bg-violet-600 text-white" : "bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"}`}
                           >
                             <Target className="h-3.5 w-3.5" />
                           </button>
                           <button
                             onClick={(e) => deleteFromHistory(item.id, e)}
-                            className="h-6 w-6 rounded bg-white/5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center justify-center"
+                            className="h-6 w-6 rounded bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center justify-center"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -3000,42 +2932,42 @@ export default function App() {
                               if (e.key === 'Enter') renameHistoryItem(item.id, editVersionName);
                               if (e.key === 'Escape') setEditingVersionId(null);
                             }}
-                            className="bg-black/50 border border-teal-500/50 rounded px-2 py-1 text-xs text-white outline-none w-full"
+                            className="bg-white dark:bg-zinc-950 border border-violet-500/50 rounded px-2 py-1 text-xs text-zinc-950 dark:text-white outline-none w-full"
                             autoFocus
                           />
-                          <button onClick={() => renameHistoryItem(item.id, editVersionName)} className="text-teal-400 p-1 hover:bg-white/10 rounded">
+                          <button onClick={() => renameHistoryItem(item.id, editVersionName)} className="text-violet-600 dark:text-violet-400 p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded">
                             <Check className="h-3 w-3" />
                           </button>
                         </div>
                       ) : (
-                        <p className="text-sm font-black text-white truncate mb-2">
+                        <p className="text-sm font-black text-zinc-950 dark:text-white truncate mb-2">
                           {item.versionName ? `${item.versionName} (${item.fileName})` : item.fileName}
                         </p>
                       )}
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] font-bold text-teal-400">
+                          <span className="text-[10px] font-bold text-violet-700 dark:text-violet-400 font-mono tabular-nums">
                             {item.result.overallScore}%
                           </span>
-                          <span className="text-[9px] font-bold text-slate-600 uppercase">
+                          <span className="text-[9px] font-bold text-zinc-500 uppercase">
                             Match
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] font-bold text-blue-400">
+                          <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400 font-mono tabular-nums">
                             {item.result.skillsMatch}%
                           </span>
-                          <span className="text-[9px] font-bold text-slate-600 uppercase">
+                          <span className="text-[9px] font-bold text-zinc-500 uppercase">
                             Skills
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-white/5">
-                        <span className="text-[9px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded flex items-center gap-1">
+                      <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-zinc-200 dark:border-zinc-800">
+                        <span className="text-[9px] font-bold text-violet-700 dark:text-violet-300 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded flex items-center gap-1">
                           <StickyNote className="w-2.5 h-2.5" /> {item.stickyNotes?.length || 0} Notes
                         </span>
-                        <span className="text-[9px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded flex items-center gap-1">
+                        <span className="text-[9px] font-bold text-purple-700 dark:text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded flex items-center gap-1">
                           <Highlighter className="w-2.5 h-2.5" /> {item.highlights?.length || 0} Highlights
                         </span>
                       </div>
@@ -3045,26 +2977,26 @@ export default function App() {
               )}
 
               {compareIds.length >= 2 ? (
-                <div className="sticky bottom-0 left-0 right-0 pt-6 mt-6 border-t border-white/10 bg-brand-deep/95">
+                <div className="sticky bottom-0 left-0 right-0 pt-6 mt-6 border-t border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-[#09090b]/95">
                   <button
                     onClick={() => {
                       setIsComparisonModalOpen(true);
                       setIsHistoryOpen(false);
                     }}
-                    className="w-full btn-primary py-3.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 cursor-pointer"
+                    className="w-full btn-primary py-3.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Layers className="w-4 h-4" />
                     <span>Compare {compareIds.length} Selected Versions</span>
                   </button>
                 </div>
               ) : history.length >= 2 ? (
-                <div className="sticky bottom-0 left-0 right-0 pt-6 mt-6 border-t border-white/10 bg-brand-deep/95">
+                <div className="sticky bottom-0 left-0 right-0 pt-6 mt-6 border-t border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-[#09090b]/95">
                   <button
                     onClick={() => {
                       setIsComparisonModalOpen(true);
                       setIsHistoryOpen(false);
                     }}
-                    className="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-teal-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    className="w-full py-3 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-violet-700 dark:text-violet-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
                     <Layers className="w-4 h-4" />
                     <span>Side-by-Side Version Comparison</span>
@@ -3079,15 +3011,15 @@ export default function App() {
               key="delta-comparison-view"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="fixed inset-0 z-[70] bg-brand-deep flex flex-col p-12 overflow-y-auto"
+              className="fixed inset-0 z-[70] bg-zinc-50 dark:bg-[#09090b] flex flex-col p-12 overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-12">
-                <h2 className="text-3xl font-black font-display text-white uppercase tracking-tighter">
+                <h2 className="text-3xl font-black font-display text-zinc-950 dark:text-white uppercase tracking-tighter">
                   Delta Intelligence Comparison
                 </h2>
                 <button
                   onClick={() => setCompareIds([])}
-                  className="px-8 py-3 rounded-full border border-white/10 text-slate-300 font-black hover:bg-white/5 transition-all text-xs"
+                  className="px-8 py-3 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 font-black hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all text-xs cursor-pointer"
                 >
                   Exit Comparison
                 </button>
@@ -3108,73 +3040,73 @@ export default function App() {
                     return (
                       <GlassCard key={`gc-${item.id || idx}-${idx}`} className="space-y-8">
                         <div className="space-y-2">
-                          <p className="text-[10px] font-black text-teal-400 uppercase tracking-widest flex items-center justify-between">
+                          <p className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest flex items-center justify-between">
                             <span>
                               {item.versionName || `Version ${String.fromCharCode(65 + idx)}`} -{" "}
                               {new Date(item.date).toLocaleDateString()}
                             </span>
                             {idx > 0 && scoreDiff !== 0 && (
                               <motion.span
-                                initial={{ scale: 0, opacity: 0 }}
+                                initial={{ scale: 0.8, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
-                                className={`px-2 py-0.5 rounded-full text-[9px] font-black ${scoreDiff > 0 ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"}`}
+                                className={`px-2 py-0.5 rounded-full text-[9px] font-black ${scoreDiff > 0 ? "bg-violet-500/15 text-violet-700 dark:text-violet-300" : "bg-rose-500/15 text-rose-700 dark:text-rose-400"}`}
                               >
                                 {scoreDiff > 0 ? "+" : ""}
                                 {scoreDiff} pts
                               </motion.span>
                             )}
                           </p>
-                          <h3 className="text-xl font-black text-white truncate">
+                          <h3 className="text-xl font-black text-zinc-950 dark:text-white truncate">
                             {item.fileName}
                           </h3>
                         </div>
 
                         <div className="grid grid-cols-2 gap-6">
-                          <div className="relative p-4 rounded-xl bg-white/5 border border-white/5">
-                            <p className="text-[9px] font-black text-slate-500 uppercase mb-1">
+                          <div className="relative p-4 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                            <p className="text-[9px] font-black text-zinc-500 uppercase mb-1">
                               Intelligence Score
                             </p>
-                            <p className="text-3xl font-black text-white font-display">
+                            <p className="text-3xl font-black text-zinc-950 dark:text-white font-display tabular-nums">
                               {item.result.overallScore}%
                             </p>
                           </div>
-                          <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                            <p className="text-[9px] font-black text-slate-500 uppercase mb-1">
+                          <div className="p-4 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                            <p className="text-[9px] font-black text-zinc-500 uppercase mb-1">
                               ATS Compatibility
                             </p>
-                            <p className="text-3xl font-black text-white font-display">
+                            <p className="text-3xl font-black text-zinc-950 dark:text-white font-display tabular-nums">
                               {item.result.atsCompatibility}%
                             </p>
                           </div>
-                          <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                            <p className="text-[9px] font-black text-slate-500 uppercase mb-1">
+                          <div className="p-4 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                            <p className="text-[9px] font-black text-zinc-500 uppercase mb-1">
                               Skill Vector
                             </p>
-                            <p className="text-3xl font-black text-white font-display">
+                            <p className="text-3xl font-black text-zinc-950 dark:text-white font-display tabular-nums">
                               {item.result.skillsMatch}%
                             </p>
                           </div>
-                          <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                            <p className="text-[9px] font-black text-slate-500 uppercase mb-1">
+                          <div className="p-4 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                            <p className="text-[9px] font-black text-zinc-500 uppercase mb-1">
                               Format Health
                             </p>
-                            <p className="text-3xl font-black text-white font-display">
+                            <p className="text-3xl font-black text-zinc-950 dark:text-white font-display tabular-nums">
                               {item.result.atsAnalysis.formattingScore}%
                             </p>
                           </div>
                         </div>
 
                         <div className="space-y-4">
-                          <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                          <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">
                             Core Summary
                           </p>
-                          <p className="text-xs text-slate-400 leading-relaxed italic border-l-2 border-teal-500/20 pl-4">
+                          <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed italic border-l-2 border-violet-500/40 pl-4">
                             "{item.result.summary}"
                           </p>
                         </div>
 
                         <div className="space-y-4">
-                          <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                          <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">
                             Found Intelligence
                           </p>
                           <div className="flex flex-wrap gap-2">
@@ -3183,7 +3115,7 @@ export default function App() {
                               .map((s, i) => (
                                 <span
                                   key={`fs-${idx}-${s}-${i}`}
-                                  className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-[9px] font-black text-slate-500 uppercase"
+                                  className="px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[9px] font-black text-zinc-700 dark:text-zinc-300 uppercase"
                                 >
                                   {s}
                                 </span>
@@ -3192,7 +3124,7 @@ export default function App() {
                         </div>
 
                         <div className="space-y-4">
-                          <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                          <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">
                             Priority Gaps
                           </p>
                           <div className="space-y-2">
@@ -3203,14 +3135,14 @@ export default function App() {
                                   key={`sgr-${idx}-${gap.skill || i}-${i}`}
                                   className="flex justify-between items-center text-[10px] uppercase"
                                 >
-                                  <span className="text-slate-400">
+                                  <span className="text-zinc-700 dark:text-zinc-300">
                                     {gap.skill}
                                   </span>
                                   <span
                                     className={
                                       gap.importance === "Critical"
-                                        ? "text-rose-400"
-                                        : "text-amber-400"
+                                        ? "text-rose-600 dark:text-rose-400 font-bold"
+                                        : "text-purple-700 dark:text-purple-400 font-bold"
                                     }
                                   >
                                     {gap.importance}
@@ -3220,15 +3152,15 @@ export default function App() {
                           </div>
                         </div>
 
-                        <div className="pt-4 border-t border-white/10 space-y-3">
-                          <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                        <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 space-y-3">
+                          <p className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">
                             Snapshot Annotations
                           </p>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-bold flex items-center gap-1">
+                            <span className="px-2.5 py-1 rounded bg-violet-500/10 border border-violet-500/30 text-violet-700 dark:text-violet-300 text-[10px] font-bold flex items-center gap-1">
                               <StickyNote className="w-3 h-3" /> {item.stickyNotes?.length || 0} Sticky Notes
                             </span>
-                            <span className="px-2.5 py-1 rounded bg-teal-500/10 border border-teal-500/30 text-teal-300 text-[10px] font-bold flex items-center gap-1">
+                            <span className="px-2.5 py-1 rounded bg-purple-500/10 border border-purple-500/30 text-purple-700 dark:text-purple-300 text-[10px] font-bold flex items-center gap-1">
                               <Highlighter className="w-3 h-3" /> {item.highlights?.length || 0} Highlights
                             </span>
                           </div>
@@ -3243,7 +3175,7 @@ export default function App() {
                               setSnapshotToast(`Activated version "${item.versionName || item.fileName}"`);
                               setTimeout(() => setSnapshotToast(null), 3000);
                             }}
-                            className="w-full mt-2 py-2.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 border border-teal-500/40 text-teal-300 text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                            className="w-full mt-2 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
                           >
                             <Check className="w-3.5 h-3.5" /> Load & View Version
                           </button>
@@ -3258,12 +3190,12 @@ export default function App() {
           {isSessionPurged && (
             <motion.div
               key="session-purged-toast"
-              initial={{ opacity: 0, y: -50 }}
+              initial={{ opacity: 0, y: -24 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -50 }}
-              className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-emerald-500 text-white px-8 py-3 rounded-2xl shadow-2xl flex items-center gap-3 font-black uppercase tracking-widest text-xs"
+              exit={{ opacity: 0, y: -24 }}
+              className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-zinc-950 dark:bg-violet-700 text-white border border-violet-500/40 px-8 py-3 rounded-2xl shadow-2xl flex items-center gap-3 font-black uppercase tracking-widest text-xs"
             >
-              <ShieldCheck className="h-5 w-5" />
+              <ShieldCheck className="h-5 w-5 text-violet-300" />
               Memory Purged Successfully
             </motion.div>
           )}
@@ -3271,12 +3203,12 @@ export default function App() {
           {snapshotToast && (
             <motion.div
               key="snapshot-toast"
-              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              initial={{ opacity: 0, y: 24, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 50, scale: 0.9 }}
-              className="fixed bottom-8 right-8 z-[100] bg-cyan-950/95 text-cyan-200 border border-cyan-400/50 px-6 py-4 rounded-2xl shadow-[0_10px_30px_rgba(6,182,212,0.3)] backdrop-blur-2xl flex items-center gap-3 font-bold text-xs uppercase tracking-wide"
+              exit={{ opacity: 0, y: 24, scale: 0.96 }}
+              className="fixed bottom-8 right-8 z-[100] bg-zinc-950 text-white border border-violet-500/40 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-xs uppercase tracking-wide"
             >
-              <BookmarkPlus className="w-5 h-5 text-cyan-400 shrink-0 animate-bounce" />
+              <BookmarkPlus className="w-5 h-5 text-violet-400 shrink-0" />
               <span>{snapshotToast}</span>
             </motion.div>
           )}
@@ -3294,10 +3226,10 @@ export default function App() {
               {/* Hero Section */}
               <div className="text-center mb-16 relative">
                 <motion.h2
-                  initial={{ opacity: 0, y: 30 }}
+                  initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-                  className="text-5xl md:text-[4.5rem] lg:text-[5.5rem] font-black font-display text-transparent bg-clip-text bg-gradient-to-b from-slate-900 to-slate-700 dark:from-white dark:to-white/75 mb-8 tracking-tighter leading-[1.05]"
+                  transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+                  className="text-5xl md:text-[4.5rem] lg:text-[5.5rem] font-black font-display text-transparent bg-clip-text bg-gradient-to-b from-zinc-950 to-zinc-700 dark:from-white dark:to-zinc-300 mb-8 tracking-tighter leading-[1.05]"
                 >
                   Dominate the Executive Search.
                   <br />
@@ -3305,17 +3237,17 @@ export default function App() {
                     Secure Your Next Leadership Role.
                     <motion.div
                       initial={{ scaleX: 0, opacity: 0 }}
-                      animate={{ scaleX: 1, opacity: 0.5 }}
-                      transition={{ duration: 1.2, delay: 0.8, ease: "easeOut" }}
-                      className="absolute -bottom-2 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-brand-glow to-transparent origin-left"
+                      animate={{ scaleX: 1, opacity: 0.6 }}
+                      transition={{ duration: 0.9, delay: 0.5, ease: "easeOut" }}
+                      className="absolute -bottom-2 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-violet-600 to-transparent origin-left"
                     />
                   </span>
                 </motion.h2>
                 <motion.p
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
-                  className="text-slate-600 dark:text-slate-400 text-lg md:text-xl max-w-3xl mx-auto font-medium leading-relaxed tracking-wide"
+                  transition={{ duration: 0.7, delay: 0.35, ease: "easeOut" }}
+                  className="text-zinc-600 dark:text-zinc-400 text-lg md:text-xl max-w-3xl mx-auto font-medium leading-relaxed tracking-wide"
                 >
                   Upload your executive brief and target mandate. Our AI
                   assesses your strategic positioning against top-tier search firm
@@ -3325,25 +3257,21 @@ export default function App() {
 
                 {/* Floating 'Verify with LinkedIn' Action Badge (Pre-Upload Instant Trigger) */}
                 <motion.div
-                  initial={{ opacity: 0, y: 16 }}
+                  initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.7, delay: 0.65, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ duration: 0.6, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
                   className="mt-8 flex justify-center"
                 >
                   <motion.button
                     id="hero-verify-linkedin-badge"
                     type="button"
                     onClick={() => setIsLinkedInVerificationModalOpen(true)}
-                    animate={{ y: [0, -4, 0] }}
-                    transition={{
-                      y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-                    }}
-                    whileHover={{ y: -3, scale: 1.02 }}
+                    whileHover={{ y: -2, scale: 1.01 }}
                     whileTap={{ scale: 0.98 }}
-                    className="group inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2.5 min-h-[44px] max-w-full rounded-full bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl border border-[#0A66C2]/25 dark:border-teal-500/35 hover:border-[#0A66C2]/60 dark:hover:border-teal-400/70 shadow-[0_14px_34px_-10px_rgba(10,102,194,0.28)] dark:shadow-[0_14px_34px_-10px_rgba(20,184,166,0.28)] transition-colors cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A66C2] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950"
+                    className="group inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2.5 min-h-[44px] max-w-full rounded-full bg-white/95 dark:bg-[#111116]/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 hover:border-violet-600/60 dark:hover:border-violet-400/70 shadow-[0_10px_28px_-10px_rgba(9,9,11,0.16)] dark:shadow-[0_14px_34px_-10px_rgba(124,58,237,0.28)] transition-colors cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950"
                     title="Verify your LinkedIn profile and inspect your real-time Credibility Score before uploading a resume"
                   >
-                    <span className="w-7 h-7 rounded-full bg-[#0A66C2]/10 dark:bg-[#0A66C2]/25 flex items-center justify-center text-[#0A66C2] dark:text-[#38bdf8] shrink-0">
+                    <span className="w-7 h-7 rounded-full bg-violet-600/10 dark:bg-violet-500/20 flex items-center justify-center text-violet-700 dark:text-violet-300 shrink-0">
                       <svg
                         width="15"
                         height="15"
@@ -3355,23 +3283,23 @@ export default function App() {
                       </svg>
                     </span>
 
-                    <span className="text-xs font-extrabold tracking-wide text-slate-900 dark:text-white group-hover:text-[#0A66C2] dark:group-hover:text-teal-300 transition-colors">
+                    <span className="text-xs font-extrabold tracking-wide text-zinc-950 dark:text-white group-hover:text-violet-700 dark:group-hover:text-violet-300 transition-colors">
                       Verify with LinkedIn
                     </span>
 
-                    <span aria-hidden="true" className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+                    <span aria-hidden="true" className="h-4 w-px bg-zinc-200 dark:bg-zinc-700" />
 
                     <span className="inline-flex items-center gap-1.5 font-mono tabular-nums">
-                      <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
-                      <span className="text-xs font-black text-teal-700 dark:text-teal-300">
+                      <ShieldCheck className="w-4 h-4 text-violet-700 dark:text-violet-400 shrink-0" />
+                      <span className="text-xs font-black text-violet-700 dark:text-violet-300">
                         {linkedInTrustScore !== null ? `${linkedInTrustScore}%` : "~84%"}
                       </span>
-                      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                      <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
                         {linkedInTrustScore !== null ? "Verified Trust" : "Est. Trust"}
                       </span>
                     </span>
 
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#0A66C2] dark:group-hover:text-teal-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                    <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-violet-700 dark:group-hover:text-violet-300 group-hover:translate-x-0.5 transition-all shrink-0" />
                   </motion.button>
                 </motion.div>
               </div>
@@ -3380,60 +3308,55 @@ export default function App() {
               <div className="grid md:grid-cols-2 gap-8">
                 <GlassCard delay={0.1}>
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                      <Layers className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+                    <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                      <Layers className="h-4 w-4 text-violet-700 dark:text-violet-400" />
                       Resume Upload
                     </h3>
                   </div>
                   <motion.div
                     {...(getRootProps() as any)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
                     className={`group relative rounded-2xl transition-all cursor-pointer text-center h-[14rem] flex flex-col items-center justify-center overflow-hidden
-                      ${isDragReject ? "bg-rose-500/10 border-rose-500/50" : isDragActive ? "bg-teal-500/10 border-teal-500/50" : "bg-slate-50/70 hover:bg-slate-100/80 dark:bg-white/[0.02] dark:hover:bg-white/[0.04]"}`}
+                      ${isDragReject ? "bg-rose-500/10 border-rose-500/50" : isDragActive ? "bg-violet-500/10 border-violet-500/50" : "bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900/50 dark:hover:bg-zinc-900"}`}
                   >
                     <div
-                      className="absolute inset-0 border-2 border-dashed rounded-2xl opacity-60 transition-colors duration-500 group-hover:border-teal-500/60"
+                      className="absolute inset-0 border-2 border-dashed rounded-2xl opacity-60 transition-colors duration-300 group-hover:border-violet-600/60"
                       style={{
                         borderColor: isDragReject
-                          ? "#f43f5e"
+                          ? "#e11d48"
                           : isDragActive
-                            ? "#14b8a6"
+                            ? "#7c3aed"
                             : currentTheme === "figma-dark"
-                              ? "rgba(255,255,255,0.22)"
-                              : "rgba(100,116,139,0.45)",
+                              ? "rgba(255,255,255,0.18)"
+                              : "rgba(113,113,122,0.38)",
                       }}
                     />
                     <input {...getInputProps()} />
 
                     <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <ShieldCheck className="h-4 w-4 text-slate-500" />
+                      <ShieldCheck className="h-4 w-4 text-zinc-500" />
                     </div>
 
-                    <div className="flex flex-col items-center gap-4 relative z-10 transition-transform duration-500 group-hover:-translate-y-2">
-                      <div className="relative">
-                        <div
-                          className={`absolute inset-0 blur-xl rounded-full scale-0 group-hover:scale-150 transition-transform duration-700 ${isDragReject ? "bg-rose-500/30" : "bg-teal-500/30"}`}
-                        ></div>
-                        <div className="h-16 w-16 rounded-full bg-gradient-to-tr from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center border border-slate-300 dark:border-white/10 shadow-xl relative z-10">
-                          {isDragReject ? (
-                            <AlertCircle className="h-7 w-7 transition-colors duration-500 text-rose-500 dark:text-rose-400" />
-                          ) : (
-                            <Upload
-                              className={`h-7 w-7 transition-colors duration-500 ${isDragActive ? "text-teal-500 dark:text-teal-400" : "text-slate-600 dark:text-slate-400 group-hover:text-teal-600 dark:group-hover:text-white"}`}
-                            />
-                          )}
-                        </div>
+                    <div className="flex flex-col items-center gap-4 relative z-10 transition-transform duration-300 group-hover:-translate-y-1">
+                      <div className="h-16 w-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center border border-zinc-200 dark:border-zinc-700 shadow-sm relative z-10">
+                        {isDragReject ? (
+                          <AlertCircle className="h-7 w-7 transition-colors duration-300 text-rose-600 dark:text-rose-400" />
+                        ) : (
+                          <Upload
+                            className={`h-7 w-7 transition-colors duration-300 ${isDragActive ? "text-violet-600 dark:text-violet-400" : "text-zinc-600 dark:text-zinc-400 group-hover:text-violet-700 dark:group-hover:text-violet-300"}`}
+                          />
+                        )}
                       </div>
 
                       {file ? (
                         <div className="space-y-1.5 px-6">
-                          <p className="text-teal-600 dark:text-teal-400 font-black text-sm uppercase tracking-tight truncate max-w-[250px]">
+                          <p className="text-violet-700 dark:text-violet-300 font-black text-sm uppercase tracking-tight truncate max-w-[250px]">
                             {file.name}
                           </p>
                           <div className="flex items-center justify-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
-                            <p className="text-slate-500 dark:text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">
+                            <div className="w-1.5 h-1.5 rounded-full bg-violet-600 dark:bg-violet-400" />
+                            <p className="text-zinc-500 dark:text-zinc-400 text-[9px] font-black uppercase tracking-[0.2em]">
                               Ready For Analysis
                             </p>
                           </div>
@@ -3441,13 +3364,13 @@ export default function App() {
                       ) : (
                         <div className="space-y-4">
                           <p
-                            className={`font-black text-[13px] uppercase tracking-widest transition-colors ${isDragReject ? "text-rose-500 dark:text-rose-400" : "text-slate-700 dark:text-slate-200"}`}
+                            className={`font-black text-[13px] uppercase tracking-widest transition-colors ${isDragReject ? "text-rose-600 dark:text-rose-400" : "text-zinc-800 dark:text-zinc-200"}`}
                           >
                             {isDragReject
                               ? "Unsupported Format"
                               : "Drag & Drop Executive Brief Here"}
                           </p>
-                          <div className="flex items-center justify-center gap-4 text-slate-500">
+                          <div className="flex items-center justify-center gap-4 text-zinc-500">
                             <div className="flex flex-col items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
                               <FileText className="h-4 w-4" />
                               <span className="text-[9px] font-black tracking-widest uppercase">
@@ -3518,16 +3441,16 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           "Headline: Senior Staff Software Engineer & Cloud Architect | Distributed Systems & AWS\nAbout: 8+ years architecting microservices and leading platform teams. Scaled systems to 5M+ daily active users.",
                         );
                       }}
-                      className="text-[10px] font-black text-teal-700 dark:text-teal-400 hover:text-teal-800 dark:hover:text-teal-300 uppercase tracking-widest bg-teal-500/10 hover:bg-teal-500/20 px-4 py-2 rounded-lg transition-all border border-teal-500/30 hover:border-teal-500/50 cursor-pointer"
+                      className="text-[10px] font-black text-violet-700 dark:text-violet-400 hover:text-violet-900 dark:hover:text-violet-300 uppercase tracking-widest bg-violet-500/10 hover:bg-violet-500/20 px-4 py-2 rounded-lg transition-all border border-violet-500/30 hover:border-violet-500/50 cursor-pointer"
                     >
                       Use Sample Resume & Job Description
                     </button>
                   </div>
 
-                  <div className="mt-4 border-t border-slate-200 dark:border-white/5 pt-4 space-y-3">
+                  <div className="mt-4 border-t border-zinc-200 dark:border-zinc-800 pt-4 space-y-3">
                     <div className="group relative w-full">
                       {linkedinUrl ? (
-                        <div className="w-full flex flex-col gap-2.5 p-3 rounded-xl border border-[#0A66C2]/40 bg-[#0A66C2]/10 dark:bg-[#0A66C2]/15 shadow-[0_0_20px_rgba(10,102,194,0.15)] transition-all">
+                        <div className="w-full flex flex-col gap-2.5 p-3 rounded-xl border border-violet-500/35 bg-violet-500/5 dark:bg-violet-950/20 transition-all">
                           <div className="flex items-center justify-between gap-2">
                             <button
                               type="button"
@@ -3538,23 +3461,23 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 width="20"
                                 height="20"
                                 viewBox="0 0 24 24"
-                                fill="#0A66C2"
+                                fill="currentColor"
                                 aria-hidden="true"
-                                className="shrink-0"
+                                className="shrink-0 text-violet-700 dark:text-violet-400"
                               >
                                 <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
                               </svg>
                               <div className="overflow-hidden">
-                                <div className="flex items-center gap-2 text-xs text-slate-900 dark:text-white">
+                                <div className="flex items-center gap-2 text-xs text-zinc-950 dark:text-white">
                                   <span className="font-bold tracking-wide">
                                     LinkedIn Connected
                                   </span>
-                                  <span aria-hidden="true" className="text-slate-400">·</span>
-                                  <span className="text-emerald-700 dark:text-emerald-400 font-semibold text-[11px]">
+                                  <span aria-hidden="true" className="text-zinc-400">·</span>
+                                  <span className="text-violet-700 dark:text-violet-400 font-semibold text-[11px]">
                                     Active
                                   </span>
                                 </div>
-                                <p className="text-[10px] text-teal-700 dark:text-teal-300 font-mono truncate max-w-[180px] sm:max-w-xs">
+                                <p className="text-[10px] text-zinc-600 dark:text-zinc-400 font-mono truncate max-w-[180px] sm:max-w-xs">
                                   {linkedinUrl.replace(/^https?:\/\/(www\.)?linkedin\.com\//i, "")}
                                 </p>
                               </div>
@@ -3564,13 +3487,13 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 type="button"
                                 onClick={() => handleVerifyLinkedInTrust()}
                                 disabled={isVerifyingLinkedInTrust}
-                                className="text-[11px] font-bold text-teal-800 dark:text-teal-300 hover:text-teal-950 dark:hover:text-white bg-teal-500/15 hover:bg-teal-500/25 px-3 py-1.5 rounded-lg border border-teal-500/35 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer disabled:opacity-50"
+                                className="text-[11px] font-bold text-violet-800 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white bg-violet-500/15 hover:bg-violet-500/25 px-3 py-1.5 rounded-lg border border-violet-500/35 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer disabled:opacity-50"
                                 title="Perform real-time verification of LinkedIn profile data against resume content"
                               >
-                                <ShieldCheck className={`w-3.5 h-3.5 text-teal-600 dark:text-teal-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
+                                <ShieldCheck className={`w-3.5 h-3.5 text-violet-700 dark:text-violet-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
                                 <span>{isVerifyingLinkedInTrust ? "Verifying..." : "LinkedIn Trust Score"}</span>
                                 {linkedInTrustScore !== null && (
-                                  <span className="font-mono font-bold tabular-nums text-slate-900 dark:text-white ml-0.5">
+                                  <span className="font-mono font-bold tabular-nums text-zinc-950 dark:text-white ml-0.5">
                                     {linkedInTrustScore}%
                                   </span>
                                 )}
@@ -3578,7 +3501,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               <button
                                 type="button"
                                 onClick={() => setIsConnectLinkedInModalOpen(true)}
-                                className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white bg-white/80 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-white/10 transition-all whitespace-nowrap cursor-pointer"
+                                className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-2.5 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 transition-all whitespace-nowrap cursor-pointer"
                               >
                                 Manage
                               </button>
@@ -3593,7 +3516,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                   sessionStorage.removeItem("current_linkedin_trust_score");
                                   sessionStorage.removeItem("current_linkedin_trust_report");
                                 }}
-                                className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer"
+                                className="p-1.5 text-zinc-500 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer"
                                 title="Disconnect LinkedIn profile"
                               >
                                 <X className="w-4 h-4" />
@@ -3608,7 +3531,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             whileHover={{ scale: 1.01 }}
                             whileTap={{ scale: 0.99 }}
                             onClick={() => setIsConnectLinkedInModalOpen(true)}
-                            className="flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl border transition-all bg-[#0A66C2]/10 hover:bg-[#0A66C2]/20 border-[#0A66C2]/35 text-[#0A66C2] dark:text-[#38bdf8] hover:text-[#004182] dark:hover:text-white cursor-pointer whitespace-nowrap"
+                            className="flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl border transition-all bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 cursor-pointer whitespace-nowrap"
                           >
                             <svg
                               width="16"
@@ -3616,7 +3539,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               viewBox="0 0 24 24"
                               fill="currentColor"
                               aria-hidden="true"
-                              className="shrink-0"
+                              className="shrink-0 text-violet-700 dark:text-violet-400"
                             >
                               <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
                             </svg>
@@ -3628,13 +3551,13 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             type="button"
                             onClick={() => handleVerifyLinkedInTrust()}
                             disabled={isVerifyingLinkedInTrust}
-                            className="px-4 py-3 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/35 text-teal-800 dark:text-teal-300 hover:text-teal-950 dark:hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50"
+                            className="px-4 py-3 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 text-violet-800 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50"
                             title="Verify public LinkedIn profile data against your resume content in real time"
                           >
-                            <ShieldCheck className={`w-4 h-4 text-teal-600 dark:text-teal-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
+                            <ShieldCheck className={`w-4 h-4 text-violet-700 dark:text-violet-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
                             <span>{isVerifyingLinkedInTrust ? "Verifying..." : "LinkedIn Trust Score"}</span>
                             {linkedInTrustScore !== null && (
-                              <span className="font-mono font-bold tabular-nums text-slate-900 dark:text-white">
+                              <span className="font-mono font-bold tabular-nums text-zinc-950 dark:text-white">
                                 {linkedInTrustScore}%
                               </span>
                             )}
@@ -3645,13 +3568,13 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                     {/* Real-Time Credibility Score Display inside the LinkedIn Connection Section */}
                     {linkedInTrustScore !== null && (
-                      <div className="dark dark-studio p-3.5 rounded-xl bg-slate-900/95 border border-teal-500/30 space-y-2.5">
+                      <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/95 border border-violet-500/30 space-y-2.5">
                         <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 text-xs text-slate-300">
-                            <ShieldCheck className="w-4 h-4 text-teal-400 shrink-0" />
-                            <span className="font-semibold text-white">Credibility Score</span>
+                          <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+                            <ShieldCheck className="w-4 h-4 text-violet-700 dark:text-violet-400 shrink-0" />
+                            <span className="font-semibold text-zinc-950 dark:text-white">Credibility Score</span>
                             <span aria-hidden="true">·</span>
-                            <span className="text-teal-300 font-medium">
+                            <span className="text-violet-700 dark:text-violet-300 font-medium">
                               {linkedInTrustReport?.credibilityTier ||
                                 (linkedInTrustScore >= 85
                                   ? "Verified High Credibility"
@@ -3661,21 +3584,21 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-base font-mono font-bold tabular-nums text-teal-400">
+                            <span className="text-base font-mono font-bold tabular-nums text-violet-700 dark:text-violet-400">
                               {linkedInTrustScore}%
                             </span>
                             <button
                               type="button"
                               onClick={() => setIsLinkedInVerificationModalOpen(true)}
-                              className="text-[11px] font-semibold text-slate-300 hover:text-white underline underline-offset-2 cursor-pointer whitespace-nowrap"
+                              className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white underline underline-offset-2 cursor-pointer whitespace-nowrap"
                             >
                               Full Audit
                             </button>
                           </div>
                         </div>
-                        <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-teal-400 rounded-full transition-all duration-500"
+                            className="h-full bg-violet-600 rounded-full transition-all duration-500"
                             style={{ width: `${linkedInTrustScore}%` }}
                           />
                         </div>
@@ -3684,10 +3607,10 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             {linkedInTrustReport.trustFactors.map((tf: any, idx: number) => (
                               <div
                                 key={`landing-tf-${tf.name}-${idx}`}
-                                className="flex items-center justify-between text-[10px] text-slate-400 bg-white/[0.03] px-2 py-1 rounded border border-white/5"
+                                className="flex items-center justify-between text-[10px] text-zinc-600 dark:text-zinc-400 bg-white dark:bg-zinc-950/60 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-800"
                               >
                                 <span className="truncate pr-1">{tf.name.split(" ")[0]}</span>
-                                <span className="font-mono font-semibold tabular-nums text-slate-200">
+                                <span className="font-mono font-semibold tabular-nums text-zinc-900 dark:text-zinc-200">
                                   {tf.score}%
                                 </span>
                               </div>
@@ -3695,7 +3618,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           </div>
                         )}
                         {linkedInTrustReport?.verificationSummary && (
-                          <p className="text-[11px] text-slate-400 leading-relaxed">
+                          <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
                             {linkedInTrustReport.verificationSummary}
                           </p>
                         )}
@@ -3706,8 +3629,8 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                 <GlassCard delay={0.2}>
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-                      <Target className="h-4 w-4 text-teal-400" />
+                    <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                      <Target className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                       Match Context
                     </h3>
                     <button
@@ -3732,13 +3655,12 @@ Qualifications:
 - Exceptional strategic thinking, financial acumen, and operational expertise.
 - Strong communication and interpersonal skills, with the ability to influence and align diverse stakeholders.
 - MBA or equivalent advanced degree preferred.`)}
-                      className="text-[10px] font-black uppercase tracking-widest text-teal-700 dark:text-teal-400 hover:text-teal-800 dark:hover:text-teal-300 transition-colors flex items-center gap-1 bg-teal-500/10 px-3 py-1.5 rounded-full hover:bg-teal-500/20 cursor-pointer"
+                      className="text-[10px] font-black uppercase tracking-widest text-violet-700 dark:text-violet-300 hover:text-violet-900 dark:hover:text-white transition-colors flex items-center gap-1 bg-violet-500/10 px-3 py-1.5 rounded-lg border border-violet-500/25 hover:bg-violet-500/20 cursor-pointer"
                     >
                       <Zap className="h-3 w-3" /> Quick Fill
                     </button>
                   </div>
                   <div className="relative group">
-                    <div className="absolute inset-0 bg-gradient-to-r from-teal-500/20 to-sky-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 -z-10"></div>
                     <textarea
                       value={jobDescription}
                       onChange={(e) => {
@@ -3747,9 +3669,9 @@ Qualifications:
                         e.target.style.height = `${e.target.scrollHeight}px`;
                       }}
                       placeholder="Paste the target job requirements to calibrate the intelligence engine..."
-                      className="w-full min-h-[14rem] max-h-[30rem] bg-slate-50 dark:bg-[#0A0A15]/80 backdrop-blur-md border border-slate-200 dark:border-white/10 rounded-2xl p-6 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-teal-500/60 focus:ring-1 focus:ring-teal-500/60 transition-all resize-y font-medium leading-relaxed custom-scrollbar relative z-10 shadow-inner"
+                      className="w-full min-h-[14rem] max-h-[30rem] bg-zinc-50 dark:bg-[#0D0D12] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all resize-y font-medium leading-relaxed custom-scrollbar relative z-10 shadow-inner"
                     />
-                    <div className="absolute bottom-4 right-4 text-[9px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 pointer-events-none z-20 bg-slate-100/90 dark:bg-[#0A0A15]/80 px-2 py-1 rounded">
+                    <div className="absolute bottom-4 right-4 text-[9px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 pointer-events-none z-20 bg-zinc-100/90 dark:bg-zinc-900/90 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-800">
                       {jobDescription.length > 0
                         ? `${jobDescription.length} chars`
                         : "Optional Context"}
@@ -3763,13 +3685,13 @@ Qualifications:
                   <GlassCard className="w-full relative flex flex-col items-center">
                     <div className="flex flex-col w-full mb-6">
                       <div className="flex items-center justify-between w-full">
-                        <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-teal-400" />
+                        <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2 flex-wrap">
+                          <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                           Document Preview
-                          <div className="ml-4 flex items-center bg-white/5 p-1 rounded-lg border border-white/10 gap-1 flex-wrap">
+                          <div className="ml-4 flex items-center bg-zinc-100 dark:bg-zinc-900 p-1 rounded-lg border border-zinc-200 dark:border-zinc-800 gap-1 flex-wrap">
                             <button
                               onClick={() => setAnnotationMode("sticky")}
-                              className={`px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${annotationMode === "sticky" ? "bg-amber-400/20 text-amber-400 border border-amber-400/30" : "text-slate-400 hover:bg-white/5 hover:text-slate-300"}`}
+                              className={`px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all cursor-pointer ${annotationMode === "sticky" ? "bg-violet-600/20 text-violet-800 dark:text-violet-300 border border-violet-500/40" : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-white/5 hover:text-zinc-950 dark:hover:text-white"}`}
                             >
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -3789,7 +3711,7 @@ Qualifications:
                             </button>
                             <button
                               onClick={() => setAnnotationMode("highlight")}
-                              className={`px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${annotationMode === "highlight" ? "bg-teal-400/20 text-teal-400 border border-teal-400/30" : "text-slate-400 hover:bg-white/5 hover:text-slate-300"}`}
+                              className={`px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all cursor-pointer ${annotationMode === "highlight" ? "bg-violet-600/20 text-violet-800 dark:text-violet-300 border border-violet-500/40" : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-white/5 hover:text-zinc-950 dark:hover:text-white"}`}
                             >
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -3809,21 +3731,21 @@ Qualifications:
                             </button>
                             <button
                               onClick={() => setAnnotationMode("batch")}
-                              className={`px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${annotationMode === "batch" ? "bg-purple-400/20 text-purple-400 border border-purple-400/30" : "text-slate-400 hover:bg-white/5 hover:text-slate-300"}`}
+                              className={`px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all cursor-pointer ${annotationMode === "batch" ? "bg-purple-600/20 text-purple-800 dark:text-purple-300 border border-purple-500/40" : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-white/5 hover:text-zinc-950 dark:hover:text-white"}`}
                             >
-                              <Sparkles className="w-3 h-3 text-purple-400" />
+                              <Wand2 className="w-3 h-3 text-purple-600 dark:text-purple-400" />
                               Batch Highlight
                             </button>
                             {annotationMode === "sticky" && (
-                              <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-white/10">
-                                <span className="text-[9px] text-amber-300 font-extrabold uppercase tracking-wider hidden sm:inline">Default Note Color:</span>
+                              <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-zinc-200 dark:border-zinc-700">
+                                <span className="text-[9px] text-violet-700 dark:text-violet-300 font-extrabold uppercase tracking-wider hidden sm:inline">Default Note Color:</span>
                                 {Object.entries(STICKY_COLOR_CONFIG).map(([ckey, cval]) => (
                                   <button
                                     key={`sticky-color-${ckey}`}
                                     onClick={() => setDefaultStickyColor(ckey)}
-                                    className={`w-4 h-4 rounded-full border border-white/30 transition-all ${
+                                    className={`w-4 h-4 rounded-full border border-zinc-400/50 dark:border-white/30 transition-all cursor-pointer ${
                                       defaultStickyColor === ckey
-                                        ? "scale-125 ring-2 ring-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.6)]"
+                                        ? "scale-125 ring-2 ring-violet-500"
                                         : "opacity-60 hover:opacity-100 hover:scale-110"
                                     }`}
                                     style={{ backgroundColor: cval.dotColor }}
@@ -3833,37 +3755,37 @@ Qualifications:
                               </div>
                             )}
                             {annotationMode === "highlight" && (
-                              <div className="flex items-center gap-1 ml-2 pl-2 border-l border-white/10">
+                              <div className="flex items-center gap-1 ml-2 pl-2 border-l border-zinc-200 dark:border-zinc-700">
                                 {[
-                                  "rgba(250, 204, 21, 0.4)",
-                                  "rgba(52, 211, 153, 0.4)",
-                                  "rgba(56, 189, 248, 0.4)",
-                                  "rgba(244, 114, 182, 0.4)",
+                                  "rgba(139, 92, 246, 0.35)",
+                                  "rgba(168, 85, 247, 0.35)",
+                                  "rgba(109, 40, 217, 0.32)",
+                                  "rgba(225, 29, 72, 0.32)",
                                 ].map((color) => (
                                   <button
                                     key={`pal-color-${color}`}
                                     onClick={() => setHighlightColor(color)}
-                                    className={`w-4 h-4 rounded-full border border-white/20 transition-transform ${highlightColor === color ? "scale-125 ring-1 ring-white/50" : "hover:scale-110"}`}
+                                    className={`w-4 h-4 rounded-full border border-zinc-400/40 dark:border-white/20 transition-transform cursor-pointer ${highlightColor === color ? "scale-125 ring-1 ring-violet-500" : "hover:scale-110"}`}
                                     style={{ backgroundColor: color }}
                                   />
                                 ))}
                               </div>
                             )}
-                            <div className="flex items-center gap-2 ml-4 pl-4 border-l border-white/10">
-                              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest hidden sm:inline">View Filters:</span>
+                            <div className="flex items-center gap-2 ml-4 pl-4 border-l border-zinc-200 dark:border-zinc-700">
+                              <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest hidden sm:inline">View Filters:</span>
                               <button
                                 onClick={() => setVisibleStickyNotes(prev => !prev)}
-                                className={`p-1.5 rounded-md transition-colors ${visibleStickyNotes ? "bg-amber-400/20 text-amber-400" : "text-slate-500 hover:text-slate-300"}`}
+                                className={`p-1.5 rounded-md transition-colors cursor-pointer ${visibleStickyNotes ? "bg-violet-500/20 text-violet-700 dark:text-violet-300" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"}`}
                                 title="Toggle Sticky Notes"
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z" /><path d="M15 3v6h6" /></svg>
                               </button>
-                              <div className="flex items-center gap-1 ml-1 bg-white/5 rounded-md p-1">
+                              <div className="flex items-center gap-1 ml-1 bg-zinc-200/70 dark:bg-white/5 rounded-md p-1">
                                 {[
-                                  "rgba(250, 204, 21, 0.4)",
-                                  "rgba(52, 211, 153, 0.4)",
-                                  "rgba(56, 189, 248, 0.4)",
-                                  "rgba(244, 114, 182, 0.4)",
+                                  "rgba(139, 92, 246, 0.35)",
+                                  "rgba(168, 85, 247, 0.35)",
+                                  "rgba(109, 40, 217, 0.32)",
+                                  "rgba(225, 29, 72, 0.32)",
                                 ].map((color) => {
                                   const isVisible = visibleHighlightColors.includes(color);
                                   return (
@@ -3872,8 +3794,8 @@ Qualifications:
                                       onClick={() => setVisibleHighlightColors(prev => 
                                         prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color]
                                       )}
-                                      className={`w-3.5 h-3.5 rounded-full border transition-all ${isVisible ? "border-white/50 scale-110 shadow-[0_0_8px_currentColor]" : "border-transparent opacity-30 hover:opacity-100"}`}
-                                      style={{ backgroundColor: color, color: color.replace('0.4)', '1)') }}
+                                      className={`w-3.5 h-3.5 rounded-full border transition-all cursor-pointer ${isVisible ? "border-zinc-900 dark:border-white/70 scale-110" : "border-transparent opacity-30 hover:opacity-100"}`}
+                                      style={{ backgroundColor: color, color: color.replace(/0\.\d+\)$/, '1)') }}
                                       title="Toggle Highlight Category"
                                     />
                                   );
@@ -3882,20 +3804,20 @@ Qualifications:
                             </div>
 
                             {/* Search Bar in Document Viewer Toolbar */}
-                            <div className="flex items-center gap-2 ml-4 pl-4 border-l border-white/10">
+                            <div className="flex items-center gap-2 ml-4 pl-4 border-l border-zinc-200 dark:border-zinc-700">
                               <div className="relative flex items-center">
-                                <Search className="w-3.5 h-3.5 text-teal-400 absolute left-2.5 pointer-events-none" />
+                                <Search className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400 absolute left-2.5 pointer-events-none" />
                                 <input
                                   type="text"
                                   placeholder="Search notes & summaries..."
                                   value={sidebarSearch}
                                   onChange={(e) => setSidebarSearch(e.target.value)}
-                                  className="bg-black/50 border border-white/10 rounded-lg pl-8 pr-7 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-400 w-36 sm:w-52 transition-all shadow-inner"
+                                  className="bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-lg pl-8 pr-7 py-1 text-xs text-zinc-950 dark:text-white placeholder-zinc-400 focus:outline-none focus:border-violet-600 w-36 sm:w-52 transition-all shadow-inner"
                                 />
                                 {sidebarSearch && (
                                   <button
                                     onClick={() => setSidebarSearch("")}
-                                    className="absolute right-2 text-slate-400 hover:text-white"
+                                    className="absolute right-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
                                     title="Clear Search"
                                   >
                                     <X className="w-3 h-3" />
@@ -3908,27 +3830,27 @@ Qualifications:
                               <button
                                 onClick={() => takeSnapshot()}
                                 disabled={!result}
-                                className="px-3.5 py-1.5 flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-wider rounded-md text-cyan-300 bg-cyan-500/20 border border-cyan-500/40 hover:bg-cyan-500/30 hover:text-white transition-all shadow-md hover:shadow-cyan-500/20 active:scale-95 disabled:opacity-40"
+                                className="px-3.5 py-1.5 flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-wider rounded-md text-violet-800 dark:text-violet-300 bg-violet-500/15 border border-violet-500/35 hover:bg-violet-500/25 hover:text-violet-950 dark:hover:text-white transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
                                 title="Snapshot current analysis, sticky notes, and highlights into sidebar archive"
                               >
-                                <BookmarkPlus className="h-3.5 w-3.5 text-cyan-400" />
+                                <BookmarkPlus className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
                                 <span>Snapshot Version</span>
                               </button>
 
                               <button
                                 onClick={exportAnnotatedPdf}
                                 disabled={isExportingPdf || !file}
-                                className="px-3.5 py-1.5 flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-wider rounded-md text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 hover:bg-emerald-500/30 hover:text-white transition-all shadow-md hover:shadow-emerald-500/20 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+                                className="px-3.5 py-1.5 flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-wider rounded-md text-purple-800 dark:text-purple-300 bg-purple-500/15 border border-purple-500/35 hover:bg-purple-500/25 hover:text-purple-950 dark:hover:text-white transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
                                 title="Export PDF with sticky notes and highlights burnt into document"
                               >
                                 {isExportingPdf ? (
                                   <>
-                                    <div className="w-3.5 h-3.5 border-2 border-emerald-300 border-t-transparent rounded-full animate-spin" />
+                                    <div className="w-3.5 h-3.5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
                                     <span>Exporting...</span>
                                   </>
                                 ) : (
                                   <>
-                                    <Download className="h-3.5 w-3.5 text-emerald-400" />
+                                    <Download className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
                                     <span>Export Annotated PDF</span>
                                   </>
                                 )}
@@ -3937,7 +3859,7 @@ Qualifications:
                               <button
                                 onClick={exportStickyNotesSummary}
                                 disabled={stickyNotes.length === 0 && !Object.values(pageSummaries).some(s => s?.trim())}
-                                className="px-3 py-1.5 hidden sm:flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md text-amber-300 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 hover:text-amber-200 transition-all shadow-sm disabled:opacity-30 disabled:pointer-events-none"
+                                className="px-3 py-1.5 hidden sm:flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md text-zinc-700 dark:text-zinc-200 bg-zinc-200/70 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all shadow-sm disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
                                 title="Export summary text file of all notes and page summaries"
                               >
                                 <FileText className="h-3.5 w-3.5" /> Notes Summary ({stickyNotes.length + Object.values(pageSummaries).filter(s => s?.trim()).length})
@@ -3947,7 +3869,7 @@ Qualifications:
                                 <div className="hidden lg:flex items-center gap-1">
                                   {pendingNoteClear ? (
                                     <div className="flex items-center gap-1 bg-rose-500/15 border border-rose-500/40 rounded-md px-2 py-1">
-                                      <span className="text-[10px] font-bold text-rose-200">
+                                      <span className="text-[10px] font-bold text-rose-700 dark:text-rose-200">
                                         {pendingNoteClear === "page" ? `Clear Page ${pageNumber}?` : `Clear All (${stickyNotes.length})?`}
                                       </span>
                                       <button
@@ -3967,7 +3889,7 @@ Qualifications:
                                       <button
                                         type="button"
                                         onClick={() => setPendingNoteClear(null)}
-                                        className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold cursor-pointer"
+                                        className="px-1.5 py-0.5 rounded bg-zinc-700 hover:bg-zinc-600 text-white text-[10px] font-bold cursor-pointer"
                                       >
                                         Cancel
                                       </button>
@@ -3981,7 +3903,7 @@ Qualifications:
                                           if (count > 0) setPendingNoteClear("page");
                                         }}
                                         disabled={stickyNotes.filter(n => n.pageNumber === pageNumber).length === 0}
-                                        className="px-2.5 py-1.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded-md text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 hover:text-rose-300 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                                        className="px-2.5 py-1.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded-md text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 hover:text-rose-700 dark:hover:text-rose-300 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
                                         title={`Clear ${stickyNotes.filter(n => n.pageNumber === pageNumber).length} sticky note(s) on Page ${pageNumber}`}
                                       >
                                         <Trash2 className="h-3.5 w-3.5" /> Clear Page ({stickyNotes.filter(n => n.pageNumber === pageNumber).length})
@@ -3989,7 +3911,7 @@ Qualifications:
                                       <button
                                         type="button"
                                         onClick={() => setPendingNoteClear("all")}
-                                        className="px-2.5 py-1.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded-md text-rose-300 bg-rose-500/20 border border-rose-500/30 hover:bg-rose-500/30 hover:text-white transition-all cursor-pointer"
+                                        className="px-2.5 py-1.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded-md text-rose-700 dark:text-rose-300 bg-rose-500/15 border border-rose-500/30 hover:bg-rose-500/25 hover:text-rose-950 dark:hover:text-white transition-all cursor-pointer"
                                         title="Clear all sticky notes in current document"
                                       >
                                         <Trash2 className="h-3.5 w-3.5" /> Clear All ({stickyNotes.length})
@@ -4003,29 +3925,29 @@ Qualifications:
                         </h3>
                         <div className="flex items-center gap-3">
                           {/* Zoom Controls */}
-                          <div className="flex items-center gap-1 bg-white/5 border border-white/10 p-1 rounded-lg shadow-sm">
+                          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-1 rounded-lg shadow-sm">
                             <button
                               onClick={() => setPdfScale((prev) => Math.max(0.4, Math.round((prev - 0.1) * 10) / 10))}
                               disabled={pdfScale <= 0.4}
-                              className="p-1 hover:bg-white/10 rounded-md text-slate-300 hover:text-white transition-colors disabled:opacity-30"
+                              className="p-1 hover:bg-zinc-200 dark:hover:bg-white/10 rounded-md text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-colors disabled:opacity-30 cursor-pointer"
                               title="Zoom Out (-10%)"
                             >
                               <ZoomOut className="w-3.5 h-3.5" />
                             </button>
-                            <span className="text-[10px] font-mono font-extrabold text-teal-300 px-1 min-w-[38px] text-center">
+                            <span className="text-[10px] font-mono font-extrabold text-violet-700 dark:text-violet-300 px-1 min-w-[38px] text-center">
                               {Math.round(pdfScale * 100)}%
                             </span>
                             <button
                               onClick={() => setPdfScale((prev) => Math.min(2.0, Math.round((prev + 0.1) * 10) / 10))}
                               disabled={pdfScale >= 2.0}
-                              className="p-1 hover:bg-white/10 rounded-md text-slate-300 hover:text-white transition-colors disabled:opacity-30"
+                              className="p-1 hover:bg-zinc-200 dark:hover:bg-white/10 rounded-md text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-colors disabled:opacity-30 cursor-pointer"
                               title="Zoom In (+10%)"
                             >
                               <ZoomIn className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => setPdfScale(0.8)}
-                              className="p-1 hover:bg-white/10 rounded-md text-slate-400 hover:text-teal-300 transition-colors"
+                              className="p-1 hover:bg-zinc-200 dark:hover:bg-white/10 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-violet-700 dark:hover:text-violet-300 transition-colors cursor-pointer"
                               title="Reset Zoom (80%)"
                             >
                               <RotateCcw className="w-3 h-3" />
@@ -4034,18 +3956,18 @@ Qualifications:
 
                           {/* Page Nav */}
                           {numPages && numPages > 1 && (
-                            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 p-1 rounded-lg">
+                            <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-1 rounded-lg">
                               <button
                                 onClick={() =>
                                   setPageNumber((p) => Math.max(1, p - 1))
                                 }
                                 disabled={pageNumber <= 1}
-                                className="w-6 h-6 flex items-center justify-center bg-white/5 disabled:opacity-40 text-slate-300 rounded hover:bg-white/10 transition-colors"
+                                className="w-6 h-6 flex items-center justify-center bg-white dark:bg-zinc-800 disabled:opacity-40 text-zinc-700 dark:text-zinc-300 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                                 title="Previous Page"
                               >
                                 <ChevronUp className="h-3.5 w-3.5" />
                               </button>
-                              <span className="text-[10px] text-slate-300 font-bold tracking-wider px-1">
+                              <span className="text-[10px] text-zinc-700 dark:text-zinc-300 font-bold tracking-wider px-1">
                                 {pageNumber} / {numPages}
                               </span>
                               <button
@@ -4053,7 +3975,7 @@ Qualifications:
                                   setPageNumber((p) => Math.min(numPages, p + 1))
                                 }
                                 disabled={pageNumber >= numPages}
-                                className="w-6 h-6 flex items-center justify-center bg-white/5 disabled:opacity-40 text-slate-300 rounded hover:bg-white/10 transition-colors"
+                                className="w-6 h-6 flex items-center justify-center bg-white dark:bg-zinc-800 disabled:opacity-40 text-zinc-700 dark:text-zinc-300 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                                 title="Next Page"
                               >
                                 <ChevronDown className="h-3.5 w-3.5" />
@@ -4065,14 +3987,14 @@ Qualifications:
 
                       {/* Batch Keyword Highlighter Toolbar */}
                       {(annotationMode === "batch" || activeBatchKeywords.length > 0) && (
-                        <div className="mt-4 p-4 rounded-xl bg-[#0B0C1E]/90 border border-purple-500/30 shadow-xl backdrop-blur-md text-left no-pdf-scan animate-fadeIn">
+                        <div className="mt-4 p-4 rounded-xl bg-white dark:bg-[#111116] border border-purple-500/30 shadow-lg text-left no-pdf-scan animate-fadeIn">
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
                             <div className="flex items-center gap-2">
-                              <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
-                              <span className="text-xs font-black text-white uppercase tracking-wider">
+                              <Wand2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                              <span className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-wider">
                                 Batch Keyword Highlighter
                               </span>
-                              <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
+                              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium hidden sm:inline">
                                 — Highlight all occurrences of any skill or keyword across the document
                               </span>
                             </div>
@@ -4095,7 +4017,7 @@ Qualifications:
                                       setIsBatchSuggestOpen(false);
                                     }
                                   }}
-                                  className="w-full bg-black/60 border border-purple-500/30 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400"
+                                  className="w-full bg-zinc-50 dark:bg-zinc-950 border border-purple-500/30 rounded-lg px-3 py-1.5 text-xs text-zinc-950 dark:text-white placeholder-zinc-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                                 />
                                 {batchInput && (
                                   <button
@@ -4103,7 +4025,7 @@ Qualifications:
                                       setBatchInput("");
                                       setIsBatchSuggestOpen(false);
                                     }}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
                                   >
                                     <X className="w-3 h-3" />
                                   </button>
@@ -4111,14 +4033,14 @@ Qualifications:
 
                                 {/* Auto-Suggestion Dropdown Menu */}
                                 {isBatchSuggestOpen && (
-                                  <div className="absolute z-50 left-0 right-0 top-full mt-2 p-3 bg-slate-900/95 border border-purple-500/40 rounded-xl shadow-2xl backdrop-blur-xl max-h-72 overflow-y-auto space-y-3">
-                                    <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
-                                      <span className="text-[10px] font-black text-purple-300 uppercase tracking-widest flex items-center gap-1">
-                                        <Sparkles className="w-3 h-3 text-purple-400" /> Auto-Suggest ({result?.targetRole || "Active Industry"})
+                                  <div className="absolute z-50 left-0 right-0 top-full mt-2 p-3 bg-white dark:bg-zinc-900 border border-purple-500/40 rounded-xl shadow-2xl max-h-72 overflow-y-auto space-y-3">
+                                    <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-1.5">
+                                      <span className="text-[10px] font-black text-purple-700 dark:text-purple-300 uppercase tracking-widest flex items-center gap-1">
+                                        <Wand2 className="w-3 h-3 text-purple-600 dark:text-purple-400" /> Auto-Suggest ({result?.targetRole || "Active Industry"})
                                       </span>
                                       <button
                                         onClick={() => setIsBatchSuggestOpen(false)}
-                                        className="text-slate-400 hover:text-white text-[10px]"
+                                        className="text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white text-[10px] cursor-pointer"
                                       >
                                         Close
                                       </button>
@@ -4128,7 +4050,7 @@ Qualifications:
                                     {result?.atsAnalysis?.jobKeywordsMissing &&
                                       result.atsAnalysis.jobKeywordsMissing.length > 0 && (
                                         <div>
-                                          <div className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                          <div className="text-[10px] font-extrabold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-1 flex items-center gap-1">
                                             <Target className="w-3 h-3" /> Target Job Missing Keywords:
                                           </div>
                                           <div className="flex flex-wrap gap-1">
@@ -4145,14 +4067,14 @@ Qualifications:
                                                   onClick={() => {
                                                     handleBatchHighlight(
                                                       kw,
-                                                      "rgba(244, 114, 182, 0.4)",
+                                                      "rgba(225, 29, 72, 0.32)",
                                                     );
                                                     setBatchInput("");
                                                     setIsBatchSuggestOpen(false);
                                                   }}
-                                                  className="px-2 py-0.5 rounded bg-rose-500/20 border border-rose-400/40 text-rose-300 text-[10px] font-bold hover:bg-rose-500 hover:text-white transition-all"
+                                                  className="px-2 py-0.5 rounded bg-rose-500/15 border border-rose-500/35 text-rose-700 dark:text-rose-300 text-[10px] font-bold hover:bg-rose-600 hover:text-white transition-all cursor-pointer"
                                                 >
-                                                  🎯 {kw}
+                                                  {kw}
                                                 </button>
                                               ))}
                                           </div>
@@ -4168,8 +4090,8 @@ Qualifications:
                                       return Object.entries(skillsByCategory).map(
                                         ([catName, skills], catIdx) => (
                                           <div key={`cat-${catName}-${catIdx}`}>
-                                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">
-                                              ⚡ {catName}:
+                                            <div className="text-[10px] font-extrabold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+                                              {catName}:
                                             </div>
                                             <div className="flex flex-wrap gap-1">
                                               {skills.slice(0, 8).map((sk, skIdx) => (
@@ -4180,7 +4102,7 @@ Qualifications:
                                                     setBatchInput("");
                                                     setIsBatchSuggestOpen(false);
                                                   }}
-                                                  className="px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/30 text-purple-300 text-[10px] font-bold hover:bg-purple-500 hover:text-slate-950 transition-all"
+                                                  className="px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/30 text-purple-700 dark:text-purple-300 text-[10px] font-bold hover:bg-purple-600 hover:text-white transition-all cursor-pointer"
                                                 >
                                                   {sk}
                                                 </button>
@@ -4202,7 +4124,7 @@ Qualifications:
                                   }
                                 }}
                                 disabled={!batchInput.trim()}
-                                className="px-3 py-1.5 bg-purple-500 hover:bg-purple-400 text-slate-950 text-xs font-bold rounded-lg transition-all disabled:opacity-40 flex items-center gap-1.5 shrink-0 shadow-md"
+                                className="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg transition-all disabled:opacity-40 flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
                               >
                                 <Search className="w-3.5 h-3.5" /> Highlight All
                               </button>
@@ -4211,10 +4133,10 @@ Qualifications:
 
                           {/* Preset Skill Chips from Analysis & Industry Database */}
                           {result && (
-                            <div className="space-y-2 pt-2 border-t border-white/10">
+                            <div className="space-y-2 pt-2 border-t border-zinc-200 dark:border-zinc-800">
                               <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mr-1 flex items-center gap-1">
-                                  <Tag className="w-3 h-3 text-purple-400" /> Recommended:
+                                <span className="text-[9px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mr-1 flex items-center gap-1">
+                                  <Tag className="w-3 h-3 text-purple-600 dark:text-purple-400" /> Recommended:
                                 </span>
 
                                 {/* Missing Skills */}
@@ -4231,24 +4153,24 @@ Qualifications:
                                         } else {
                                           handleBatchHighlight(
                                             gap.skill,
-                                            "rgba(244, 114, 182, 0.4)",
+                                            "rgba(225, 29, 72, 0.32)",
                                           );
                                         }
                                       }}
-                                      className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-all flex items-center gap-1.5 ${
+                                      className={`px-2.5 py-1 rounded-md border text-[10px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                                         isHighlighted
-                                          ? "bg-rose-500/20 text-rose-300 border-rose-400/50 shadow-[0_0_10px_rgba(244,114,182,0.3)]"
-                                          : "bg-white/5 text-slate-300 border-white/10 hover:bg-rose-500/10 hover:text-rose-300 hover:border-rose-500/30"
+                                          ? "bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/50"
+                                          : "bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800 hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-300 hover:border-rose-500/30"
                                       }`}
                                     >
-                                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                                       {gap.skill}
                                       {isHighlighted && <X className="w-3 h-3 ml-0.5 opacity-70" />}
                                     </button>
                                   );
                                 })}
 
-                                {/* Industry High-Impact Skill Pills */}
+                                {/* Industry High-Impact Skill Chips */}
                                 {(() => {
                                   const { skillsByCategory } = getMatchedIndustrySkills(
                                     result?.targetRole,
@@ -4269,17 +4191,17 @@ Qualifications:
                                           } else {
                                             handleBatchHighlight(
                                               sk,
-                                              "rgba(56, 189, 248, 0.4)",
+                                              "rgba(139, 92, 246, 0.35)",
                                             );
                                           }
                                         }}
-                                        className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-all flex items-center gap-1.5 ${
+                                        className={`px-2.5 py-1 rounded-md border text-[10px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                                           isHighlighted
-                                            ? "bg-sky-500/20 text-sky-300 border-sky-400/50 shadow-[0_0_10px_rgba(56,189,248,0.3)]"
-                                            : "bg-white/5 text-slate-300 border-white/10 hover:bg-sky-500/10 hover:text-sky-300 hover:border-sky-500/30"
+                                            ? "bg-violet-500/20 text-violet-800 dark:text-violet-300 border-violet-500/50"
+                                            : "bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800 hover:bg-violet-500/10 hover:text-violet-700 dark:hover:text-violet-300 hover:border-violet-500/30"
                                         }`}
                                       >
-                                        <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                                        <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
                                         {sk}
                                         {isHighlighted && <X className="w-3 h-3 ml-0.5 opacity-70" />}
                                       </button>
@@ -4299,16 +4221,16 @@ Qualifications:
                                         if (isHighlighted) {
                                           clearBatchHighlight(kw);
                                         } else {
-                                          handleBatchHighlight(kw, "rgba(52, 211, 153, 0.4)");
+                                          handleBatchHighlight(kw, "rgba(168, 85, 247, 0.35)");
                                         }
                                       }}
-                                      className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-all flex items-center gap-1.5 ${
+                                      className={`px-2.5 py-1 rounded-md border text-[10px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                                         isHighlighted
-                                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/50 shadow-[0_0_10px_rgba(52,211,153,0.3)]"
-                                          : "bg-white/5 text-slate-300 border-white/10 hover:bg-emerald-500/10 hover:text-emerald-300 hover:border-emerald-500/30"
+                                          ? "bg-purple-500/20 text-purple-800 dark:text-purple-300 border-purple-500/50"
+                                          : "bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800 hover:bg-purple-500/10 hover:text-purple-700 dark:hover:text-purple-300 hover:border-purple-500/30"
                                       }`}
                                     >
-                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                      <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                                       {kw}
                                       {isHighlighted && <X className="w-3 h-3 ml-0.5 opacity-70" />}
                                     </button>
@@ -4327,16 +4249,16 @@ Qualifications:
                                         if (isHighlighted) {
                                           clearBatchHighlight(kw);
                                         } else {
-                                          handleBatchHighlight(kw, "rgba(56, 189, 248, 0.4)");
+                                          handleBatchHighlight(kw, "rgba(109, 40, 217, 0.32)");
                                         }
                                       }}
-                                      className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-all flex items-center gap-1.5 ${
+                                      className={`px-2.5 py-1 rounded-md border text-[10px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                                         isHighlighted
-                                          ? "bg-sky-500/20 text-sky-300 border-sky-400/50 shadow-[0_0_10px_rgba(56,189,248,0.3)]"
-                                          : "bg-white/5 text-slate-300 border-white/10 hover:bg-sky-500/10 hover:text-sky-300 hover:border-sky-500/30"
+                                          ? "bg-violet-500/20 text-violet-800 dark:text-violet-300 border-violet-500/50"
+                                          : "bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800 hover:bg-violet-500/10 hover:text-violet-700 dark:hover:text-violet-300 hover:border-violet-500/30"
                                       }`}
                                     >
-                                      <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                                      <span className="w-1.5 h-1.5 rounded-full bg-violet-700" />
                                       {kw}
                                       {isHighlighted && <X className="w-3 h-3 ml-0.5 opacity-70" />}
                                     </button>
@@ -4348,24 +4270,24 @@ Qualifications:
 
                           {/* Active Batch Terms Summary & Clear All */}
                           {activeBatchKeywords.length > 0 && (
-                            <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-2 border-t border-white/5 text-[10px]">
-                              <div className="flex items-center gap-2 text-slate-400">
-                                <Layers className="w-3.5 h-3.5 text-purple-400" />
+                            <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-2 border-t border-zinc-200 dark:border-zinc-800 text-[10px]">
+                              <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+                                <Layers className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                                 <span>Active Batch Terms ({activeBatchKeywords.length}):</span>
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   {activeBatchKeywords.map((b, bIdx) => (
                                     <span
                                       key={`batch-${b.keyword}-${bIdx}`}
-                                      className="px-2 py-0.5 rounded bg-white/10 text-white font-semibold flex items-center gap-1 border border-white/10"
+                                      className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold flex items-center gap-1 border border-zinc-200 dark:border-zinc-700"
                                     >
                                       <span
                                         className="w-2 h-2 rounded-full"
-                                        style={{ backgroundColor: b.color.replace('0.4', '1') }}
+                                        style={{ backgroundColor: b.color.replace(/0\.\d+\)/, '1)') }}
                                       />
                                       {b.keyword}
                                       <button
                                         onClick={() => clearBatchHighlight(b.keyword)}
-                                        className="hover:text-rose-400 ml-0.5"
+                                        className="hover:text-rose-500 ml-0.5 cursor-pointer"
                                       >
                                         <X className="w-3 h-3" />
                                       </button>
@@ -4375,7 +4297,7 @@ Qualifications:
                               </div>
                               <button
                                 onClick={clearAllBatchHighlights}
-                                className="text-rose-400 hover:text-rose-300 font-bold uppercase tracking-wider flex items-center gap-1 transition-colors"
+                                className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 font-bold uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
                               >
                                 <Trash2 className="w-3 h-3" /> Clear All Batch
                               </button>
@@ -4384,9 +4306,9 @@ Qualifications:
 
                           {/* Batch Feedback Banner */}
                           {batchFeedback && (
-                            <div className="mt-2 text-[11px] font-bold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-3 py-1.5 rounded-md flex items-center justify-between animate-fadeIn">
+                            <div className="mt-2 text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-500/10 border border-purple-500/20 px-3 py-1.5 rounded-md flex items-center justify-between animate-fadeIn">
                               <span>{batchFeedback}</span>
-                              <button onClick={() => setBatchFeedback(null)} className="text-purple-400 hover:text-white">
+                              <button onClick={() => setBatchFeedback(null)} className="text-purple-600 dark:text-purple-400 hover:text-zinc-950 dark:hover:text-white cursor-pointer">
                                 <X className="w-3.5 h-3.5" />
                               </button>
                             </div>
@@ -4395,7 +4317,7 @@ Qualifications:
                       )}
                     </div>
                     <div className="flex flex-col xl:flex-row w-full gap-4 items-start">
-                      <div className="bg-white/5 p-4 rounded-2xl border border-white/5 flex-grow w-full overflow-auto flex justify-center document-preview-container max-h-[600px] scrollbar-thin scrollbar-thumb-white/10 relative">
+                      <div className="bg-zinc-100 dark:bg-zinc-950/60 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex-grow w-full overflow-auto flex justify-center document-preview-container max-h-[600px] scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-700 relative">
                         <div
                           id="pdf-page-container"
                           className={`relative ${annotationMode === "sticky" ? "cursor-crosshair" : "cursor-text"}`}
@@ -4467,8 +4389,8 @@ Qualifications:
                             onLoadSuccess={onDocumentLoadSuccess}
                             loading={
                               <div className="p-12 flex flex-col items-center justify-center gap-4">
-                                <div className="w-6 h-6 border-2 border-teal-500/20 border-t-teal-500 rounded-full animate-spin" />
-                                <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                                <div className="w-6 h-6 border-2 border-violet-500/20 border-t-violet-600 rounded-full animate-spin" />
+                                <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">
                                   Loading Document...
                                 </span>
                               </div>
@@ -4640,19 +4562,19 @@ Qualifications:
                         </div>
 
                         {/* Page Summary & Notes Input Field */}
-                        <div className="mt-3 p-4 rounded-2xl bg-[#0B0C1E]/90 border border-teal-500/30 shadow-xl backdrop-blur-md text-left w-full space-y-2">
+                        <div className="mt-3 p-4 rounded-2xl bg-white dark:bg-[#111116] border border-violet-500/30 shadow-lg text-left w-full space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <Notebook className="w-4 h-4 text-teal-400" />
-                              <span className="text-xs font-black text-white uppercase tracking-wider">
+                              <Notebook className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                              <span className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-wider">
                                 Page {pageNumber} Executive Notes & Summary
                               </span>
-                              <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
+                              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium hidden sm:inline">
                                 — Add page takeaways or specific feedback
                               </span>
                             </div>
                             {pageSummaries[pageNumber] && pageSummaries[pageNumber].trim().length > 0 && (
-                              <span className="text-[9px] font-bold text-teal-300 bg-teal-500/10 border border-teal-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <span className="text-[9px] font-bold text-violet-700 dark:text-violet-300 bg-violet-500/10 border border-violet-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
                                 <Check className="w-2.5 h-2.5" /> Note Saved
                               </span>
                             )}
@@ -4667,7 +4589,7 @@ Qualifications:
                               }));
                             }}
                             placeholder={`Type notes or a key summary for Page ${pageNumber}... (Saved automatically and indexed in sidebar search)`}
-                            className="w-full h-20 bg-black/50 border border-white/10 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-teal-400/60 focus:ring-1 focus:ring-teal-400/50 resize-y transition-all leading-relaxed"
+                            className="w-full h-20 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-xs text-zinc-900 dark:text-zinc-200 placeholder-zinc-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 resize-y transition-all leading-relaxed"
                           />
                         </div>
                       </div>
@@ -4711,13 +4633,13 @@ Qualifications:
                         return (
                           <div className="w-full xl:w-80 shrink-0 space-y-4">
                             {/* Sidebar Filter Bar */}
-                            <div className="bg-white/5 p-3 rounded-2xl border border-white/5 space-y-2">
+                            <div className="bg-zinc-50 dark:bg-zinc-900/70 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-2">
                               <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                  <Search className="w-3 h-3 text-teal-400" /> Filter Annotations
+                                <span className="text-[10px] font-black text-zinc-600 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+                                  <Search className="w-3 h-3 text-violet-600 dark:text-violet-400" /> Filter Annotations
                                 </span>
                                 {query && (
-                                  <span className="text-[9px] font-bold text-teal-300 bg-teal-500/10 px-2 py-0.5 rounded-full border border-teal-500/20">
+                                  <span className="text-[9px] font-bold text-violet-700 dark:text-violet-300 bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20">
                                     {filteredStickyNotes.length + filteredHighlights.length + filteredPageSummaries.length} matches
                                   </span>
                                 )}
@@ -4728,12 +4650,12 @@ Qualifications:
                                   placeholder="Search notes, highlights & summaries..."
                                   value={sidebarSearch}
                                   onChange={(e) => setSidebarSearch(e.target.value)}
-                                  className="w-full bg-[#0A0A15]/80 border border-white/10 rounded-xl pl-3 pr-7 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-400/60 focus:ring-1 focus:ring-teal-400/50 transition-all"
+                                  className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-xl pl-3 pr-7 py-2 text-xs text-zinc-950 dark:text-white placeholder-zinc-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all"
                                 />
                                 {sidebarSearch && (
                                   <button
                                     onClick={() => setSidebarSearch("")}
-                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
                                   >
                                     <X className="w-3.5 h-3.5" />
                                   </button>
@@ -4743,12 +4665,12 @@ Qualifications:
 
                             {/* No results message */}
                             {query && filteredStickyNotes.length === 0 && filteredHighlights.length === 0 && filteredPageSummaries.length === 0 && (
-                              <div className="bg-white/5 p-6 rounded-2xl border border-white/5 text-center space-y-2">
-                                <Info className="w-8 h-8 mx-auto text-slate-500 opacity-40" />
-                                <p className="text-xs font-bold text-slate-400">No annotations match "{sidebarSearch}"</p>
+                              <div className="bg-zinc-50 dark:bg-zinc-900/70 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-center space-y-2">
+                                <Info className="w-8 h-8 mx-auto text-zinc-400 opacity-60" />
+                                <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400">No annotations match "{sidebarSearch}"</p>
                                 <button
                                   onClick={() => setSidebarSearch("")}
-                                  className="text-[10px] font-bold text-teal-400 hover:text-teal-300 uppercase tracking-wider bg-teal-500/10 px-3 py-1 rounded-lg border border-teal-500/20"
+                                  className="text-[10px] font-bold text-violet-700 dark:text-violet-400 hover:text-violet-900 dark:hover:text-violet-300 uppercase tracking-wider bg-violet-500/10 px-3 py-1 rounded-lg border border-violet-500/20 cursor-pointer"
                                 >
                                   Clear Search Filter
                                 </button>
@@ -4757,10 +4679,10 @@ Qualifications:
 
                             {/* Page Summaries Sidebar Panel */}
                             {filteredPageSummaries.length > 0 && (
-                              <div className="bg-white/5 p-4 rounded-2xl border border-white/5 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 space-y-3">
+                              <div className="bg-zinc-50 dark:bg-zinc-900/70 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-700 space-y-3">
                                 <div className="flex items-center justify-between">
-                                  <h4 className="text-[10px] font-black text-teal-300 uppercase tracking-widest flex items-center gap-1.5">
-                                    <Notebook className="w-3.5 h-3.5 text-teal-400" /> Page Summaries ({filteredPageSummaries.length})
+                                  <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-300 uppercase tracking-widest flex items-center gap-1.5">
+                                    <Notebook className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" /> Page Summaries ({filteredPageSummaries.length})
                                   </h4>
                                 </div>
                                 <div className="space-y-2">
@@ -4769,11 +4691,11 @@ Qualifications:
                                     return (
                                       <div
                                         key={`sidebar-summary-${pNum}`}
-                                        className="flex flex-col bg-[#0A0A15]/60 p-2.5 rounded-xl border border-white/5 hover:border-teal-500/40 transition-all cursor-pointer group"
+                                        className="flex flex-col bg-white dark:bg-zinc-950/70 p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-violet-500/40 transition-all cursor-pointer group"
                                         onClick={() => setPageNumber(pNum)}
                                       >
                                         <div className="flex items-center justify-between mb-1">
-                                          <span className="text-[9px] font-black uppercase text-teal-300 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded">
+                                          <span className="text-[9px] font-black uppercase text-violet-700 dark:text-violet-300 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded">
                                             Page {pNum}
                                           </span>
                                           <button
@@ -4785,13 +4707,13 @@ Qualifications:
                                                 return next;
                                               });
                                             }}
-                                            className="text-slate-500 hover:text-rose-400 transition-colors p-0.5"
+                                            className="text-zinc-400 hover:text-rose-500 transition-colors p-0.5 cursor-pointer"
                                             title="Clear Page Summary"
                                           >
                                             <Trash2 className="w-3 h-3" />
                                           </button>
                                         </div>
-                                        <p className="text-[11px] text-slate-200 line-clamp-3 font-sans pl-2 border-l-2 border-teal-500/30 group-hover:border-teal-400">
+                                        <p className="text-[11px] text-zinc-700 dark:text-zinc-200 line-clamp-3 font-sans pl-2 border-l-2 border-violet-500/30 group-hover:border-violet-500">
                                           {text}
                                         </p>
                                       </div>
@@ -4803,14 +4725,14 @@ Qualifications:
 
                             {/* Sticky Notes Summary Sidebar Panel */}
                             {filteredStickyNotes.length > 0 && (
-                              <div className="bg-white/5 p-4 rounded-2xl border border-white/5 max-h-[350px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 space-y-3">
+                              <div className="bg-zinc-50 dark:bg-zinc-900/70 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 max-h-[350px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-700 space-y-3">
                                 <div className="flex items-center justify-between">
-                                  <h4 className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
+                                  <h4 className="text-[10px] font-black text-purple-700 dark:text-purple-300 uppercase tracking-widest flex items-center gap-1.5">
                                     <FileText className="w-3.5 h-3.5" /> Sticky Notes ({filteredStickyNotes.length})
                                   </h4>
                                   <button
                                     onClick={exportStickyNotesSummary}
-                                    className="text-[9px] font-bold text-amber-300 hover:text-white uppercase tracking-wider flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-md transition-all"
+                                    className="text-[9px] font-bold text-purple-700 dark:text-purple-300 hover:text-purple-950 dark:hover:text-white uppercase tracking-wider flex items-center gap-1 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 px-2 py-0.5 rounded-md transition-all cursor-pointer"
                                     title="Export notes text file"
                                   >
                                     <Download className="w-2.5 h-2.5" /> Export
@@ -4823,7 +4745,7 @@ Qualifications:
                                     return (
                                       <div
                                         key={`sidebar-note-${note.id || noteIdx}-${noteIdx}`}
-                                        className="flex flex-col bg-[#0A0A15]/60 p-2.5 rounded-xl border border-white/5 hover:border-amber-500/40 transition-all cursor-pointer group"
+                                        className="flex flex-col bg-white dark:bg-zinc-950/70 p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-purple-500/40 transition-all cursor-pointer group"
                                         onClick={() => {
                                           setPageNumber(note.pageNumber);
                                           setStickyNotes(notes => notes.map(n => n.id === note.id ? { ...n, isOpen: true } : n));
@@ -4832,10 +4754,10 @@ Qualifications:
                                         <div className="flex items-center justify-between mb-1">
                                           <div className="flex items-center gap-1.5">
                                             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: conf.dotColor }} />
-                                            <span className="text-[10px] font-black uppercase text-slate-200">
+                                            <span className="text-[10px] font-black uppercase text-zinc-800 dark:text-zinc-200">
                                               {conf.label}
                                             </span>
-                                            <span className="text-[9px] font-bold text-slate-400 bg-white/5 px-1.5 py-0.5 rounded">
+                                            <span className="text-[9px] font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
                                               Page {note.pageNumber}
                                             </span>
                                           </div>
@@ -4844,14 +4766,14 @@ Qualifications:
                                               e.stopPropagation();
                                               setStickyNotes(prev => prev.filter(n => n.id !== note.id));
                                             }}
-                                            className="text-slate-500 hover:text-rose-400 transition-colors p-0.5"
+                                            className="text-zinc-400 hover:text-rose-500 transition-colors p-0.5 cursor-pointer"
                                             title="Delete note"
                                           >
                                             <Trash2 className="w-3 h-3" />
                                           </button>
                                         </div>
-                                        <p className="text-[11px] text-slate-300 line-clamp-2 italic font-sans pl-3 border-l-2 border-white/10 group-hover:border-amber-400/60">
-                                          {note.text ? note.text : <span className="text-slate-600 font-normal">Empty note...</span>}
+                                        <p className="text-[11px] text-zinc-700 dark:text-zinc-300 line-clamp-2 italic font-sans pl-3 border-l-2 border-zinc-200 dark:border-zinc-700 group-hover:border-purple-500">
+                                          {note.text ? note.text : <span className="text-zinc-400 font-normal">Empty note...</span>}
                                         </p>
                                       </div>
                                     );
@@ -4862,33 +4784,30 @@ Qualifications:
 
                             {/* Active Highlights Sidebar Panel */}
                             {filteredHighlights.length > 0 && (
-                              <div className="bg-white/5 p-4 rounded-2xl border border-white/5 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
-                                <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                              <div className="bg-zinc-50 dark:bg-zinc-900/70 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-700">
+                                <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                                   <FileText className="w-3.5 h-3.5" /> Highlights ({filteredHighlights.length})
                                 </h4>
                                 <div className="space-y-2">
                                   {filteredHighlights.map((hl, hlIdx) => (
                                     <div
                                       key={`sidebar-hl-${hl.id || hlIdx}-${hlIdx}`}
-                                      className="flex items-center justify-between bg-[#0A0A15]/50 p-2.5 rounded-lg border border-white/5 hover:border-white/10 transition-colors cursor-pointer"
+                                      className="flex items-center justify-between bg-white dark:bg-zinc-950/70 p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-violet-500/30 transition-colors cursor-pointer"
                                       onClick={() => setPageNumber(hl.pageNumber)}
                                     >
                                       <div className="flex items-center gap-2 overflow-hidden">
                                         <div
-                                          className="w-3 h-3 rounded-full border border-white/20 shrink-0"
+                                          className="w-3 h-3 rounded-full border border-zinc-400/40 dark:border-white/20 shrink-0"
                                           style={{
-                                            backgroundColor: hl.color.replace(
-                                              "0.4",
-                                              "1",
-                                            ),
+                                            backgroundColor: hl.color.replace(/0\.\d+\)/, "1)"),
                                           }}
                                         />
                                         <div className="flex flex-col text-left overflow-hidden">
-                                          <span className="text-[11px] font-bold text-white leading-tight">
+                                          <span className="text-[11px] font-bold text-zinc-950 dark:text-white leading-tight">
                                             Page {hl.pageNumber}
                                           </span>
                                           {hl.keyword && (
-                                            <span className="text-[9px] font-bold text-purple-300 truncate max-w-[120px]" title={hl.keyword}>
+                                            <span className="text-[9px] font-bold text-purple-700 dark:text-purple-300 truncate max-w-[120px]" title={hl.keyword}>
                                               "{hl.keyword}"
                                             </span>
                                           )}
@@ -4901,7 +4820,7 @@ Qualifications:
                                             prev.filter((h) => h.id !== hl.id),
                                           );
                                         }}
-                                        className="text-slate-500 hover:text-rose-400 transition-colors"
+                                        className="text-zinc-400 hover:text-rose-500 transition-colors cursor-pointer"
                                       >
                                         <Trash2 className="w-3 h-3" />
                                       </button>
@@ -4932,13 +4851,13 @@ Qualifications:
                         <div className="h-5 w-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                         <span>Processing: {elapsedTime.toFixed(1)}s</span>
                       </div>
-                      <span className="text-[10px] text-teal-300 tracking-widest block opacity-80 mt-1 uppercase">
+                      <span className="text-[10px] text-violet-200 tracking-widest block opacity-90 mt-1 uppercase">
                         {analysisStep}
                       </span>
                     </>
                   ) : (
                     <div className="flex items-center gap-4">
-                      <Zap className="h-5 w-5 fill-current shadow-glow" />
+                      <Zap className="h-5 w-5 fill-current" />
                       Analyze Executive Profile
                     </div>
                   )}
@@ -4960,7 +4879,7 @@ Qualifications:
                           Analysis Interrupted
                         </h4>
                       </div>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
+                      <p className="text-xs text-zinc-700 dark:text-zinc-300 font-medium leading-relaxed">
                         {error}
                       </p>
 
@@ -4970,9 +4889,9 @@ Qualifications:
                             type="button"
                             onClick={analyzeResume}
                             disabled={isAnalyzing}
-                            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white text-[11px] font-black flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+                            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-violet-700 to-purple-700 hover:from-violet-600 hover:to-purple-600 text-white text-[11px] font-black flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
                           >
-                            <Sparkles className="w-3.5 h-3.5" />
+                            <RefreshCw className="w-3.5 h-3.5" />
                             <span>Retry Analysis</span>
                           </button>
                         </div>
@@ -5006,22 +4925,22 @@ Qualifications:
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-8 relative">
-                  <div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-teal-500/20 to-transparent -z-10 hidden md:block"></div>
+                  <div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent -z-10 hidden md:block"></div>
 
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
                     viewport={{ once: true }}
-                    className="flex flex-col items-center text-center p-6 bg-white dark:bg-[#0A0A15] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none rounded-2xl relative z-10"
+                    className="flex flex-col items-center text-center p-6 bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none rounded-2xl relative z-10"
                   >
-                    <div className="w-12 h-12 rounded-full bg-teal-500/10 border border-teal-500/25 flex items-center justify-center mb-6 text-teal-700 dark:text-teal-400 font-black">
+                    <div className="w-12 h-12 rounded-full bg-violet-500/10 border border-violet-500/25 flex items-center justify-center mb-6 text-violet-700 dark:text-violet-400 font-black">
                       1
                     </div>
-                    <h4 className="text-slate-900 dark:text-white font-bold mb-3 uppercase tracking-wider text-sm">
+                    <h4 className="text-zinc-950 dark:text-white font-bold mb-3 uppercase tracking-wider text-sm">
                       Upload & Parse
                     </h4>
-                    <p className="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
+                    <p className="text-zinc-600 dark:text-zinc-400 text-xs leading-relaxed">
                       Drop in your resume and an optional job description. Our
                       engine parses your formatting just like Workday or
                       Greenhouse.
@@ -5033,15 +4952,15 @@ Qualifications:
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
                     viewport={{ once: true }}
-                    className="flex flex-col items-center text-center p-6 bg-white dark:bg-[#0A0A15] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none rounded-2xl relative z-10"
+                    className="flex flex-col items-center text-center p-6 bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none rounded-2xl relative z-10"
                   >
-                    <div className="w-12 h-12 rounded-full bg-teal-500/10 border border-teal-500/25 flex items-center justify-center mb-6 text-teal-700 dark:text-teal-400 font-black">
+                    <div className="w-12 h-12 rounded-full bg-violet-500/10 border border-violet-500/25 flex items-center justify-center mb-6 text-violet-700 dark:text-violet-400 font-black">
                       2
                     </div>
-                    <h4 className="text-slate-900 dark:text-white font-bold mb-3 uppercase tracking-wider text-sm">
+                    <h4 className="text-zinc-950 dark:text-white font-bold mb-3 uppercase tracking-wider text-sm">
                       Deep AI Analysis
                     </h4>
-                    <p className="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
+                    <p className="text-zinc-600 dark:text-zinc-400 text-xs leading-relaxed">
                       We scan for keyword density, structural integrity, and
                       skill gaps using the latest Gemini models.
                     </p>
@@ -5052,15 +4971,15 @@ Qualifications:
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
                     viewport={{ once: true }}
-                    className="flex flex-col items-center text-center p-6 bg-white dark:bg-[#0A0A15] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none rounded-2xl relative z-10"
+                    className="flex flex-col items-center text-center p-6 bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none rounded-2xl relative z-10"
                   >
-                    <div className="w-12 h-12 rounded-full bg-teal-500/10 border border-teal-500/25 flex items-center justify-center mb-6 text-teal-700 dark:text-teal-400 font-black">
+                    <div className="w-12 h-12 rounded-full bg-violet-500/10 border border-violet-500/25 flex items-center justify-center mb-6 text-violet-700 dark:text-violet-400 font-black">
                       3
                     </div>
-                    <h4 className="text-slate-900 dark:text-white font-bold mb-3 uppercase tracking-wider text-sm">
+                    <h4 className="text-zinc-950 dark:text-white font-bold mb-3 uppercase tracking-wider text-sm">
                       Actionable Report
                     </h4>
-                    <p className="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
+                    <p className="text-zinc-600 dark:text-zinc-400 text-xs leading-relaxed">
                       Get a visual dashboard with your ATS score, missing
                       keywords, and ready-to-copy bullet point improvements.
                     </p>
@@ -5068,7 +4987,7 @@ Qualifications:
                 </div>
 
                 <div className="mt-24 text-center">
-                  <p className="text-[10px] font-black tracking-[0.2em] text-slate-500 uppercase mb-8">
+                  <p className="text-[10px] font-black tracking-[0.2em] text-zinc-500 uppercase mb-8">
                     Built to beat top ATS platforms
                   </p>
                   <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-40 grayscale">
@@ -5088,8 +5007,7 @@ Qualifications:
                 </div>
 
                 {/* Video Demo & Recruiter Appeal Section */}
-                <div className="mt-32 border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden relative shadow-[0_0_50px_rgba(20,184,166,0.08)]">
-                  <div className="absolute inset-0 bg-gradient-to-b from-teal-500/5 to-transparent"></div>
+                <div className="mt-32 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden relative bg-white dark:bg-[#111116]">
                   <div className="p-8 md:p-16 text-center relative z-10">
                     <a
                       href="https://interviewcoach-969933961049.asia-southeast1.run.app"
@@ -5097,17 +5015,15 @@ Qualifications:
                       rel="noopener noreferrer"
                       className="block max-w-4xl mx-auto mb-16 mt-8 relative group cursor-pointer"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-teal-500/20 via-sky-500/20 to-purple-500/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
-                      <div className="dark dark-studio relative bg-[#0A0A15]/80 backdrop-blur-xl border border-white/10 group-hover:border-teal-500/50 p-8 rounded-3xl overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 transition-all duration-500">
-                        <div className="absolute -right-20 -top-20 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl group-hover:bg-teal-500/20 transition-all duration-500"></div>
+                      <div className="relative bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 group-hover:border-violet-500/50 p-8 rounded-3xl overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 transition-all duration-300 shadow-sm">
                         <div className="flex-1 text-left relative z-10">
-                          <h4 className="text-xl md:text-3xl font-black text-white uppercase tracking-tighter mb-2 flex items-center gap-3">
+                          <h4 className="text-xl md:text-3xl font-black text-zinc-950 dark:text-white uppercase tracking-tighter mb-2 flex items-center gap-3">
                             AI Interview Coach{" "}
-                            <span className="bg-teal-500/20 text-teal-400 text-[10px] uppercase tracking-widest px-3 py-1 rounded-full border border-teal-500/30">
+                            <span className="bg-violet-500/15 text-violet-700 dark:text-violet-300 text-[10px] uppercase tracking-widest px-3 py-1 rounded-md border border-violet-500/30">
                               Partner
                             </span>
                           </h4>
-                          <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-xl">
+                          <p className="text-zinc-600 dark:text-zinc-400 text-sm font-medium leading-relaxed max-w-xl">
                             Tested well against the ATS? Now master the human
                             interview. Engage with our immersive voice-based AI
                             recruiter to practice your answers in a real-world
@@ -5115,7 +5031,7 @@ Qualifications:
                           </p>
                         </div>
                         <div className="relative z-10">
-                          <span className="btn-primary py-4 px-8 text-sm uppercase flex items-center justify-center gap-3 whitespace-nowrap shadow-[0_0_30px_rgba(20,184,166,0.3)] group-hover:shadow-[0_0_50px_rgba(20,184,166,0.5)] transition-all">
+                          <span className="btn-primary py-4 px-8 text-sm uppercase flex items-center justify-center gap-3 whitespace-nowrap transition-all">
                             <Zap className="h-5 w-5" /> Start Practice Interview
                           </span>
                         </div>
@@ -5186,15 +5102,15 @@ AWS Certified Solutions Architect – Associate (2022)`;
             >
               {/* OCR Scanned Document Notice Banner */}
               {(result.atsMetadata?.ocrUsed || result.atsMetadata?.isScannedPdf) && (
-                <div className="bg-amber-500/15 border border-amber-500/40 p-4 rounded-2xl flex items-start gap-4 shadow-xl backdrop-blur-md animate-fadeIn mb-6">
-                  <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 shrink-0">
-                    <Camera className="w-5 h-5 text-amber-700 dark:text-amber-300" />
+                <div className="bg-rose-500/10 border border-rose-500/35 p-4 rounded-2xl flex items-start gap-4 shadow-sm animate-fadeIn mb-6">
+                  <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/35 shrink-0">
+                    <Camera className="w-5 h-5 text-rose-600 dark:text-rose-400" />
                   </div>
                   <div className="space-y-1">
-                    <h4 className="text-xs font-black text-amber-800 dark:text-amber-300 uppercase tracking-widest flex items-center gap-2">
+                    <h4 className="text-xs font-black text-rose-700 dark:text-rose-300 uppercase tracking-widest flex items-center gap-2">
                       Scanned Document / Image PDF Parsed via Tesseract.js OCR
                     </h4>
-                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                    <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed">
                       We detected a scanned image-based PDF. Text was extracted using onboard Tesseract OCR.
                       Standard ATS scanners heavily penalize non-selectable text. For maximum compatibility and score, re-export your resume as a text-native PDF or DOCX format.
                     </p>
@@ -5202,15 +5118,15 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 </div>
               )}
 
-              {/* Canva & Figma Studio Header & Toolbar */}
-              <div className="flex flex-col gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
+              {/* Studio Header & Toolbar */}
+              <div className="flex flex-col gap-6 pb-6 border-b border-zinc-200 dark:border-zinc-800">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div>
                     <div className="flex flex-wrap items-center gap-3">
-                      <h2 className="text-3xl font-black font-display text-slate-900 dark:text-white tracking-tight">
+                      <h2 className="text-3xl font-black font-display text-zinc-950 dark:text-white tracking-tight">
                         Executive Summary
                       </h2>
-                      <span className="px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-black">
+                      <span className="px-3 py-1 rounded-lg bg-violet-50 dark:bg-violet-950/60 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 text-xs font-black">
                         {result.overallScore}% Overall Fit
                       </span>
                       <button
@@ -5223,16 +5139,16 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             setIsLinkedInVerificationModalOpen(true);
                           }
                         }}
-                        className="px-3 py-1 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/40 text-teal-800 dark:text-teal-300 hover:text-teal-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                        className="px-3 py-1 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 text-violet-800 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
                         title="Verified Trust Badge — Click to share or embed your LinkedIn Credibility Score"
                       >
-                        <ShieldCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                        <ShieldCheck className="w-3.5 h-3.5 text-violet-700 dark:text-violet-400" />
                         <span>Verified Trust</span>
-                        <span aria-hidden="true" className="text-teal-600/60 dark:text-teal-500/60">·</span>
-                        <span className="font-mono font-extrabold tabular-nums text-slate-900 dark:text-white">
+                        <span aria-hidden="true" className="text-violet-600/60 dark:text-violet-500/60">·</span>
+                        <span className="font-mono font-extrabold tabular-nums text-zinc-950 dark:text-white">
                           {linkedInTrustScore ?? (linkedinUrl ? 86 : 78)}%
                         </span>
-                        <Share2 className="w-3 h-3 text-teal-600 dark:text-teal-400 ml-0.5" />
+                        <Share2 className="w-3 h-3 text-violet-700 dark:text-violet-400 ml-0.5" />
                       </button>
                       <button
                         type="button"
@@ -5242,31 +5158,31 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             el.scrollIntoView({ behavior: "smooth", block: "start" });
                           }
                         }}
-                        className="px-3 py-1 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/40 text-indigo-700 dark:text-indigo-300 hover:text-indigo-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                        className="px-3 py-1 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/35 text-purple-800 dark:text-purple-300 hover:text-purple-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
                         title="Inspect itemized score reasons or retrain & calibrate the AI scoring model"
                       >
-                        <BrainCircuit className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                        <BrainCircuit className="w-3.5 h-3.5 text-purple-700 dark:text-purple-400" />
                         <span>Score Reasons & Retrain Model</span>
                       </button>
                       {activeVersionId && (
-                        <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold">
+                        <span className="px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-[10px] font-bold">
                           {history.find(h => h.id === activeVersionId)?.versionName || "Active Version"}
                         </span>
                       )}
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold mt-1.5 flex items-center gap-2">
-                      <span>Analyzing: <strong className="text-slate-800 dark:text-slate-200">{file?.name || history.find(h => h.id === activeVersionId)?.fileName || "Candidate Resume"}</strong></span>
+                    <p className="text-zinc-500 dark:text-zinc-400 text-xs font-semibold mt-1.5 flex items-center gap-2">
+                      <span>Analyzing: <strong className="text-zinc-800 dark:text-zinc-200">{file?.name || history.find(h => h.id === activeVersionId)?.fileName || "Candidate Resume"}</strong></span>
                       <span>•</span>
-                      <span>Target: <strong className="text-slate-800 dark:text-slate-200">{result.careerPath.topRole || "Executive Leadership"}</strong></span>
+                      <span>Target: <strong className="text-zinc-800 dark:text-zinc-200">{result.careerPath.topRole || "Executive Leadership"}</strong></span>
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2.5 flex-wrap no-print">
                     <button
                       onClick={() => setIsResumeBuilderOpen(true)}
-                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-sm hover:from-indigo-500 hover:to-violet-500 active:scale-95 cursor-pointer"
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-700 to-purple-700 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-sm hover:from-violet-600 hover:to-purple-600 active:scale-95 cursor-pointer"
                     >
-                      <Sparkles className="h-4 w-4" />
+                      <Wand2 className="h-4 w-4" />
                       <span>ATS Builder & Coach</span>
                     </button>
 
@@ -5274,8 +5190,8 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       onClick={() => setIsExecutiveMode(!isExecutiveMode)}
                       className={`px-4 py-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                         isExecutiveMode 
-                          ? "bg-amber-500 text-white border-amber-500 shadow-sm" 
-                          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+                          ? "bg-violet-600 text-white border-violet-600 shadow-sm" 
+                          : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                       }`}
                     >
                       <Briefcase className="h-4 w-4" />
@@ -5286,7 +5202,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     <div className="relative">
                       <button
                         onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-                        className="px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs flex items-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer hover:bg-slate-800 dark:hover:bg-slate-100"
+                        className="px-4 py-2.5 rounded-xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 font-bold text-xs flex items-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer hover:bg-zinc-800 dark:hover:bg-zinc-100"
                       >
                         <Download className="w-4 h-4" />
                         <span>Export</span>
@@ -5294,21 +5210,21 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       </button>
 
                       {isExportMenuOpen && (
-                        <div className="absolute right-0 mt-2 w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                        <div className="absolute right-0 mt-2 w-60 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2">
                           <button
                             onClick={() => {
                               setIsExportMenuOpen(false);
                               setIsPdfPreviewOpen(true);
                             }}
-                            className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer"
+                            className="w-full px-4 py-2.5 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center gap-2.5 cursor-pointer"
                           >
-                            <Printer className="w-4 h-4 text-purple-600" />
+                            <Printer className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                             <div>
                               <div className="font-bold flex items-center gap-1.5">
                                 <span>PDF Export Preview</span>
-                                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-extrabold uppercase">Custom</span>
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-700 dark:text-purple-300 font-extrabold uppercase">Custom</span>
                               </div>
-                              <div className="text-[10px] text-slate-400">Toggle sections & print dossier</div>
+                              <div className="text-[10px] text-zinc-400">Toggle sections & print dossier</div>
                             </div>
                           </button>
                           <button
@@ -5316,12 +5232,12 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               setIsExportMenuOpen(false);
                               handleFullReportPdfPrint();
                             }}
-                            className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer"
+                            className="w-full px-4 py-2 text-left text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center gap-2.5 cursor-pointer"
                           >
-                            <FileText className="w-3.5 h-3.5 text-slate-400" />
+                            <FileText className="w-3.5 h-3.5 text-zinc-400" />
                             <div>
                               <div className="font-medium text-[11px]">Direct PDF Print</div>
-                              <div className="text-[9px] text-slate-400">High-resolution standard print</div>
+                              <div className="text-[9px] text-zinc-400">High-resolution standard print</div>
                             </div>
                           </button>
                           <button
@@ -5329,12 +5245,12 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               setIsExportMenuOpen(false);
                               exportFullReportToDocx(result);
                             }}
-                            className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer"
+                            className="w-full px-4 py-2.5 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center gap-2.5 cursor-pointer"
                           >
-                            <FileText className="w-4 h-4 text-blue-600" />
+                            <FileText className="w-4 h-4 text-violet-600 dark:text-violet-400" />
                             <div>
                               <div className="font-bold">Word Document (.docx)</div>
-                              <div className="text-[10px] text-slate-400">Editable executive briefing</div>
+                              <div className="text-[10px] text-zinc-400">Editable executive briefing</div>
                             </div>
                           </button>
                           <button
@@ -5342,12 +5258,12 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               setIsExportMenuOpen(false);
                               exportToExcel();
                             }}
-                            className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer"
+                            className="w-full px-4 py-2.5 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center gap-2.5 cursor-pointer"
                           >
-                            <Download className="w-4 h-4 text-emerald-600" />
+                            <Download className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                             <div>
                               <div className="font-bold">Excel Spreadsheet (.xlsx)</div>
-                              <div className="text-[10px] text-slate-400">Full audit score matrix</div>
+                              <div className="text-[10px] text-zinc-400">Full audit score matrix</div>
                             </div>
                           </button>
                           <button
@@ -5355,12 +5271,12 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               setIsExportMenuOpen(false);
                               exportToCSV();
                             }}
-                            className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer"
+                            className="w-full px-4 py-2.5 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center gap-2.5 cursor-pointer"
                           >
-                            <Download className="w-4 h-4 text-slate-500" />
+                            <Download className="w-4 h-4 text-zinc-500" />
                             <div>
                               <div className="font-bold">CSV Dataset (.csv)</div>
-                              <div className="text-[10px] text-slate-400">Raw tabular metrics</div>
+                              <div className="text-[10px] text-zinc-400">Raw tabular metrics</div>
                             </div>
                           </button>
                         </div>
@@ -5372,7 +5288,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         setResult(null);
                         setFile(null);
                       }}
-                      className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                      className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer"
                       title="New Analysis"
                     >
                       <RefreshCw className="h-4 w-4" />
@@ -5380,8 +5296,8 @@ AWS Certified Solutions Architect – Associate (2022)`;
                   </div>
                 </div>
 
-                {/* Canva & Figma Segmented Studio Navigation Tabs */}
-                <div className="flex items-center justify-between gap-4 p-1.5 bg-slate-100/90 dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 overflow-x-auto no-print">
+                {/* Segmented Studio Navigation Tabs */}
+                <div className="flex items-center justify-between gap-4 p-1.5 bg-zinc-100/90 dark:bg-zinc-900/90 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 overflow-x-auto no-print">
                   <div className="flex items-center gap-1 min-w-max">
                     {[
                       { id: "scorecard", label: "Scorecard & Health", icon: BarChart2 },
@@ -5399,15 +5315,15 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           onClick={() => setActiveStudioTab(tab.id as any)}
                           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                             isActive
-                              ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/80 dark:border-slate-700/80 font-extrabold"
-                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50"
+                              ? "bg-white dark:bg-zinc-950 text-violet-700 dark:text-violet-400 shadow-sm border border-zinc-200/80 dark:border-zinc-800 font-extrabold"
+                              : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:bg-white/60 dark:hover:bg-zinc-800/70"
                           }`}
                         >
-                          <Icon className={`w-3.5 h-3.5 ${isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`} />
+                          <Icon className={`w-3.5 h-3.5 ${isActive ? "text-violet-700 dark:text-violet-400" : "text-zinc-400"}`} />
                           <span>{tab.label}</span>
                           {tab.badge && (
-                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                              isActive ? "bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-bold ${
+                              isActive ? "bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
                             }`}>
                               {tab.badge}
                             </span>
@@ -5419,7 +5335,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 </div>
               </div>
 
-              {/* Canva Resume Artboard View */}
+              {/* Resume Artboard View */}
               {activeStudioTab === "canvas" && (
                 <div className="mb-12">
                   <PanelErrorBoundary compact title="Resume Canvas View">
@@ -5436,28 +5352,28 @@ AWS Certified Solutions Architect – Associate (2022)`;
               
               {/* Workspace Declutter & Section Quick Toggle Bar */}
               {activeStudioTab !== "canvas" && (
-                <div className="dark dark-studio mb-6 p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md flex flex-wrap items-center justify-between gap-3 shadow-xl">
+                <div className="mb-6 p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3 shadow-sm">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-400">
+                    <div className="p-2 rounded-xl bg-violet-500/15 border border-violet-500/30 text-violet-700 dark:text-violet-400">
                       <Layers className="w-4 h-4" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-black uppercase tracking-wider text-white">
+                        <span className="text-xs font-black uppercase tracking-wider text-zinc-950 dark:text-white">
                           Workspace Declutter
                         </span>
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-teal-300 border border-teal-500/30">
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-white dark:bg-zinc-800 text-violet-700 dark:text-violet-300 border border-violet-500/30">
                           {Object.values(collapsedSections).filter(Boolean).length} of 6 Sections Collapsed
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-zinc-600 dark:text-zinc-400">
                         Expand or collapse dashboard modules to keep your analytical workspace focused
                       </p>
                     </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex flex-wrap items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-white/5">
+                    <div className="flex flex-wrap items-center gap-1.5 bg-white dark:bg-zinc-950/60 p-1 rounded-xl border border-zinc-200 dark:border-zinc-800">
                       {[
                         { id: "executive-summary", label: "Executive Summary" },
                         { id: "scoring-infrastructure", label: "ATS Benchmarks" },
@@ -5474,16 +5390,16 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             onClick={() => toggleSection(sec.id)}
                             className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
                               isCollapsed
-                                ? "bg-slate-800/80 text-slate-400 border border-slate-700 hover:text-white"
-                                : "bg-teal-500/20 text-teal-300 border border-teal-500/40 shadow-xs"
+                                ? "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:text-zinc-950 dark:hover:text-white"
+                                : "bg-violet-500/15 text-violet-800 dark:text-violet-300 border border-violet-500/35"
                             }`}
                             title={`Click to ${isCollapsed ? "expand" : "collapse"} ${sec.label}`}
                           >
                             <span>{sec.label}</span>
                             {isCollapsed ? (
-                              <ChevronDown className="w-3 h-3 text-slate-500" />
+                              <ChevronDown className="w-3 h-3 text-zinc-400" />
                             ) : (
-                              <ChevronUp className="w-3 h-3 text-teal-400" />
+                              <ChevronUp className="w-3 h-3 text-violet-700 dark:text-violet-400" />
                             )}
                           </button>
                         );
@@ -5494,14 +5410,14 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       <button
                         type="button"
                         onClick={() => setAllSectionsCollapsed(false)}
-                        className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-bold transition-all border border-white/10 cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white text-[11px] font-bold transition-all border border-zinc-200 dark:border-zinc-700 cursor-pointer"
                       >
                         Expand All
                       </button>
                       <button
                         type="button"
                         onClick={() => setAllSectionsCollapsed(true)}
-                        className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-bold transition-all border border-white/10 cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white text-[11px] font-bold transition-all border border-zinc-200 dark:border-zinc-700 cursor-pointer"
                       >
                         Collapse All
                       </button>
@@ -5513,21 +5429,21 @@ AWS Certified Solutions Architect – Associate (2022)`;
               {activeStudioTab !== "canvas" && (isExecutiveMode || activeStudioTab === "scorecard" || activeStudioTab === "all" || isPrintFriendly) && (
                 <div className="mb-8" id="executive-summary">
                   {collapsedSections["executive-summary"] ? (
-                    <GlassCard className="p-4 border-l-4 border-l-amber-500 bg-gradient-to-r from-amber-500/10 via-slate-900/40 to-transparent flex items-center justify-between shadow-lg">
+                    <GlassCard className="p-4 border-l-4 border-l-violet-600 bg-gradient-to-r from-violet-500/10 via-transparent to-transparent flex items-center justify-between shadow-sm">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                        <div className="h-10 w-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-700 dark:text-violet-400">
                           <Briefcase className="w-5 h-5" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                            <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-wider">
                               Executive Summary
                             </h3>
-                            <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">
+                            <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 uppercase">
                               Collapsed
                             </span>
                           </div>
-                          <p className="text-xs text-slate-300 mt-0.5">
+                          <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-0.5">
                             {result.overallScore}% Overall Match · Target Mandate: {result.careerPath?.topRole} · High-Level Narrative Analysis
                           </p>
                         </div>
@@ -5536,7 +5452,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         <button
                           type="button"
                           onClick={() => setIsPdfPreviewOpen(true)}
-                          className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                          className="px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 border border-zinc-200 dark:border-white/10 text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                         >
                           <Eye className="w-3.5 h-3.5" />
                           <span>Preview PDF</span>
@@ -5544,7 +5460,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         <button
                           type="button"
                           onClick={() => toggleSection("executive-summary")}
-                          className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                          className="px-3.5 py-1.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 text-violet-800 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                         >
                           <span>Expand Section</span>
                           <ChevronDown className="w-3.5 h-3.5" />
@@ -5552,35 +5468,35 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       </div>
                     </GlassCard>
                   ) : (
-                    <GlassCard className="p-8 md:p-12 border-t-4 border-t-amber-500 bg-gradient-to-b from-amber-500/5 to-transparent">
+                    <GlassCard className="p-8 md:p-12 border-t-4 border-t-violet-600 bg-gradient-to-b from-violet-500/5 to-transparent">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                         <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-xl bg-amber-500/20 flex items-center justify-center border border-amber-500/30">
-                            <Briefcase className="h-6 w-6 text-amber-400" />
+                          <div className="h-12 w-12 rounded-xl bg-violet-500/15 flex items-center justify-center border border-violet-500/30">
+                            <Briefcase className="h-6 w-6 text-violet-700 dark:text-violet-400" />
                           </div>
                           <div>
-                            <h2 className="text-2xl font-black text-white font-display uppercase tracking-widest">Executive Summary</h2>
-                            <p className="text-amber-400/80 text-xs font-bold uppercase tracking-[0.2em]">High-Level Narrative Analysis</p>
+                            <h2 className="text-2xl font-black text-zinc-950 dark:text-white font-display uppercase tracking-widest">Executive Summary</h2>
+                            <p className="text-violet-700 dark:text-violet-400 text-xs font-bold uppercase tracking-[0.2em]">High-Level Narrative Analysis</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 self-start sm:self-auto">
                           <button
                             onClick={() => setIsPdfPreviewOpen(true)}
-                            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-purple-500/20 active:scale-95 cursor-pointer"
+                            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-700 to-violet-700 hover:from-purple-600 hover:to-violet-600 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
                             title="Preview and toggle sections to include in PDF report"
                           >
                             <Eye className="w-4 h-4" /> PDF Preview
                           </button>
                           <button
                             onClick={handleFullReportPdfPrint}
-                            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer"
+                            className="px-4 py-2.5 rounded-xl bg-zinc-950 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-950 font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
                           >
                             <Printer className="w-4 h-4" /> Direct Print
                           </button>
                           <button
                             type="button"
                             onClick={() => toggleSection("executive-summary")}
-                            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
+                            className="p-2.5 rounded-xl bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 border border-zinc-200 dark:border-white/10 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-all cursor-pointer"
                             title="Collapse this section to declutter workspace"
                           >
                             <ChevronUp className="w-4 h-4" />
@@ -5589,50 +5505,50 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       </div>
                     
                     <div className="space-y-8">
-                      <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
-                        <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-teal-400" /> Bottom Line Recommendation
+                      <div className="bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 p-6 rounded-2xl">
+                        <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-violet-600 dark:text-violet-400" /> Bottom Line Recommendation
                         </h3>
-                        <p className="text-slate-300 leading-relaxed text-sm">
+                        <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed text-sm">
                           {result.executiveSummary || `Based on an overall match of ${result.overallScore}%, this candidate shows strong potential for the ${result.careerPath.topRole} role. The resume demonstrates ${result.skillsMatch}% skill alignment with the job description.`}
                         </p>
                       </div>
                       
                       <div className="grid md:grid-cols-2 gap-6">
-                        <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
-                          <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 text-emerald-400" /> Core Strengths
+                        <div className="bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 p-6 rounded-2xl">
+                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <TrendingUp className="h-4 w-4 text-violet-600 dark:text-violet-400" /> Core Strengths
                           </h3>
                           <ul className="space-y-3">
                             {result.foundSkills.slice(0, 3).map((skill, idx) => (
                               <li key={`found-str-${skill || idx}-${idx}`} className="flex items-start gap-2">
-                                <div className="h-4 w-4 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                                <div className="h-4 w-4 rounded-full bg-violet-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                                  <div className="h-1.5 w-1.5 rounded-full bg-violet-600 dark:bg-violet-400" />
                                 </div>
-                                <span className="text-xs text-slate-300">{skill}</span>
+                                <span className="text-xs text-zinc-700 dark:text-zinc-300">{skill}</span>
                               </li>
                             ))}
                             {result.foundSkills.length === 0 && (
-                              <li className="text-xs text-slate-500 italic">No critical matching skills identified.</li>
+                              <li className="text-xs text-zinc-500 italic">No critical matching skills identified.</li>
                             )}
                           </ul>
                         </div>
                         
-                        <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
-                          <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <AlertCircle className="h-4 w-4 text-rose-400" /> Critical Gaps
+                        <div className="bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 p-6 rounded-2xl">
+                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <AlertCircle className="h-4 w-4 text-rose-600 dark:text-rose-400" /> Critical Gaps
                           </h3>
                           <ul className="space-y-3">
                             {(result.missingSkills || result.skillGapReport?.map(s => s.skill) || []).slice(0, 3).map((skill, idx) => (
                               <li key={`crit-gap-${skill || idx}-${idx}`} className="flex items-start gap-2">
                                 <div className="h-4 w-4 rounded-full bg-rose-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                                  <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+                                  <div className="h-1.5 w-1.5 rounded-full bg-rose-600 dark:bg-rose-400" />
                                 </div>
-                                <span className="text-xs text-slate-300">{skill}</span>
+                                <span className="text-xs text-zinc-700 dark:text-zinc-300">{skill}</span>
                               </li>
                             ))}
                              {(!result.missingSkills?.length && !result.skillGapReport?.length) && (
-                              <li className="text-xs text-slate-500 italic">No critical missing skills identified.</li>
+                              <li className="text-xs text-zinc-500 italic">No critical missing skills identified.</li>
                             )}
                           </ul>
                         </div>
@@ -5647,18 +5563,18 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 <div className="flex flex-col">
               {/* Career Progress Badges */}
               <div className="mb-8" id="career-progress" style={{ order: sectionOrder.indexOf('career-progress') }}>
-                <GlassCard className="p-8 border-t-4 border-t-emerald-500 bg-gradient-to-b from-emerald-500/5 to-transparent">
+                <GlassCard className="p-8 border-t-4 border-t-purple-600 bg-gradient-to-b from-purple-500/5 to-transparent">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-                        <Award className="h-4 w-4 text-emerald-400" /> Career Progress
+                      <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                        <Award className="h-4 w-4 text-purple-600 dark:text-purple-400" /> Career Progress
                       </h3>
-                      <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider mt-1">
                         Executive Strengths Unlocked
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-black text-emerald-400">
+                      <div className="text-2xl font-black text-violet-700 dark:text-violet-400">
                         {
                           [
                             result.overallScore >= 85,
@@ -5668,54 +5584,54 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           ].filter(Boolean).length
                         } / 4
                       </div>
-                      <div className="text-[9px] text-slate-500 uppercase font-black tracking-widest">
+                      <div className="text-[9px] text-zinc-500 uppercase font-black tracking-widest">
                         Badges Earned
                       </div>
                     </div>
                   </div>
                   
                   {/* Progress Bar */}
-                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden mb-8">
+                  <div className="h-2 w-full bg-zinc-200 dark:bg-white/10 rounded-full overflow-hidden mb-8">
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${([result.overallScore >= 85, result.skillsMatch >= 80, result.atsAnalysis.formattingScore >= 80, result.careerPath.confidence >= 80].filter(Boolean).length / 4) * 100}%` }}
-                      transition={{ duration: 1, ease: "easeOut" }}
-                      className="h-full bg-emerald-500 rounded-full"
+                      transition={{ duration: 0.9, ease: "easeOut" }}
+                      className="h-full bg-gradient-to-r from-violet-600 to-purple-600 rounded-full"
                     />
                   </div>
 
                   {/* Badges Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.overallScore >= 85 ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-white/5 border-white/10 opacity-50 grayscale'}`}>
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.overallScore >= 85 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-slate-400'}`}>
+                    <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.overallScore >= 85 ? 'bg-violet-500/10 border-violet-500/35' : 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10 opacity-55 grayscale'}`}>
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.overallScore >= 85 ? 'bg-violet-500/20 text-violet-700 dark:text-violet-400' : 'bg-zinc-200 dark:bg-white/10 text-zinc-400'}`}>
                         <Briefcase className="h-5 w-5" />
                       </div>
-                      <span className="text-xs font-black uppercase tracking-widest text-white mb-1">Executive Fit</span>
-                      <span className="text-[9px] text-slate-400">Score 85%+</span>
+                      <span className="text-xs font-black uppercase tracking-widest text-zinc-950 dark:text-white mb-1">Executive Fit</span>
+                      <span className="text-[9px] text-zinc-500 dark:text-zinc-400">Score 85%+</span>
                     </div>
 
-                    <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.skillsMatch >= 80 ? 'bg-blue-500/10 border-blue-500/30' : 'bg-white/5 border-white/10 opacity-50 grayscale'}`}>
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.skillsMatch >= 80 ? 'bg-blue-500/20 text-blue-400' : 'bg-white/10 text-slate-400'}`}>
+                    <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.skillsMatch >= 80 ? 'bg-purple-500/10 border-purple-500/35' : 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10 opacity-55 grayscale'}`}>
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.skillsMatch >= 80 ? 'bg-purple-500/20 text-purple-700 dark:text-purple-400' : 'bg-zinc-200 dark:bg-white/10 text-zinc-400'}`}>
                         <Zap className="h-5 w-5" />
                       </div>
-                      <span className="text-xs font-black uppercase tracking-widest text-white mb-1">Keyword Master</span>
-                      <span className="text-[9px] text-slate-400">Skills 80%+</span>
+                      <span className="text-xs font-black uppercase tracking-widest text-zinc-950 dark:text-white mb-1">Keyword Master</span>
+                      <span className="text-[9px] text-zinc-500 dark:text-zinc-400">Skills 80%+</span>
                     </div>
 
-                    <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.atsAnalysis.formattingScore >= 80 ? 'bg-purple-500/10 border-purple-500/30' : 'bg-white/5 border-white/10 opacity-50 grayscale'}`}>
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.atsAnalysis.formattingScore >= 80 ? 'bg-purple-500/20 text-purple-400' : 'bg-white/10 text-slate-400'}`}>
+                    <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.atsAnalysis.formattingScore >= 80 ? 'bg-violet-500/10 border-violet-500/35' : 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10 opacity-55 grayscale'}`}>
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.atsAnalysis.formattingScore >= 80 ? 'bg-violet-500/20 text-violet-700 dark:text-violet-400' : 'bg-zinc-200 dark:bg-white/10 text-zinc-400'}`}>
                         <Layout className="h-5 w-5" />
                       </div>
-                      <span className="text-xs font-black uppercase tracking-widest text-white mb-1">ATS Specialist</span>
-                      <span className="text-[9px] text-slate-400">Format 80%+</span>
+                      <span className="text-xs font-black uppercase tracking-widest text-zinc-950 dark:text-white mb-1">ATS Specialist</span>
+                      <span className="text-[9px] text-zinc-500 dark:text-zinc-400">Format 80%+</span>
                     </div>
 
-                    <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.careerPath.confidence >= 80 ? 'bg-amber-500/10 border-amber-500/30' : 'bg-white/5 border-white/10 opacity-50 grayscale'}`}>
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.careerPath.confidence >= 80 ? 'bg-amber-500/20 text-amber-400' : 'bg-white/10 text-slate-400'}`}>
+                    <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.careerPath.confidence >= 80 ? 'bg-purple-500/10 border-purple-500/35' : 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10 opacity-55 grayscale'}`}>
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.careerPath.confidence >= 80 ? 'bg-purple-500/20 text-purple-700 dark:text-purple-400' : 'bg-zinc-200 dark:bg-white/10 text-zinc-400'}`}>
                         <Target className="h-5 w-5" />
                       </div>
-                      <span className="text-xs font-black uppercase tracking-widest text-white mb-1">Trajectory Pro</span>
-                      <span className="text-[9px] text-slate-400">Confidence 80%+</span>
+                      <span className="text-xs font-black uppercase tracking-widest text-zinc-950 dark:text-white mb-1">Trajectory Pro</span>
+                      <span className="text-[9px] text-zinc-500 dark:text-zinc-400">Confidence 80%+</span>
                     </div>
 
                     <button
@@ -5728,16 +5644,16 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           setIsLinkedInVerificationModalOpen(true);
                         }
                       }}
-                      className="p-4 rounded-xl border bg-teal-500/15 border-teal-500/40 hover:bg-teal-500/25 flex flex-col items-center text-center transition-all cursor-pointer group"
+                      className="p-4 rounded-xl border bg-violet-500/15 border-violet-500/40 hover:bg-violet-500/25 flex flex-col items-center text-center transition-all cursor-pointer group"
                       title="Click to share or embed your Verified Trust LinkedIn Credibility Badge"
                     >
-                      <div className="h-10 w-10 rounded-full flex items-center justify-center mb-2 bg-teal-500/20 text-teal-400 group-hover:scale-105 transition-transform">
+                      <div className="h-10 w-10 rounded-full flex items-center justify-center mb-2 bg-violet-500/20 text-violet-700 dark:text-violet-400 group-hover:scale-105 transition-transform">
                         <ShieldCheck className="h-5 w-5" />
                       </div>
-                      <span className="text-xs font-black uppercase tracking-widest text-white mb-1">
+                      <span className="text-xs font-black uppercase tracking-widest text-zinc-950 dark:text-white mb-1">
                         Verified Trust
                       </span>
-                      <span className="text-[10px] font-mono font-bold text-teal-300 tabular-nums">
+                      <span className="text-[10px] font-mono font-bold text-violet-700 dark:text-violet-300 tabular-nums">
                         {linkedInTrustScore ?? (linkedinUrl ? 86 : 78)}% Credibility · Share
                       </span>
                     </button>
@@ -5748,21 +5664,21 @@ AWS Certified Solutions Architect – Associate (2022)`;
               {/* LinkedIn Connection Network & Verified Trust Intelligence Section */}
               <div id="linkedin-network" className="mb-8">
                 {collapsedSections["linkedin-network"] ? (
-                  <GlassCard className="p-4 border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-500/10 via-teal-500/5 to-transparent flex items-center justify-between shadow-lg">
+                  <GlassCard className="p-4 border-l-4 border-l-violet-600 bg-gradient-to-r from-violet-500/10 via-purple-500/5 to-transparent flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                      <div className="h-10 w-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-700 dark:text-violet-400">
                         <Users className="w-5 h-5" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-wider">
                             LinkedIn Referral Network & Trust Audit
                           </h3>
-                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase">
+                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 uppercase">
                             Collapsed
                           </span>
                         </div>
-                        <p className="text-xs text-slate-300 mt-0.5">
+                        <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-0.5">
                           5 Shared Professional Circles · Trust Score {linkedInTrustScore ?? (linkedinUrl ? 86 : 78)}% · Warm Referral Finder
                         </p>
                       </div>
@@ -5770,7 +5686,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     <button
                       type="button"
                       onClick={() => toggleSection("linkedin-network")}
-                      className="px-3.5 py-1.5 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 text-violet-800 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                     >
                       <span>Expand Section</span>
                       <ChevronDown className="w-3.5 h-3.5" />
@@ -5779,21 +5695,21 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 ) : (
                   <div className="space-y-4">
                     {/* Section Header with Mode Selector and Collapse Toggle */}
-                    <div className="dark dark-studio flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/95 border border-slate-800 shadow-lg">
+                    <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-800 shadow-sm">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600/30 to-teal-500/30 border border-blue-500/40 flex items-center justify-center text-blue-400">
+                        <div className="h-10 w-10 rounded-xl bg-violet-500/15 border border-violet-500/35 flex items-center justify-center text-violet-700 dark:text-violet-400">
                           <Users className="w-5 h-5" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h3 className="text-xs font-black text-white uppercase tracking-[0.25em]">
+                            <h3 className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-[0.25em]">
                               LinkedIn Network & Credibility Intelligence
                             </h3>
-                            <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[9px] font-mono font-bold uppercase">
+                            <span className="px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 text-[9px] font-mono font-bold uppercase">
                               {linkedInViewTab === "network" ? "Referral Graph" : "Trust Badge"}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-400 mt-0.5">
+                          <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-0.5">
                             {linkedInViewTab === "network"
                               ? "D3 force-directed network mapping common industry contacts, shared professional circles, and warm executive referral pathways"
                               : "Verified cross-vector LinkedIn trust score card, factor breakdown, and embeddable portfolio credentials"}
@@ -5803,14 +5719,14 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                       <div className="flex flex-wrap items-center gap-2">
                         {/* Tab Switcher */}
-                        <div className="flex items-center p-1 bg-black/40 border border-white/10 rounded-xl text-xs">
+                        <div className="flex items-center p-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs">
                           <button
                             type="button"
                             onClick={() => setLinkedInViewTab("network")}
                             className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
                               linkedInViewTab === "network"
-                                ? "bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md shadow-blue-500/20"
-                                : "text-slate-400 hover:text-white"
+                                ? "bg-gradient-to-r from-violet-700 to-purple-700 text-white shadow-sm"
+                                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                             }`}
                           >
                             <Share2 className="w-3.5 h-3.5" />
@@ -5821,8 +5737,8 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             onClick={() => setLinkedInViewTab("badge")}
                             className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
                               linkedInViewTab === "badge"
-                                ? "bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-md shadow-blue-500/20"
-                                : "text-slate-400 hover:text-white"
+                                ? "bg-gradient-to-r from-violet-700 to-purple-700 text-white shadow-sm"
+                                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                             }`}
                           >
                             <ShieldCheck className="w-3.5 h-3.5" />
@@ -5835,7 +5751,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           type="button"
                           onClick={handleDownloadNetworkDossier}
                           disabled={isDownloadingNetworkDossier}
-                          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-500 hover:to-blue-500 text-white font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 shadow-md shadow-teal-500/20 active:scale-95 disabled:opacity-60"
+                          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-700 to-violet-700 hover:from-purple-600 hover:to-violet-600 text-white font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 shadow-sm active:scale-95 disabled:opacity-60"
                           title="Generate and download a structured PDF dossier of your network graph and trust metrics"
                         >
                           {isDownloadingNetworkDossier ? (
@@ -5860,7 +5776,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         <button
                           type="button"
                           onClick={() => toggleSection("linkedin-network")}
-                          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
+                          className="p-2 rounded-xl bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-all cursor-pointer"
                           title="Collapse this section to declutter workspace"
                         >
                           <ChevronUp className="w-4 h-4" />
@@ -5915,17 +5831,17 @@ AWS Certified Solutions Architect – Associate (2022)`;
               </div>
 
               {/* Full Analysis Report Export & ATS Generator Banner */}
-              <GlassCard className="mb-8 border-l-4 border-l-teal-500 bg-gradient-to-r from-teal-500/10 via-purple-500/5 to-transparent p-6 md:p-8 flex flex-wrap items-center justify-between gap-6">
+              <GlassCard className="mb-8 border-l-4 border-l-violet-600 bg-gradient-to-r from-violet-500/10 via-purple-500/5 to-transparent p-6 md:p-8 flex flex-wrap items-center justify-between gap-6">
                 <div className="space-y-1.5 max-w-2xl">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-teal-700 dark:text-teal-300">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-violet-700 dark:text-violet-300">
                     <span>Complete Career Report</span>
-                    <span aria-hidden="true" className="text-slate-400">·</span>
+                    <span aria-hidden="true" className="text-zinc-400">·</span>
                     <span className="text-purple-700 dark:text-purple-300">DOCX & PDF Verified</span>
                   </div>
-                  <h3 className="text-lg font-black text-slate-900 dark:text-white font-display uppercase tracking-wider">
+                  <h3 className="text-lg font-black text-zinc-950 dark:text-white font-display uppercase tracking-wider">
                     Download Full Analyzed Report
                   </h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
+                  <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium leading-relaxed">
                     Export your complete executive summary, skill gap report, D3 career roadmap, and strategic optimization plan as a clean, presentation-ready PDF or Word document.
                   </p>
                 </div>
@@ -5933,7 +5849,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     onClick={() => setIsPdfPreviewOpen(true)}
-                    className="px-5 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-purple-500/25 active:scale-95 cursor-pointer whitespace-nowrap"
+                    className="px-5 py-3 rounded-xl bg-gradient-to-r from-purple-700 to-violet-700 hover:from-purple-600 hover:to-violet-600 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer whitespace-nowrap"
                     title="Customize and toggle sections before exporting PDF"
                   >
                     <Eye className="w-4 h-4" /> PDF Export Preview
@@ -5941,7 +5857,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                   <button
                     onClick={handleFullReportPdfPrint}
-                    className="px-4 py-3 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 border border-slate-300 dark:border-white/20 text-slate-800 dark:text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 active:scale-95 cursor-pointer whitespace-nowrap"
+                    className="px-4 py-3 rounded-xl bg-zinc-100 dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/15 border border-zinc-300 dark:border-white/20 text-zinc-800 dark:text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 active:scale-95 cursor-pointer whitespace-nowrap"
                     title="Print full executive report directly"
                   >
                     <Printer className="w-4 h-4 text-purple-600 dark:text-purple-300" /> Direct Print PDF
@@ -5949,7 +5865,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                   <button
                     onClick={() => exportFullReportToDocx(result)}
-                    className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 cursor-pointer whitespace-nowrap"
+                    className="px-5 py-3 rounded-xl bg-violet-700 hover:bg-violet-600 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer whitespace-nowrap"
                   >
                     <Download className="w-4 h-4" /> Download DOCX Report
                   </button>
@@ -5963,9 +5879,9 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           "Give me a short, crystal-clear breakdown of what is missing from my resume for this job and the best quick fixes I can apply.",
                       });
                     }}
-                    className="px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-teal-500/40 text-teal-300 hover:text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 active:scale-95 cursor-pointer whitespace-nowrap"
+                    className="px-5 py-3 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-violet-500/40 text-violet-300 hover:text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 active:scale-95 cursor-pointer whitespace-nowrap"
                   >
-                    <Bot className="w-4 h-4 text-teal-400" /> Ask Copilot What&apos;s Missing
+                    <Bot className="w-4 h-4 text-violet-400" /> Ask Copilot What&apos;s Missing
                   </button>
 
                   <button
@@ -5973,7 +5889,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       setSelectedSkillToFrame(null);
                       setIsResumeBuilderOpen(true);
                     }}
-                    className="px-5 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-teal-500/20 active:scale-95 cursor-pointer whitespace-nowrap"
+                    className="px-5 py-3 rounded-xl bg-purple-700 hover:bg-purple-600 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer whitespace-nowrap"
                   >
                     <Briefcase className="w-4 h-4" /> Open Resume Builder & AI Coach
                   </button>
@@ -5983,21 +5899,21 @@ AWS Certified Solutions Architect – Associate (2022)`;
 {/* Scoring Infrastructure */}
               <div id="scoring-infrastructure" className="mb-8" style={{ order: sectionOrder.indexOf('scoring-infrastructure') }}>
                 {collapsedSections["scoring-infrastructure"] ? (
-                  <GlassCard className="p-4 border-l-4 border-l-teal-500 bg-gradient-to-r from-teal-500/10 via-slate-900/40 to-transparent flex items-center justify-between shadow-lg">
+                  <GlassCard className="p-4 border-l-4 border-l-violet-600 bg-gradient-to-r from-violet-500/10 via-transparent to-transparent flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-400">
+                      <div className="h-10 w-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-700 dark:text-violet-400">
                         <Target className="w-5 h-5" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-wider">
                             ATS Scoring Infrastructure & Core Benchmarks
                           </h3>
-                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 uppercase">
+                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 uppercase">
                             Collapsed
                           </span>
                         </div>
-                        <p className="text-xs text-slate-300 mt-0.5">
+                        <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-0.5">
                           Overall Match: {result.overallScore}% · ATS Parseability: {result.atsCompatibility}% · Skills Overlap: {result.skillsMatch}%
                         </p>
                       </div>
@@ -6005,7 +5921,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     <button
                       type="button"
                       onClick={() => toggleSection("scoring-infrastructure")}
-                      className="px-3.5 py-1.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 border border-teal-500/40 text-teal-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 text-violet-800 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                     >
                       <span>Expand Section</span>
                       <ChevronDown className="w-3.5 h-3.5" />
@@ -6015,15 +5931,15 @@ AWS Certified Solutions Architect – Associate (2022)`;
                   <div className="space-y-4">
                     <div className="flex items-center justify-between px-2">
                       <div className="flex items-center gap-2">
-                        <Target className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                        <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                        <Target className="w-4 h-4 text-violet-700 dark:text-violet-400" />
+                        <span className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                           Scoring Infrastructure & Core ATS Metrics
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => toggleSection("scoring-infrastructure")}
-                        className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer flex items-center gap-1 text-xs"
+                        className="px-2.5 py-1 rounded-xl bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 border border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-all cursor-pointer flex items-center gap-1 text-xs"
                         title="Collapse section to declutter workspace"
                       >
                         <span className="text-[10px] font-bold">Collapse</span>
@@ -6031,36 +5947,36 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       </button>
                     </div>
                     <div className="grid md:grid-cols-2 gap-8">
-                <GlassCard className="flex flex-col items-center justify-center py-8 border-t-4 border-t-teal-500 bg-gradient-to-b from-teal-500/5 to-transparent relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-4 opacity-50">
-                    <CheckCircle2 className="h-6 w-6 text-teal-500" />
+                <GlassCard className="flex flex-col items-center justify-center py-8 border-t-4 border-t-violet-600 bg-gradient-to-b from-violet-500/5 to-transparent relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-60">
+                    <CheckCircle2 className="h-6 w-6 text-violet-600 dark:text-violet-400" />
                   </div>
-                  <h3 className="text-xl font-black text-white font-display uppercase tracking-widest mb-2">
+                  <h3 className="text-xl font-black text-zinc-950 dark:text-white font-display uppercase tracking-widest mb-2">
                     Overall Match
                   </h3>
-                  <p className="text-slate-400 text-[11px] font-bold uppercase tracking-[0.2em] mb-8 text-center max-w-xs">
+                  <p className="text-zinc-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-[0.2em] mb-8 text-center max-w-xs">
                     Holistic evaluation of your resume against the target role
                   </p>
                   <ScoringCircle
                     score={result.overallScore}
                     label="Executive Leadership Score"
-                    color="#14b8a6"
-                    delay={0.1}
+                    color="#7c3aed"
+                    delay={0.08}
                   />
                   <div className="mt-6 flex items-center justify-center">
-                    <span className="px-3 py-1 bg-teal-500/10 border border-teal-500/20 rounded-full text-[9px] font-black tracking-widest text-teal-400 uppercase">
+                    <span className="px-3 py-1 bg-violet-500/10 border border-violet-500/25 rounded-md text-[9px] font-black tracking-widest text-violet-700 dark:text-violet-400 uppercase">
                       <BarChart2 className="w-3 h-3 inline-block mr-1.5 -mt-0.5" />
                       Benchmarked via 2000B+ Outcomes • High-Accuracy ML
                     </span>
                   </div>
 
                   {/* Historical ATS Score Trajectory Sparkline */}
-                  <div className="w-full mt-6 pt-5 border-t border-white/10 flex flex-col space-y-2">
+                  <div className="w-full mt-6 pt-5 border-t border-zinc-200 dark:border-white/10 flex flex-col space-y-2">
                     <div className="flex items-center justify-between text-[10px] uppercase font-black tracking-wider px-2">
-                      <span className="text-slate-400 flex items-center gap-1">
-                        <TrendingUp className="w-3.5 h-3.5 text-teal-400" /> Historical ATS Trajectory
+                      <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
+                        <TrendingUp className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" /> Historical ATS Trajectory
                       </span>
-                      <span className="text-teal-300 bg-teal-500/20 px-2 py-0.5 rounded-full border border-teal-500/30">
+                      <span className="text-violet-700 dark:text-violet-300 bg-violet-500/15 px-2 py-0.5 rounded-md border border-violet-500/30">
                         +{Math.max(8, Math.min(32, Math.round(result.overallScore * 0.22)))}% Score Improvement
                       </span>
                     </div>
@@ -6088,16 +6004,16 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         >
                           <defs>
                             <linearGradient id="overallSparklineGradient" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.5} />
-                              <stop offset="95%" stopColor="#14b8a6" stopOpacity={0.0} />
+                              <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.45} />
+                              <stop offset="95%" stopColor="#7c3aed" stopOpacity={0.0} />
                             </linearGradient>
                           </defs>
                           <RechartsTooltip
                             content={({ active, payload }) => {
                               if (active && payload && payload.length) {
                                 return (
-                                  <div className="bg-[#0A0A15]/90 border border-teal-500/40 px-2.5 py-1 rounded shadow-lg backdrop-blur-md">
-                                    <p className="text-[10px] font-black text-teal-300 uppercase">
+                                  <div className="bg-white dark:bg-[#111116] border border-violet-500/40 px-2.5 py-1 rounded shadow-lg">
+                                    <p className="text-[10px] font-black text-violet-700 dark:text-violet-300 uppercase">
                                       {payload[0].payload.version}: {payload[0].value} pts
                                     </p>
                                   </div>
@@ -6109,11 +6025,11 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           <Area
                             type="monotone"
                             dataKey="score"
-                            stroke="#14b8a6"
+                            stroke="#7c3aed"
                             strokeWidth={2.5}
                             fillOpacity={1}
                             fill="url(#overallSparklineGradient)"
-                            dot={{ r: 3, fill: "#14b8a6", stroke: "#0A0A15", strokeWidth: 1.5 }}
+                            dot={{ r: 3, fill: "#7c3aed", stroke: "#ffffff", strokeWidth: 1.5 }}
                           />
                         </AreaChart>
                       </ResponsiveContainer>
@@ -6122,37 +6038,34 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 </GlassCard>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                  <GlassCard className="flex flex-col items-center justify-center p-6 md:p-8 border-t-2 border-t-sky-500 relative overflow-hidden group/card hover:border-sky-400 transition-colors">
-                    <div className="absolute inset-0 bg-sky-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none"></div>
-                    <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">
+                  <GlassCard className="flex flex-col items-center justify-center p-6 md:p-8 border-t-2 border-t-purple-600 relative overflow-hidden group/card hover:border-purple-500 transition-colors">
+                    <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-4">
                       ATS Fit
                     </h3>
                     <ScoringCircle
                       score={result.atsCompatibility}
                       label=""
-                      color="#0ea5e9"
-                      delay={0.2}
+                      color="#9333ea"
+                      delay={0.16}
                       tooltip="Measures how well your resume is formatted and structured to pass through an Applicant Tracking System (ATS) without losing critical data."
                     />
                   </GlassCard>
 
-                  <GlassCard className="flex flex-col items-center justify-center p-6 md:p-8 border-t-2 border-t-indigo-500 relative overflow-hidden group/card hover:border-indigo-400 transition-colors">
-                    <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none"></div>
-                    <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">
+                  <GlassCard className="flex flex-col items-center justify-center p-6 md:p-8 border-t-2 border-t-violet-700 relative overflow-hidden group/card hover:border-violet-500 transition-colors">
+                    <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-4">
                       Skills Match
                     </h3>
                     <ScoringCircle
                       score={result.skillsMatch}
                       label=""
-                      color="#6366f1"
-                      delay={0.3}
+                      color="#6d28d9"
+                      delay={0.24}
                       tooltip="Evaluates the density of relevant skills and keywords in your resume compared to the requirements of your target role."
                     />
                   </GlassCard>
 
-                  <GlassCard className="flex flex-col items-center justify-center p-6 md:p-8 border-t-2 border-t-emerald-500 relative overflow-hidden group/card hover:border-emerald-400 transition-colors">
-                    <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none"></div>
-                    <h3 className="text-[11px] font-black text-white uppercase tracking-widest mb-4 text-center">
+                  <GlassCard className="flex flex-col items-center justify-center p-6 md:p-8 border-t-2 border-t-purple-500 relative overflow-hidden group/card hover:border-purple-400 transition-colors">
+                    <h3 className="text-[11px] font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-4 text-center">
                       Formatting Health
                     </h3>
                     <ScoringCircle
@@ -6162,22 +6075,21 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         0
                       }
                       label=""
-                      color="#10b981"
-                      delay={0.4}
+                      color="#a855f7"
+                      delay={0.32}
                       tooltip="Assesses the visual structure, layout consistency, and readability of your document for human reviewers and parsers."
                     />
                   </GlassCard>
 
-                  <GlassCard className="flex flex-col items-center justify-center p-6 md:p-8 border-t-2 border-t-amber-500 relative overflow-hidden group/card hover:border-amber-400 transition-colors">
-                    <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none"></div>
-                    <h3 className="text-[11px] font-black text-white uppercase tracking-widest mb-4 text-center">
+                  <GlassCard className="flex flex-col items-center justify-center p-6 md:p-8 border-t-2 border-t-violet-900 relative overflow-hidden group/card hover:border-violet-700 transition-colors">
+                    <h3 className="text-[11px] font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-4 text-center">
                       Career Trajectory
                     </h3>
                     <ScoringCircle
                       score={result.careerTrajectoryFitScore || 0}
                       label=""
-                      color="#f59e0b"
-                      delay={0.5}
+                      color="#5b21b6"
+                      delay={0.40}
                       tooltip="Analyzes the progression of your roles and achievements to determine if you show the expected growth for this executive position."
                     />
                   </GlassCard>
@@ -6200,21 +6112,21 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
               <div id="career-progression" className="mb-8" style={{ order: sectionOrder.indexOf('career-progression') }}>
                 {collapsedSections["career-progression"] ? (
-                  <GlassCard className="p-4 border-l-4 border-l-indigo-500 bg-gradient-to-r from-indigo-500/10 via-slate-900/40 to-transparent flex items-center justify-between shadow-lg">
+                  <GlassCard className="p-4 border-l-4 border-l-violet-600 bg-gradient-to-r from-violet-500/10 via-transparent to-transparent flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                      <div className="h-10 w-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-700 dark:text-violet-400">
                         <TrendingUp className="w-5 h-5" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-wider">
                             Career Progression & Sub-Metrics
                           </h3>
-                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase">
+                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 uppercase">
                             Collapsed
                           </span>
                         </div>
-                        <p className="text-xs text-slate-300 mt-0.5">
+                        <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-0.5">
                           Target Mandate: {result.careerPath?.topRole} · Trajectory Confidence {result.careerPath?.confidence || 88}%
                         </p>
                       </div>
@@ -6222,7 +6134,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     <button
                       type="button"
                       onClick={() => toggleSection("career-progression")}
-                      className="px-3.5 py-1.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 text-violet-800 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                     >
                       <span>Expand Section</span>
                       <ChevronDown className="w-3.5 h-3.5" />
@@ -6232,18 +6144,18 @@ AWS Certified Solutions Architect – Associate (2022)`;
                   <>
                     <GlassCard className="mb-8">
                     <div className="flex justify-between items-center mb-8">
-                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">
+                      <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.3em]">
                         Detailed Sub-Metrics
                       </h3>
                       <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 text-[10px] font-black text-teal-400 uppercase tracking-widest">
+                        <div className="flex items-center gap-2 text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest">
                           <Target className="h-3 w-3" />
                           Deep Analysis
                         </div>
                         <button
                           type="button"
                           onClick={() => toggleSection("career-progression")}
-                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all cursor-pointer ml-2 flex items-center gap-1 text-xs"
+                          className="p-1.5 rounded-lg bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-all cursor-pointer ml-2 flex items-center gap-1 text-xs"
                           title="Collapse this section to declutter workspace"
                         >
                           <ChevronUp className="w-3.5 h-3.5" />
@@ -6255,11 +6167,11 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     {
                       label: "Skills Match",
                       score: result.skillsMatch,
-                      color: "#0ea5e9",
+                      color: "#7c3aed",
                       desc: "Role alignment",
                       tooltip: (
                         <>
-                          <strong className="text-sky-400 block mb-2 uppercase tracking-widest text-xs border-b border-white/10 pb-1">
+                          <strong className="text-violet-400 block mb-2 uppercase tracking-widest text-xs border-b border-zinc-800 pb-1">
                             Skills Match
                           </strong>
                           The overlap between your extracted skills and the
@@ -6271,17 +6183,17 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     {
                       label: "Keywords",
                       score: result.atsAnalysis.keywordDensity,
-                      color: "#10b981",
+                      color: "#9333ea",
                       desc: "Density factor",
                     },
                     {
                       label: "Formatting",
                       score: result.atsAnalysis.formattingScore,
-                      color: "#f59e0b",
+                      color: "#6d28d9",
                       desc: "Visual health",
                       tooltip: (
                         <>
-                          <strong className="text-amber-400 block mb-2 uppercase tracking-widest text-xs border-b border-white/10 pb-1">
+                          <strong className="text-purple-400 block mb-2 uppercase tracking-widest text-xs border-b border-zinc-800 pb-1">
                             Formatting Health
                           </strong>
                           Assesses how easily an ATS parser can process your
@@ -6297,11 +6209,11 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           result.atsCompatibility) /
                           2,
                       ),
-                      color: "#8b5cf6",
+                      color: "#a855f7",
                       desc: "Averaged health",
                       tooltip: (
                         <>
-                          <strong className="text-purple-400 block mb-2 uppercase tracking-widest text-xs border-b border-white/10 pb-1">
+                          <strong className="text-purple-300 block mb-2 uppercase tracking-widest text-xs border-b border-zinc-800 pb-1">
                             Average Health
                           </strong>
                           Combines your formatting score and base ATS score into
@@ -6312,11 +6224,11 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     {
                       label: "Bullet Quality",
                       score: result.atsAnalysis.bulletPointQualityScore || 0,
-                      color: "#ec4899",
+                      color: "#5b21b6",
                       desc: "Impact score",
                       tooltip: (
                         <>
-                          <strong className="text-pink-400 block mb-2 uppercase tracking-widest text-xs border-b border-white/10 pb-1">
+                          <strong className="text-violet-300 block mb-2 uppercase tracking-widest text-xs border-b border-zinc-800 pb-1">
                             Bullet Quality
                           </strong>
                           Focuses on the presence of strong action verbs and
@@ -6330,36 +6242,36 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       <div className="flex justify-between items-end">
                         <div className="flex items-center gap-2">
                           <div>
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                            <span className="text-[10px] font-black text-zinc-600 dark:text-zinc-400 uppercase tracking-widest block">
                               {m.label}
                             </span>
-                            <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">
+                            <span className="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-tighter">
                               {m.desc}
                             </span>
                           </div>
                           {m.tooltip && (
                             <div className="group relative cursor-pointer">
-                              <Info className="h-4 w-4 text-slate-500 hover:text-white transition-colors" />
-                              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 w-64 bg-slate-800 text-white text-[10px] font-medium p-4 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-white/10 shadow-2xl leading-relaxed">
+                              <Info className="h-4 w-4 text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-colors" />
+                              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 w-64 bg-zinc-950 text-white text-[10px] font-medium p-4 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-zinc-800 shadow-2xl leading-relaxed">
                                 {m.tooltip}
-                                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 rotate-45 border-r border-b border-white/10"></div>
+                                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-zinc-950 rotate-45 border-r border-b border-zinc-800"></div>
                               </div>
                             </div>
                           )}
                         </div>
-                        <span className="text-2xl font-black text-white font-display leading-none">
+                        <span className="text-2xl font-black text-zinc-950 dark:text-white font-display leading-none">
                           {m.score}%
                         </span>
                       </div>
-                      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-1.5 w-full bg-zinc-200 dark:bg-white/10 rounded-full overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${m.score}%` }}
-                          className="h-full rounded-full shadow-[0_0_8px_rgba(255,255,255,0.1)]"
+                          className="h-full rounded-full"
                           style={{ backgroundColor: m.color }}
                           transition={{
-                            delay: 0.5 + i * 0.1,
-                            duration: 1.5,
+                            delay: 0.35 + i * 0.08,
+                            duration: 0.9,
                             ease: "easeOut",
                           }}
                         />
@@ -6373,16 +6285,16 @@ AWS Certified Solutions Architect – Associate (2022)`;
               {result.careerTimeline && result.careerTimeline.length > 0 && (
                 <GlassCard className="mb-8">
                   <div className="flex flex-col items-center justify-center space-y-2 mb-10">
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] text-center">
+                    <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.3em] text-center">
                       Career Progression Timeline
                     </h3>
-                    <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">
+                    <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase">
                       Trajectory extracted from your resume
                     </p>
                   </div>
 
                   <div className="relative pl-4 md:pl-8 max-w-4xl mx-auto">
-                    <div className="absolute left-[27px] md:left-[43px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-teal-500 via-sky-500 to-transparent opacity-30"></div>
+                    <div className="absolute left-[27px] md:left-[43px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-violet-600 via-purple-600 to-transparent opacity-30"></div>
 
                     <div className="space-y-12">
                       {result.careerTimeline.map((item, idx) => (
@@ -6391,20 +6303,20 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           className="relative pl-12 md:pl-16"
                         >
                           {/* Timeline dot */}
-                          <div className="absolute left-[-5px] md:left-[11px] top-1 h-6 w-6 rounded-full bg-white dark:bg-[#050510] border-2 border-teal-500 flex items-center justify-center shadow-[0_0_10px_rgba(20,184,166,0.3)] z-10">
-                            <div className="h-2 w-2 rounded-full bg-teal-500 dark:bg-teal-400"></div>
+                          <div className="absolute left-[-5px] md:left-[11px] top-1 h-6 w-6 rounded-full bg-white dark:bg-[#111116] border-2 border-violet-600 flex items-center justify-center shadow-sm z-10">
+                            <div className="h-2 w-2 rounded-full bg-violet-600 dark:bg-violet-400"></div>
                           </div>
 
                           <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-2 gap-2">
-                            <h4 className="text-lg md:text-xl font-black text-white">
+                            <h4 className="text-lg md:text-xl font-black text-zinc-950 dark:text-white">
                               {item.role}
                             </h4>
-                            <span className="text-xs font-bold text-teal-400 bg-teal-500/10 px-3 py-1 rounded-full border border-teal-500/20 whitespace-nowrap">
+                            <span className="text-xs font-bold text-violet-700 dark:text-violet-300 bg-violet-500/10 px-3 py-1 rounded-md border border-violet-500/25 whitespace-nowrap">
                               {item.duration}
                             </span>
                           </div>
 
-                          <p className="text-sm font-bold text-slate-400 mb-4">
+                          <p className="text-sm font-bold text-zinc-600 dark:text-zinc-400 mb-4">
                             {item.company}
                           </p>
 
@@ -6412,9 +6324,9 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             {item.highlights.map((highlight, hIdx) => (
                               <li
                                 key={`timeline-hl-${idx}-${hIdx}`}
-                                className="text-[12px] text-slate-300 leading-relaxed font-medium flex items-start gap-3"
+                                className="text-[12px] text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium flex items-start gap-3"
                               >
-                                <span className="text-teal-500 mt-1.5 opacity-50">
+                                <span className="text-violet-600 dark:text-violet-400 mt-1.5 opacity-60">
                                   •
                                 </span>
                                 <span>{highlight}</span>
@@ -6431,7 +6343,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
               {/* LinkedIn Comparison (if available) */}
               {result.linkedinComparison &&
               result.linkedinComparison.hasLinkedIn ? (
-                <GlassCard className="mb-8 border-t-2 border-t-[#14b8a6] overflow-hidden relative group">
+                <GlassCard className="mb-8 border-t-2 border-t-violet-600 overflow-hidden relative group">
                   <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
                     <svg width="150" height="150" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
@@ -6440,7 +6352,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                     <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl bg-[#14b8a6]/20 flex items-center justify-center text-[#14b8a6]">
+                      <div className="h-10 w-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-700 dark:text-violet-400">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           width="24"
@@ -6459,26 +6371,26 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-xl font-black text-white uppercase tracking-tighter">
+                          <h3 className="text-xl font-black text-zinc-950 dark:text-white uppercase tracking-tighter">
                             LinkedIn Profile Sync
                           </h3>
-                          <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[9px] font-bold uppercase tracking-wider">
+                          <span className="px-2 py-0.5 rounded bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/25 text-[9px] font-bold uppercase tracking-wider">
                             Connected
                           </span>
                         </div>
-                        <p className="text-[10px] text-[#14b8a6] font-bold tracking-widest uppercase">
+                        <p className="text-[10px] text-violet-700 dark:text-violet-400 font-bold tracking-widest uppercase">
                           Cross-Vector Evaluation Active
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {linkedinUrl && (
                         <a
                           href={linkedinUrl.startsWith("http") ? linkedinUrl : `https://${linkedinUrl}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-teal-300 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-xl border border-white/10 transition-all font-mono flex items-center gap-1.5"
+                          className="text-xs text-violet-700 dark:text-violet-300 hover:text-zinc-950 dark:hover:text-white bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-white/10 transition-all font-mono flex items-center gap-1.5"
                         >
                           <span>in/{linkedinUrl.replace(/^https?:\/\/(www\.)?linkedin\.com\/(in\/)?/i, "").replace(/\/+$/, "")}</span>
                           <ArrowRight className="w-3 h-3 -rotate-45" />
@@ -6487,22 +6399,22 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       <button
                         type="button"
                         onClick={() => setIsConnectLinkedInModalOpen(true)}
-                        className="text-xs text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-xl border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="text-xs text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
                       >
-                        <Edit2 className="w-3 h-3 text-teal-400" />
+                        <Edit2 className="w-3 h-3 text-violet-600 dark:text-violet-400" />
                         <span>Manage Sync</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleVerifyLinkedInTrust()}
                         disabled={isVerifyingLinkedInTrust}
-                        className="text-xs text-teal-800 dark:text-white bg-teal-500/15 dark:bg-teal-500/20 hover:bg-teal-500/25 dark:hover:bg-teal-500/30 px-3.5 py-1.5 rounded-xl border border-teal-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap disabled:opacity-50"
+                        className="text-xs text-violet-800 dark:text-white bg-violet-500/15 dark:bg-violet-500/20 hover:bg-violet-500/25 dark:hover:bg-violet-500/30 px-3.5 py-1.5 rounded-xl border border-violet-500/35 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap disabled:opacity-50"
                         title="Perform real-time verification of LinkedIn profile data against resume content for Credibility Score"
                       >
-                        <ShieldCheck className={`w-3.5 h-3.5 text-teal-600 dark:text-teal-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
+                        <ShieldCheck className={`w-3.5 h-3.5 text-violet-700 dark:text-violet-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
                         <span>{isVerifyingLinkedInTrust ? "Verifying..." : "LinkedIn Trust Score"}</span>
                         {linkedInTrustScore !== null && (
-                          <span className="font-mono font-bold tabular-nums text-teal-700 dark:text-teal-300 ml-1">
+                          <span className="font-mono font-bold tabular-nums text-violet-700 dark:text-violet-300 ml-1">
                             {linkedInTrustScore}%
                           </span>
                         )}
@@ -6511,7 +6423,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         id="share-trust-score-linkedin-btn"
                         type="button"
                         onClick={() => setIsShareTrustScoreOpen(true)}
-                        className="text-xs text-white bg-gradient-to-r from-teal-600 to-indigo-600 hover:from-teal-500 hover:to-indigo-500 px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-teal-500/20 active:scale-95 whitespace-nowrap font-bold"
+                        className="text-xs text-white bg-gradient-to-r from-violet-700 to-purple-700 hover:from-violet-600 hover:to-purple-600 px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 whitespace-nowrap font-bold"
                         title="Generate social media card of your verified credibility score"
                       >
                         <Share2 className="w-3.5 h-3.5" />
@@ -6520,10 +6432,10 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       <button
                         type="button"
                         onClick={() => setIsTrustScoreWalkthroughOpen(true)}
-                        className="text-xs text-teal-800 dark:text-teal-300 hover:text-teal-950 dark:hover:text-white bg-teal-500/10 hover:bg-teal-500/20 px-2.5 py-1.5 rounded-xl border border-teal-500/30 transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap font-bold"
+                        className="text-xs text-purple-800 dark:text-purple-300 hover:text-purple-950 dark:hover:text-white bg-purple-500/10 hover:bg-purple-500/20 px-2.5 py-1.5 rounded-xl border border-purple-500/30 transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap font-bold"
                         title="Interactive guide on how to customize and share your Trust Score card"
                       >
-                        <Sparkles className="w-3 h-3 text-teal-600 dark:text-teal-400" />
+                        <Info className="w-3 h-3 text-purple-700 dark:text-purple-400" />
                         <span>Tour</span>
                       </button>
                     </div>
@@ -6531,13 +6443,13 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                   {/* Real-Time Credibility Score Banner in Connected LinkedIn Section */}
                   {linkedInTrustScore !== null && (
-                    <div className="dark dark-studio mb-6 p-4 rounded-2xl bg-slate-900/90 border border-teal-500/30 space-y-3">
+                    <div className="mb-6 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/90 border border-violet-500/30 space-y-3">
                       <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 text-xs text-slate-300">
-                          <ShieldCheck className="w-4 h-4 text-teal-400 shrink-0" />
-                          <span className="font-bold text-white">Credibility Score</span>
+                        <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+                          <ShieldCheck className="w-4 h-4 text-violet-700 dark:text-violet-400 shrink-0" />
+                          <span className="font-bold text-zinc-950 dark:text-white">Credibility Score</span>
                           <span aria-hidden="true">·</span>
-                          <span className="text-teal-300 font-medium">
+                          <span className="text-violet-700 dark:text-violet-300 font-medium">
                             {linkedInTrustReport?.credibilityTier ||
                               (linkedInTrustScore >= 85
                                 ? "Verified High Credibility"
@@ -6547,20 +6459,20 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-lg font-mono font-bold tabular-nums text-teal-400">
+                          <span className="text-lg font-mono font-bold tabular-nums text-violet-700 dark:text-violet-400">
                             {linkedInTrustScore}% Credibility
                           </span>
                           <button
                             type="button"
                             onClick={() => setIsLinkedInVerificationModalOpen(true)}
-                            className="text-xs font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-lg border border-white/10 transition-all cursor-pointer whitespace-nowrap"
+                            className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white bg-white dark:bg-white/5 hover:bg-zinc-100 dark:hover:bg-white/10 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-white/10 transition-all cursor-pointer whitespace-nowrap"
                           >
                             Detailed Audit
                           </button>
                           <button
                             type="button"
                             onClick={() => setIsShareTrustScoreOpen(true)}
-                            className="text-xs font-bold text-slate-950 bg-teal-400 hover:bg-teal-300 px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shadow-sm active:scale-95"
+                            className="text-xs font-bold text-white bg-violet-700 hover:bg-violet-600 px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shadow-sm active:scale-95"
                             title="Generate social media image card"
                           >
                             <Share2 className="w-3 h-3" />
@@ -6568,9 +6480,9 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           </button>
                         </div>
                       </div>
-                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-teal-400 rounded-full transition-all duration-500"
+                          className="h-full bg-violet-600 rounded-full transition-all duration-500"
                           style={{ width: `${linkedInTrustScore}%` }}
                         />
                       </div>
@@ -6579,10 +6491,10 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           {linkedInTrustReport.trustFactors.map((tf: any, idx: number) => (
                             <div
                               key={`dash-conn-tf-${tf.name}-${idx}`}
-                              className="flex items-center justify-between text-xs text-slate-400 bg-white/[0.03] px-3 py-1.5 rounded-lg border border-white/5"
+                              className="flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-400 bg-white dark:bg-zinc-950/60 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800"
                             >
                               <span className="truncate pr-2">{tf.name.split(" ")[0]}</span>
-                              <span className="font-mono font-semibold tabular-nums text-white">
+                              <span className="font-mono font-semibold tabular-nums text-zinc-950 dark:text-white">
                                 {tf.score}%
                               </span>
                             </div>
@@ -6590,7 +6502,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         </div>
                       )}
                       {linkedInTrustReport?.verificationSummary && (
-                        <p className="text-xs text-slate-400 leading-relaxed">
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
                           {linkedInTrustReport.verificationSummary}
                         </p>
                       )}
@@ -6598,50 +6510,47 @@ AWS Certified Solutions Architect – Associate (2022)`;
                   )}
 
                   {/* LinkedIn Score Impact Progress Bar */}
-                  <div className="mb-8 p-5 bg-[#14b8a6]/10 border border-[#14b8a6]/20 rounded-2xl relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#14b8a6]/5 to-transparent flex translate-x-[-100%] animate-[shimmer_2s_infinite]" />
+                  <div className="mb-8 p-5 bg-violet-500/10 border border-violet-500/25 rounded-2xl relative overflow-hidden">
                     <div className="flex justify-between items-end mb-3 relative z-10">
-                      <span className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-[#14b8a6]" /> LinkedIn
+                      <span className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-violet-600 dark:text-violet-400" /> LinkedIn
                         Data Impact
                       </span>
-                      <span className="text-[10px] font-black text-[#14b8a6] uppercase bg-[#14b8a6]/20 px-2 py-1 rounded">
+                      <span className="text-[10px] font-black text-violet-700 dark:text-violet-300 uppercase bg-violet-500/15 px-2 py-1 rounded border border-violet-500/25">
                         +15% Score Boost
                       </span>
                     </div>
-                    <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden flex relative z-10">
+                    <div className="w-full h-3 bg-zinc-200 dark:bg-white/10 rounded-full overflow-hidden flex relative z-10">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{
                           width: `${Math.max(10, result.overallScore - 15)}%`,
                         }}
-                        transition={{ duration: 1 }}
-                        className="h-full bg-slate-500"
+                        transition={{ duration: 0.9 }}
+                        className="h-full bg-zinc-500"
                       />
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `15%` }}
-                        transition={{ duration: 1, delay: 1 }}
-                        className="h-full bg-[#14b8a6] relative"
-                      >
-                        <div className="absolute inset-0 bg-white/20 animate-pulse" />
-                      </motion.div>
+                        transition={{ duration: 0.9, delay: 0.5 }}
+                        className="h-full bg-violet-600 relative"
+                      />
                     </div>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase mt-3 text-right tracking-[0.2em] relative z-10">
+                    <p className="text-[9px] font-bold text-zinc-500 dark:text-zinc-400 uppercase mt-3 text-right tracking-[0.2em] relative z-10">
                       Enhanced by Profile Verification
                     </p>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-8 relative">
-                    <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-white/10 hidden md:block" />
+                    <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-zinc-200 dark:bg-white/10 hidden md:block" />
 
                     {/* Resume Side */}
                     <div className="space-y-6">
-                      <div className="bg-[#0A0A15]/60 p-5 rounded-2xl border border-white/5">
-                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-white/5 pb-2">
+                      <div className="bg-zinc-50 dark:bg-zinc-950/60 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                        <h4 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-2 border-b border-zinc-200 dark:border-zinc-800 pb-2">
                           Resume Headline
                         </h4>
-                        <p className="text-white text-sm font-bold">
+                        <p className="text-zinc-950 dark:text-white text-sm font-bold">
                           {result.linkedinComparison.resumeHeadline}
                         </p>
                       </div>
@@ -6650,7 +6559,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         result.linkedinComparison.missingFromLinkedIn.length >
                           0 && (
                           <div>
-                            <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                               <CheckCircle2 className="w-3 h-3" /> Present on
                               Resume (Missing on LinkedIn)
                             </h4>
@@ -6659,9 +6568,9 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 (s, i) => (
                                   <li
                                     key={`li-miss-${s}-${i}`}
-                                    className="text-xs text-slate-300 flex items-start gap-2"
+                                    className="text-xs text-zinc-700 dark:text-zinc-300 flex items-start gap-2"
                                   >
-                                    <span className="text-emerald-500">
+                                    <span className="text-violet-600 dark:text-violet-400">
                                       •
                                     </span>{" "}
                                     {s}
@@ -6675,11 +6584,11 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                     {/* LinkedIn Side */}
                     <div className="space-y-6">
-                      <div className="bg-teal-500/10 p-5 rounded-2xl border border-teal-500/20 shadow-[0_0_20px_rgba(20,184,166,0.1)]">
-                        <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-2 border-b border-teal-500/20 pb-2">
+                      <div className="bg-violet-500/10 p-5 rounded-2xl border border-violet-500/25">
+                        <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-2 border-b border-violet-500/20 pb-2">
                           LinkedIn Headline
                         </h4>
-                        <p className="text-white text-sm font-bold">
+                        <p className="text-zinc-950 dark:text-white text-sm font-bold">
                           {result.linkedinComparison.linkedinHeadline}
                         </p>
                       </div>
@@ -6688,7 +6597,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         result.linkedinComparison.missingFromResume.length >
                           0 && (
                           <div>
-                            <h4 className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <h4 className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                               <AlertCircle className="w-3 h-3" /> Present on
                               LinkedIn (Missing on Resume)
                             </h4>
@@ -6697,7 +6606,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 (s, i) => (
                                   <li
                                     key={`res-miss-${s}-${i}`}
-                                    className="text-xs text-slate-300 flex items-start gap-2"
+                                    className="text-xs text-zinc-700 dark:text-zinc-300 flex items-start gap-2"
                                   >
                                     <span className="text-rose-500">•</span>{" "}
                                     {s}
@@ -6710,46 +6619,46 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     </div>
                   </div>
 
-                  <div className="mt-8 pt-6 border-t border-white/5 mx-auto max-w-2xl text-center">
-                    <p className="text-xs text-slate-400 font-medium italic leading-relaxed">
+                  <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-white/5 mx-auto max-w-2xl text-center">
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium italic leading-relaxed">
                       " {result.linkedinComparison.matchAnalysis} "
                     </p>
                   </div>
                 </GlassCard>
               ) : (
-                <GlassCard className="mb-8 border-t-2 border-t-[#0A66C2]/60 overflow-hidden relative group">
+                <GlassCard className="mb-8 border-t-2 border-t-violet-600/70 overflow-hidden relative group">
                   <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 p-2">
                     <div className="flex items-start gap-4">
-                      <div className="h-12 w-12 rounded-2xl bg-[#0A66C2]/15 dark:bg-[#0A66C2]/20 border border-[#0A66C2]/35 flex items-center justify-center text-[#0A66C2] dark:text-[#38bdf8] shrink-0">
+                      <div className="h-12 w-12 rounded-2xl bg-violet-500/15 border border-violet-500/35 flex items-center justify-center text-violet-700 dark:text-violet-400 shrink-0">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                           <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
                         </svg>
                       </div>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                          <h3 className="text-lg font-black text-zinc-950 dark:text-white uppercase tracking-tight">
                             Connect LinkedIn Profile
                           </h3>
-                          <span className="text-teal-700 dark:text-teal-400 text-[11px] font-bold">
+                          <span className="text-violet-700 dark:text-violet-400 text-[11px] font-bold">
                             · +15% Verification Boost
                           </span>
                         </div>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-xl leading-relaxed">
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 max-w-xl leading-relaxed">
                           Sync your LinkedIn profile to run automated narrative alignment, discover missing executive skills, and benchmark your public presence against ATS standards.
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0 flex-wrap">
                       <button
                         type="button"
                         onClick={() => handleVerifyLinkedInTrust()}
                         disabled={isVerifyingLinkedInTrust}
-                        className="px-4 py-3 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 text-teal-800 dark:text-teal-300 font-bold text-xs uppercase tracking-wider transition-all border border-teal-500/35 flex items-center justify-center gap-2 cursor-pointer shadow-sm whitespace-nowrap disabled:opacity-50"
+                        className="px-4 py-3 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 text-violet-800 dark:text-violet-300 font-bold text-xs uppercase tracking-wider transition-all border border-violet-500/35 flex items-center justify-center gap-2 cursor-pointer shadow-sm whitespace-nowrap disabled:opacity-50"
                       >
-                        <ShieldCheck className={`w-4 h-4 text-teal-600 dark:text-teal-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
+                        <ShieldCheck className={`w-4 h-4 text-violet-700 dark:text-violet-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
                         <span>{isVerifyingLinkedInTrust ? "Verifying..." : "LinkedIn Trust Score"}</span>
                         {linkedInTrustScore !== null && (
-                          <span className="font-mono font-bold tabular-nums text-slate-900 dark:text-white ml-1">
+                          <span className="font-mono font-bold tabular-nums text-zinc-950 dark:text-white ml-1">
                             {linkedInTrustScore}%
                           </span>
                         )}
@@ -6757,7 +6666,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       <button
                         type="button"
                         onClick={() => setIsShareTrustScoreOpen(true)}
-                        className="px-4 py-3 rounded-xl bg-gradient-to-r from-teal-600 to-indigo-600 hover:from-teal-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-teal-500/20 active:scale-95 whitespace-nowrap"
+                        className="px-4 py-3 rounded-xl bg-gradient-to-r from-violet-700 to-purple-700 hover:from-violet-600 hover:to-purple-600 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95 whitespace-nowrap"
                         title="Generate a social media-ready image card of your verified credibility score"
                       >
                         <Share2 className="w-4 h-4" />
@@ -6766,32 +6675,32 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       <button
                         type="button"
                         onClick={() => setIsTrustScoreWalkthroughOpen(true)}
-                        className="px-3.5 py-3 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-800 dark:text-teal-300 font-bold text-xs uppercase tracking-wider transition-all border border-teal-500/35 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap"
+                        className="px-3.5 py-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-800 dark:text-purple-300 font-bold text-xs uppercase tracking-wider transition-all border border-purple-500/35 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap"
                         title="Interactive guide on how to customize and share your Trust Score card"
                       >
-                        <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                        <Info className="w-3.5 h-3.5 text-purple-700 dark:text-purple-400" />
                         <span>Tour</span>
                       </button>
                       <motion.button
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => setIsConnectLinkedInModalOpen(true)}
-                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#0A66C2] hover:bg-[#004182] text-white font-black text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(10,102,194,0.3)] flex items-center justify-center gap-2 shrink-0 cursor-pointer whitespace-nowrap"
+                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-zinc-950 dark:bg-violet-700 hover:bg-zinc-800 dark:hover:bg-violet-600 text-white font-black text-xs uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2 shrink-0 cursor-pointer whitespace-nowrap"
                       >
-                        <Zap className="w-4 h-4 text-teal-200" />
+                        <Zap className="w-4 h-4 text-violet-300" />
                         <span>Connect Profile Now</span>
                       </motion.button>
                     </div>
                   </div>
 
                   {linkedInTrustScore !== null && (
-                    <div className="mt-4 pt-4 border-t border-white/10 space-y-2.5">
+                    <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800 space-y-2.5">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 text-xs text-slate-300">
-                          <ShieldCheck className="w-4 h-4 text-teal-400 shrink-0" />
-                          <span className="font-bold text-white">Credibility Score</span>
+                        <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+                          <ShieldCheck className="w-4 h-4 text-violet-700 dark:text-violet-400 shrink-0" />
+                          <span className="font-bold text-zinc-950 dark:text-white">Credibility Score</span>
                           <span aria-hidden="true">·</span>
-                          <span className="text-teal-300 font-medium">
+                          <span className="text-violet-700 dark:text-violet-300 font-medium">
                             {linkedInTrustReport?.credibilityTier ||
                               (linkedInTrustScore >= 85
                                 ? "Verified High Credibility"
@@ -6801,26 +6710,26 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-base font-mono font-bold tabular-nums text-teal-400">
+                          <span className="text-base font-mono font-bold tabular-nums text-violet-700 dark:text-violet-400">
                             {linkedInTrustScore}% Credibility
                           </span>
                           <button
                             type="button"
                             onClick={() => setIsLinkedInVerificationModalOpen(true)}
-                            className="text-xs font-semibold text-slate-300 hover:text-white underline underline-offset-2 cursor-pointer whitespace-nowrap"
+                            className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white underline underline-offset-2 cursor-pointer whitespace-nowrap"
                           >
                             Full Verification Report
                           </button>
                         </div>
                       </div>
-                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-teal-400 rounded-full transition-all duration-500"
+                          className="h-full bg-violet-600 rounded-full transition-all duration-500"
                           style={{ width: `${linkedInTrustScore}%` }}
                         />
                       </div>
                       {linkedInTrustReport?.verificationSummary && (
-                        <p className="text-xs text-slate-400 leading-relaxed">
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
                           {linkedInTrustReport.verificationSummary}
                         </p>
                       )}
@@ -6835,21 +6744,21 @@ AWS Certified Solutions Architect – Associate (2022)`;
               {/* Skill Cloud Visualizer & D3 Force Network Graph */}
               <div id="skill-vector-engine" style={{ order: sectionOrder.indexOf('skill-vector-engine') }} className="space-y-6">
                 {collapsedSections["skill-vector-engine"] ? (
-                  <GlassCard className="p-4 border-l-4 border-l-teal-500 bg-gradient-to-r from-teal-500/10 via-slate-900/40 to-transparent flex items-center justify-between shadow-lg">
+                  <GlassCard className="p-4 border-l-4 border-l-violet-600 bg-gradient-to-r from-violet-500/10 via-transparent to-transparent flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-400">
+                      <div className="h-10 w-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-700 dark:text-violet-400">
                         <Share2 className="w-5 h-5" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-wider">
                             Skills Ecosystem & Knowledge Architecture
                           </h3>
-                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 uppercase">
+                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 uppercase">
                             Collapsed
                           </span>
                         </div>
-                        <p className="text-xs text-slate-300 mt-0.5">
+                        <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-0.5">
                           {result.foundSkills.length} Matched Capabilities · {result.skillGapReport.length} Missing Bridges · Force-Directed Graph
                         </p>
                       </div>
@@ -6857,7 +6766,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     <button
                       type="button"
                       onClick={() => toggleSection("skill-vector-engine")}
-                      className="px-3.5 py-1.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 border border-teal-500/40 text-teal-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 text-violet-800 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                     >
                       <span>Expand Section</span>
                       <ChevronDown className="w-3.5 h-3.5" />
@@ -6866,18 +6775,18 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 ) : (
                   <>
                     {/* Section Header with Segmented View Switcher */}
-                    <div className="dark dark-studio flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/95 border border-slate-800 shadow-lg">
+                    <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-800 shadow-sm">
                       <div>
                         <div className="flex items-center gap-2">
-                          <Share2 className="w-4 h-4 text-teal-400 shrink-0" />
-                          <h3 className="text-xs font-black text-white uppercase tracking-[0.25em]">
+                          <Share2 className="w-4 h-4 text-violet-700 dark:text-violet-400 shrink-0" />
+                          <h3 className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-[0.25em]">
                             Skills Ecosystem & Knowledge Architecture
                           </h3>
-                          <span className="px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[9px] font-extrabold uppercase">
+                          <span className="px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 text-[9px] font-extrabold uppercase">
                             {skillVisualizationMode === "network" ? "D3 Force Graph" : "Tag Cloud"}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-400 mt-1">
+                        <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-1">
                           {skillVisualizationMode === "network"
                             ? "Interactive force-directed network visualizing interconnected technologies, domain clusters, and priority ATS skill gap bridges"
                             : "Distribution of matched capabilities and severity ranking of missing role requirements"}
@@ -6886,14 +6795,14 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                       <div className="flex items-center gap-2">
                         {/* Segmented Mode Selector */}
-                        <div className="flex items-center p-1 bg-black/40 border border-white/10 rounded-xl text-xs">
+                        <div className="flex items-center p-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs">
                           <button
                             type="button"
                             onClick={() => setSkillVisualizationMode("network")}
                             className={`px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer ${
                               skillVisualizationMode === "network"
-                                ? "bg-gradient-to-r from-teal-500 to-indigo-600 text-white shadow-md shadow-teal-500/20"
-                                : "text-slate-400 hover:text-white"
+                                ? "bg-gradient-to-r from-violet-700 to-purple-700 text-white shadow-sm"
+                                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                             }`}
                           >
                             <Share2 className="w-3.5 h-3.5" />
@@ -6904,8 +6813,8 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             onClick={() => setSkillVisualizationMode("cloud")}
                             className={`px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer ${
                               skillVisualizationMode === "cloud"
-                                ? "bg-gradient-to-r from-teal-500 to-indigo-600 text-white shadow-md shadow-teal-500/20"
-                                : "text-slate-400 hover:text-white"
+                                ? "bg-gradient-to-r from-violet-700 to-purple-700 text-white shadow-sm"
+                                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                             }`}
                           >
                             <Tag className="w-3.5 h-3.5" />
@@ -6917,7 +6826,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         <button
                           type="button"
                           onClick={() => toggleSection("skill-vector-engine")}
-                          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
+                          className="p-2 rounded-xl bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-all cursor-pointer"
                           title="Collapse this section to declutter workspace"
                         >
                           <ChevronUp className="w-4 h-4" />
@@ -6943,10 +6852,10 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     <div className="grid lg:grid-cols-2 gap-6">
                       <GlassCard>
                         <div className="flex flex-col items-center justify-center space-y-1 mb-4">
-                          <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest text-center">
+                          <h4 className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest text-center">
                             Skill Gap Priority Severity
                           </h4>
-                          <p className="text-[10px] text-slate-500 font-bold uppercase">
+                          <p className="text-[10px] text-zinc-500 font-bold uppercase">
                             Quantified urgency to bridge target role requirements
                           </p>
                         </div>
@@ -6965,28 +6874,28 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               }))}
                               margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                             >
-                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" vertical={false} />
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(161,161,170,0.2)" vertical={false} />
                               <XAxis
                                 dataKey="name"
-                                stroke="#64748b"
-                                tick={{ fill: "#64748b", fontSize: 10, fontWeight: 700 }}
+                                stroke="#71717a"
+                                tick={{ fill: "#71717a", fontSize: 10, fontWeight: 700 }}
                                 tickMargin={10}
                               />
                               <YAxis
-                                stroke="#64748b"
-                                tick={{ fill: "#64748b", fontSize: 10 }}
+                                stroke="#71717a"
+                                tick={{ fill: "#71717a", fontSize: 10 }}
                                 tickFormatter={(val) => `${val}%`}
                               />
                               <RechartsTooltip
-                                cursor={{ fill: "rgba(255,255,255,0.02)" }}
+                                cursor={{ fill: "rgba(139,92,246,0.06)" }}
                                 content={({ active, payload }) => {
                                   if (active && payload && payload.length) {
                                     return (
-                                      <div className="bg-[#0A0A15]/90 border border-white/10 p-3 rounded-lg shadow-xl backdrop-blur-md">
-                                        <p className="text-white text-xs font-bold uppercase">
+                                      <div className="bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg shadow-xl">
+                                        <p className="text-zinc-950 dark:text-white text-xs font-bold uppercase">
                                           {payload[0].payload.name}
                                         </p>
-                                        <p className="text-rose-400 text-[10px] font-black uppercase mt-1">
+                                        <p className="text-rose-600 dark:text-rose-400 text-[10px] font-black uppercase mt-1">
                                           Gap Severity: {payload[0].value}%
                                         </p>
                                       </div>
@@ -6995,7 +6904,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                   return null;
                                 }}
                               />
-                              <Bar dataKey="severity" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={20} />
+                              <Bar dataKey="severity" fill="#e11d48" radius={[4, 4, 0, 0]} barSize={20} />
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
@@ -7003,24 +6912,24 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                       <GlassCard>
                         <div className="flex flex-col items-center justify-center space-y-1 mb-4">
-                          <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest text-center">
+                          <h4 className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest text-center">
                             Network Graph Insights
                           </h4>
-                          <p className="text-[10px] text-slate-500 font-bold uppercase">
+                          <p className="text-[10px] text-zinc-500 font-bold uppercase">
                             Technology clustering & adjacency recommendations
                           </p>
                         </div>
                         <div className="space-y-3 text-xs">
-                          <div className="p-3.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-slate-300 leading-relaxed">
-                            <strong className="text-teal-300 block mb-1">Ecosystem Density:</strong>
+                          <div className="p-3.5 rounded-xl bg-violet-500/10 border border-violet-500/25 text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                            <strong className="text-violet-700 dark:text-violet-300 block mb-1">Ecosystem Density:</strong>
                             Your primary cluster is anchored around{" "}
-                            <span className="text-white font-bold">{result.foundSkills.slice(0, 4).join(", ")}</span>.
-                            Technologies connected by teal lines indicate native framework interoperability.
+                            <span className="text-zinc-950 dark:text-white font-bold">{result.foundSkills.slice(0, 4).join(", ")}</span>.
+                            Technologies connected by violet edges indicate native framework interoperability.
                           </div>
-                          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-slate-300 leading-relaxed">
-                            <strong className="text-amber-300 block mb-1">Bridge Nodes (Dashed Amber Edges):</strong>
+                          <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/25 text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                            <strong className="text-purple-700 dark:text-purple-300 block mb-1">Bridge Nodes (Dashed Purple Edges):</strong>
                             Missing skills like{" "}
-                            <span className="text-amber-200 font-bold">
+                            <span className="text-purple-800 dark:text-purple-200 font-bold">
                               {result.skillGapReport.slice(0, 2).map((g) => g.skill).join(", ") || "recommended skills"}
                             </span>{" "}
                             are connected directly to your existing proficiencies, showing the fastest path to bridge your gap without learning unrelated technologies.
@@ -7033,10 +6942,10 @@ AWS Certified Solutions Architect – Associate (2022)`;
                   <div className="grid lg:grid-cols-2 gap-8">
                     <GlassCard>
                       <div className="flex flex-col items-center justify-center space-y-2 mb-4">
-                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] text-center">
+                        <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.3em] text-center">
                           Skill Landscape Profile
                         </h3>
-                        <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">
+                        <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase">
                           Visual distribution of matched & missing capabilities
                         </p>
                       </div>
@@ -7049,10 +6958,10 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                     <GlassCard>
                       <div className="flex flex-col items-center justify-center space-y-2 mb-4">
-                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] text-center">
+                        <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.3em] text-center">
                           Skill Gap Analysis
                         </h3>
-                        <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">
+                        <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase">
                           Severity of missing requirements
                         </p>
                       </div>
@@ -7075,34 +6984,34 @@ AWS Certified Solutions Architect – Associate (2022)`;
                           >
                             <CartesianGrid
                               strokeDasharray="3 3"
-                              stroke="rgba(148,163,184,0.2)"
+                              stroke="rgba(161,161,170,0.2)"
                               vertical={false}
                             />
                             <XAxis
                               dataKey="name"
-                              stroke="#64748b"
+                              stroke="#71717a"
                               tick={{
-                                fill: "#64748b",
+                                fill: "#71717a",
                                 fontSize: 10,
                                 fontWeight: 700,
                               }}
                               tickMargin={10}
                             />
                             <YAxis
-                              stroke="#64748b"
-                              tick={{ fill: "#64748b", fontSize: 10 }}
+                              stroke="#71717a"
+                              tick={{ fill: "#71717a", fontSize: 10 }}
                               tickFormatter={(val) => `${val}%`}
                             />
                             <RechartsTooltip
-                              cursor={{ fill: "rgba(255,255,255,0.02)" }}
+                              cursor={{ fill: "rgba(139,92,246,0.06)" }}
                               content={({ active, payload }) => {
                                 if (active && payload && payload.length) {
                                   return (
-                                    <div className="bg-[#0A0A15]/90 border border-white/10 p-3 rounded-lg shadow-xl backdrop-blur-md">
-                                      <p className="text-white text-xs font-bold uppercase">
+                                    <div className="bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg shadow-xl">
+                                      <p className="text-zinc-950 dark:text-white text-xs font-bold uppercase">
                                         {payload[0].payload.name}
                                       </p>
-                                      <p className="text-rose-400 text-[10px] font-black uppercase mt-1">
+                                      <p className="text-rose-600 dark:text-rose-400 text-[10px] font-black uppercase mt-1">
                                         Gap Severity: {payload[0].value}%
                                       </p>
                                     </div>
@@ -7113,7 +7022,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             />
                             <Bar
                               dataKey="severity"
-                              fill="#f43f5e"
+                              fill="#e11d48"
                               radius={[4, 4, 0, 0]}
                               barSize={20}
                             />
@@ -7132,7 +7041,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
               </div>
 
               <div className="grid lg:grid-cols-12 gap-8 mt-8">
-                {/* Simplified Header with Core Strengths & Weaknesses */}
+                {/* Core Strengths & Weaknesses */}
                 <GlassCard className="lg:col-span-12 p-8">
                   <motion.div 
                     initial="hidden"
@@ -7142,90 +7051,90 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       hidden: {},
                       visible: {
                         transition: {
-                          staggerChildren: 0.1
+                          staggerChildren: 0.08
                         }
                       }
                     }}
                     className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
                   >
                     <motion.div 
-                      variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-                      className="p-6 rounded-2xl bg-[#0A0A15]/60 border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.05)] hover:bg-teal-500/5 transition-all group"
+                      variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
+                      className="p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-violet-500/25 hover:bg-violet-500/5 transition-all group"
                     >
                       <div className="mb-4 flex items-center justify-between">
-                        <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-widest flex items-center gap-2">
+                        <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest flex items-center gap-2">
                           <ShieldCheck className="h-4 w-4" /> Core Strength
                         </h4>
-                        <div className="h-6 w-6 rounded-full bg-teal-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <Activity className="h-3 w-3 text-teal-400" />
+                        <div className="h-6 w-6 rounded-full bg-violet-500/15 flex items-center justify-center group-hover:scale-105 transition-transform">
+                          <Activity className="h-3 w-3 text-violet-700 dark:text-violet-400" />
                         </div>
                       </div>
-                      <p className="text-sm text-white font-black uppercase mb-3 line-clamp-2">
+                      <p className="text-sm text-zinc-950 dark:text-white font-black uppercase mb-3 line-clamp-2">
                         Excellent {result.foundSkills[0] || "Domain"} Exposure
                       </p>
-                      <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">
                         Your experience in{" "}
-                        <span className="text-slate-300 font-bold">{result.foundSkills.slice(0, 3).join(", ")}</span> provides a strong foundation.
+                        <span className="text-zinc-800 dark:text-zinc-200 font-bold">{result.foundSkills.slice(0, 3).join(", ")}</span> provides a strong foundation.
                       </p>
                     </motion.div>
 
                     <motion.div 
-                      variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-                      className="p-6 rounded-2xl bg-[#0A0A15]/60 border border-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.05)] hover:bg-rose-500/5 transition-all group"
+                      variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
+                      className="p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-rose-500/25 hover:bg-rose-500/5 transition-all group"
                     >
                       <div className="mb-4 flex items-center justify-between">
-                        <h4 className="text-[10px] font-black text-rose-400 uppercase tracking-widest flex items-center gap-2">
+                        <h4 className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest flex items-center gap-2">
                           <Zap className="h-4 w-4" /> Priority Fix
                         </h4>
-                        <div className="h-6 w-6 rounded-full bg-rose-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <AlertCircle className="h-3 w-3 text-rose-400" />
+                        <div className="h-6 w-6 rounded-full bg-rose-500/15 flex items-center justify-center group-hover:scale-105 transition-transform">
+                          <AlertCircle className="h-3 w-3 text-rose-600 dark:text-rose-400" />
                         </div>
                       </div>
-                      <p className="text-sm text-white font-black uppercase mb-3 line-clamp-2">
+                      <p className="text-sm text-zinc-950 dark:text-white font-black uppercase mb-3 line-clamp-2">
                         Missing {result.skillGapReport[0]?.skill || "Core Keywords"}
                       </p>
-                      <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                        Recruiters scan for <span className="text-slate-300 font-bold">{result.skillGapReport[0]?.skill}</span>. Add this to your summary immediately.
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">
+                        Recruiters scan for <span className="text-zinc-800 dark:text-zinc-200 font-bold">{result.skillGapReport[0]?.skill}</span>. Add this to your summary immediately.
                       </p>
                     </motion.div>
 
                     <motion.div 
-                      variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-                      className="p-6 rounded-2xl bg-[#0A0A15]/60 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.05)] hover:bg-blue-500/5 transition-all group"
+                      variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
+                      className="p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-purple-500/25 hover:bg-purple-500/5 transition-all group"
                     >
                       <div className="mb-4 flex items-center justify-between">
-                        <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                        <h4 className="text-[10px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest flex items-center gap-2">
                           <Target className="h-4 w-4" /> Target Role Fit
                         </h4>
-                        <div className="h-6 w-6 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <TrendingUp className="h-3 w-3 text-blue-400" />
+                        <div className="h-6 w-6 rounded-full bg-purple-500/15 flex items-center justify-center group-hover:scale-105 transition-transform">
+                          <TrendingUp className="h-3 w-3 text-purple-700 dark:text-purple-400" />
                         </div>
                       </div>
-                      <p className="text-sm text-white font-black uppercase mb-3 line-clamp-2">
+                      <p className="text-sm text-zinc-950 dark:text-white font-black uppercase mb-3 line-clamp-2">
                         {result.careerPath?.topRole || "Target Leadership Role"}
                       </p>
-                      <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                        You are a <span className="text-blue-300 font-bold">{Math.round(result.careerPath?.confidence ?? 0)}%</span> match for this trajectory.
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">
+                        You are a <span className="text-purple-700 dark:text-purple-300 font-bold">{Math.round(result.careerPath?.confidence ?? 0)}%</span> match for this trajectory.
                       </p>
                     </motion.div>
 
                     <motion.div 
-                      variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-                      className="p-6 rounded-2xl bg-[#0A0A15]/60 border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.05)] hover:bg-purple-500/5 transition-all group"
+                      variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
+                      className="p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-violet-500/25 hover:bg-violet-500/5 transition-all group"
                     >
                       <div className="mb-4 flex items-center justify-between">
-                        <h4 className="text-[10px] font-black text-purple-400 uppercase tracking-widest flex items-center gap-2">
+                        <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest flex items-center gap-2">
                           <Layers className="h-4 w-4" /> Keyword Health
                         </h4>
-                        <div className="h-6 w-6 rounded-full bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <Search className="h-3 w-3 text-purple-400" />
+                        <div className="h-6 w-6 rounded-full bg-violet-500/15 flex items-center justify-center group-hover:scale-105 transition-transform">
+                          <Search className="h-3 w-3 text-violet-700 dark:text-violet-400" />
                         </div>
                       </div>
-                      <p className="text-sm text-white font-black uppercase mb-3">
+                      <p className="text-sm text-zinc-950 dark:text-white font-black uppercase mb-3">
                         {(result.atsAnalysis?.keywordDensity ?? 0) > 4 ? 'Well Optimized' : 'Under Optimized'}
                       </p>
-                      <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                        Keyword density is <span className="text-purple-300 font-bold">{(result.atsAnalysis?.keywordDensity ?? 0).toFixed(1)}%</span>.
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">
+                        Keyword density is <span className="text-violet-700 dark:text-violet-300 font-bold">{(result.atsAnalysis?.keywordDensity ?? 0).toFixed(1)}%</span>.
                         {result.atsAnalysis?.jobKeywordsFound && result.atsAnalysis.jobKeywordsFound.length > 0 
                           ? ` Found ${result.atsAnalysis.jobKeywordsFound.length} core terms.` 
                           : ' Need more exact matches.'}
@@ -7234,18 +7143,18 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                     {result.globalBenchmarking && (
                       <motion.div 
-                        variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-                        className="p-6 rounded-2xl bg-[#0A0A15]/60 border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.05)] hover:bg-amber-500/5 transition-all md:col-span-2 lg:col-span-1 group"
+                        variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
+                        className="p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 hover:border-violet-500/35 transition-all md:col-span-2 lg:col-span-1 group"
                       >
                         <div className="mb-4 flex items-center justify-between">
-                          <h4 className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
-                            <Briefcase className="h-4 w-4" /> Experience Benchmark
+                          <h4 className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-2">
+                            <Briefcase className="h-4 w-4 text-purple-600 dark:text-purple-400" /> Experience Benchmark
                           </h4>
-                          <div className="h-6 w-6 rounded-full bg-amber-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <BarChart2 className="h-3 w-3 text-amber-400" />
+                          <div className="h-6 w-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center group-hover:scale-105 transition-transform">
+                            <BarChart2 className="h-3 w-3 text-purple-600 dark:text-purple-400" />
                           </div>
                         </div>
-                        <p className="text-[11px] text-slate-300 leading-relaxed font-medium line-clamp-3">
+                        <p className="text-[11px] text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium line-clamp-3">
                           {result.globalBenchmarking}
                         </p>
                       </motion.div>
@@ -7253,18 +7162,18 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                     {result.recruiterSummary && (
                       <motion.div 
-                        variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-                        className={`p-6 rounded-2xl bg-[#0A0A15]/60 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.05)] hover:bg-emerald-500/5 transition-all group ${!result.globalBenchmarking ? 'md:col-span-2 lg:col-span-2' : ''}`}
+                        variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
+                        className={`p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-purple-500/25 hover:bg-purple-500/5 transition-all group ${!result.globalBenchmarking ? 'md:col-span-2 lg:col-span-2' : ''}`}
                       >
                         <div className="mb-4 flex items-center justify-between">
-                          <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                          <h4 className="text-[10px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest flex items-center gap-2">
                             <Eye className="h-4 w-4" /> Board & Stakeholder Impression
                           </h4>
-                          <div className="h-6 w-6 rounded-full bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <Info className="h-3 w-3 text-emerald-400" />
+                          <div className="h-6 w-6 rounded-full bg-purple-500/15 flex items-center justify-center group-hover:scale-105 transition-transform">
+                            <Info className="h-3 w-3 text-purple-700 dark:text-purple-400" />
                           </div>
                         </div>
-                        <p className="text-[11px] text-slate-300 leading-relaxed font-medium">
+                        <p className="text-[11px] text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium">
                           {result.recruiterSummary}
                         </p>
                       </motion.div>
@@ -7272,12 +7181,12 @@ AWS Certified Solutions Architect – Associate (2022)`;
                   </motion.div>
 
                   {/* Career Roles Expansion with D3 Connected Graph */}
-                  <div className="mt-10 border-t border-white/5 pt-10 space-y-6">
-                    <h4 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-indigo-400" /> Career
+                  <div className="mt-10 border-t border-zinc-200 dark:border-zinc-800 pt-10 space-y-6">
+                    <h4 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-violet-600 dark:text-violet-400" /> Career
                       Trajectory & Vector Progression Graph
                     </h4>
-                    <p className="text-xs text-slate-400 font-medium">
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">
                       Connected D3 visualization showing progression from past experience to your primary & alternative target roles.
                     </p>
 
@@ -7293,38 +7202,38 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     </PanelErrorBoundary>
 
                     <div className="relative flex flex-col md:flex-row items-stretch justify-between gap-6 py-4">
-                      <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-teal-500/20 via-sky-500/20 to-purple-500/20 -translate-y-1/2 hidden md:block" />
+                      <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500/20 via-purple-500/20 to-violet-800/20 -translate-y-1/2 hidden md:block" />
                       <motion.div
                         initial={{ scaleX: 0 }}
                         whileInView={{ scaleX: 1 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 1.5, ease: "easeInOut" }}
-                        className="absolute top-1/2 left-0 right-0 h-1 bg-gradient-to-r from-teal-500/80 via-sky-500/80 to-purple-500/80 -translate-y-1/2 origin-left hidden md:block shadow-[0_0_20px_rgba(20,184,166,0.3)] rounded-full"
+                        transition={{ duration: 1.0, ease: "easeInOut" }}
+                        className="absolute top-1/2 left-0 right-0 h-1 bg-gradient-to-r from-violet-600/70 via-purple-600/70 to-violet-800/70 -translate-y-1/2 origin-left hidden md:block rounded-full"
                       />
 
                       <motion.div
                         className="relative z-10 w-full md:w-1/3 flex flex-col group"
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 16 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                       >
-                        <div className="flex-1 p-6 rounded-2xl bg-[#0A0A15]/80 backdrop-blur-md border border-teal-500/40 group-hover:bg-teal-500/10 transition-all hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(20,184,166,0.15)] flex flex-col items-center justify-center text-center">
-                          <span className="absolute top-1/2 -right-3 w-6 h-6 rounded-full bg-[#0A0A15] border-[3px] border-teal-500 -translate-y-1/2 hidden md:block z-20 shadow-[0_0_15px_rgba(20,184,166,0.6)] group-hover:scale-125 transition-transform" />
-                          <p className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-2 border border-teal-500/40 px-3 py-1 rounded-full bg-teal-500/10">
+                        <div className="flex-1 p-6 rounded-2xl bg-zinc-50 dark:bg-[#111116] border border-violet-500/40 group-hover:bg-violet-500/5 transition-all hover:-translate-y-1 flex flex-col items-center justify-center text-center shadow-sm">
+                          <span className="absolute top-1/2 -right-3 w-6 h-6 rounded-full bg-white dark:bg-[#111116] border-[3px] border-violet-600 -translate-y-1/2 hidden md:block z-20 transition-transform" />
+                          <p className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-2 border border-violet-500/35 px-3 py-1 rounded-md bg-violet-500/10">
                             Primary Fit
                           </p>
-                          <p className="text-lg text-white font-bold">
+                          <p className="text-lg text-zinc-950 dark:text-white font-bold">
                             {result.careerPath.topRole}
                           </p>
-                          <p className="text-sm font-black text-teal-300 mt-2 bg-teal-500/10 px-3 py-1 rounded-full inline-block">
+                          <p className="text-sm font-black text-violet-700 dark:text-violet-300 mt-2 bg-violet-500/10 px-3 py-1 rounded-md inline-block">
                             {result.careerPath.confidence}% Match
                           </p>
                         </div>
                         {result.improvementPlan?.missingSkillsToHighlight &&
                           result.improvementPlan.missingSkillsToHighlight
                             .length > 0 && (
-                            <div className="mt-4 p-4 border border-white/5 rounded-xl bg-white/5 mx-2 text-left">
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 border-b border-white/10 pb-1">
+                            <div className="mt-4 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50 dark:bg-white/5 mx-2 text-left">
+                              <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-2 border-b border-zinc-200 dark:border-zinc-800 pb-1">
                                 To Secure Role
                               </p>
                               <div className="flex flex-wrap gap-1.5">
@@ -7333,7 +7242,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                   .map((ms, msx) => (
                                     <span
                                       key={`miss-skill-${ms}-${msx}`}
-                                      className="text-[9px] font-black uppercase bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded"
+                                      className="text-[9px] font-black uppercase bg-violet-500/15 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded"
                                     >
                                       {ms}
                                     </span>
@@ -7348,34 +7257,34 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         .map((alt, i) => (
                           <motion.div
                             key={`alt-path-${alt.role || i}-${i}`}
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 16 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            transition={{ delay: 0.2 + i * 0.2 }}
+                            transition={{ delay: 0.12 + i * 0.12 }}
                             className="relative z-10 w-full md:w-1/3 flex flex-col group"
                           >
                             <div
-                              className={`flex-1 p-6 rounded-2xl bg-[#0A0A15]/80 backdrop-blur-md border border-white/10 ${i === 0 ? "hover:border-sky-400/50 hover:bg-sky-500/10" : "hover:border-purple-400/50 hover:bg-purple-500/10"} transition-all hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(255,255,255,0.05)] flex flex-col items-center justify-center text-center`}
+                              className={`flex-1 p-6 rounded-2xl bg-zinc-50 dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 ${i === 0 ? "hover:border-purple-500/50 hover:bg-purple-500/5" : "hover:border-violet-500/50 hover:bg-violet-500/5"} transition-all hover:-translate-y-1 flex flex-col items-center justify-center text-center shadow-sm`}
                             >
                               {i === 0 && (
-                                <span className="absolute top-1/2 -left-3 w-6 h-6 rounded-full bg-[#0A0A15] border-[3px] border-sky-500 -translate-y-1/2 hidden md:block z-20 shadow-[0_0_15px_rgba(14,165,233,0.6)] group-hover:scale-125 transition-transform" />
+                                <span className="absolute top-1/2 -left-3 w-6 h-6 rounded-full bg-white dark:bg-[#111116] border-[3px] border-purple-600 -translate-y-1/2 hidden md:block z-20 transition-transform" />
                               )}
                               {i === 0 &&
                                 result.careerPath.alternatives.length > 1 && (
-                                  <span className="absolute top-1/2 -right-3 w-6 h-6 rounded-full bg-[#0A0A15] border-[3px] border-sky-500 -translate-y-1/2 hidden md:block z-20 shadow-[0_0_15px_rgba(14,165,233,0.6)] group-hover:scale-125 transition-transform" />
+                                  <span className="absolute top-1/2 -right-3 w-6 h-6 rounded-full bg-white dark:bg-[#111116] border-[3px] border-purple-600 -translate-y-1/2 hidden md:block z-20 transition-transform" />
                                 )}
                               {i === 1 && (
-                                <span className="absolute top-1/2 -left-3 w-6 h-6 rounded-full bg-[#0A0A15] border-[3px] border-purple-500 -translate-y-1/2 hidden md:block z-20 shadow-[0_0_15px_rgba(168,85,247,0.6)] group-hover:scale-125 transition-transform" />
+                                <span className="absolute top-1/2 -left-3 w-6 h-6 rounded-full bg-white dark:bg-[#111116] border-[3px] border-violet-700 -translate-y-1/2 hidden md:block z-20 transition-transform" />
                               )}
                               <p
-                                className={`text-[10px] font-black uppercase tracking-widest mb-2 border px-3 py-1 rounded-full ${i === 0 ? "text-sky-400 border-sky-500/40 bg-sky-500/10" : "text-purple-400 border-purple-500/40 bg-purple-500/10"}`}
+                                className={`text-[10px] font-black uppercase tracking-widest mb-2 border px-3 py-1 rounded-md ${i === 0 ? "text-purple-700 dark:text-purple-400 border-purple-500/35 bg-purple-500/10" : "text-violet-700 dark:text-violet-400 border-violet-500/35 bg-violet-500/10"}`}
                               >
                                 Possible Pivot
                               </p>
-                              <p className="text-lg text-white font-bold">
+                              <p className="text-lg text-zinc-950 dark:text-white font-bold">
                                 {alt.role}
                               </p>
-                              <p className="text-xs text-slate-400 mt-3 line-clamp-3 leading-relaxed font-medium">
+                              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-3 line-clamp-3 leading-relaxed font-medium">
                                 {alt.reasoning || `${alt.match}% Match`}
                               </p>
                             </div>
@@ -7388,21 +7297,21 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 {/* Main Improvement Checklist */}
                 <div id="optimization-plan" className="lg:col-span-8 mb-8" style={{ order: sectionOrder.indexOf('optimization-plan') }}>
                   {collapsedSections["optimization-plan"] ? (
-                    <GlassCard className="p-4 border-l-4 border-l-teal-500 bg-gradient-to-r from-teal-500/10 via-slate-900/40 to-transparent flex items-center justify-between shadow-lg">
+                    <GlassCard className="p-4 border-l-4 border-l-violet-600 bg-gradient-to-r from-violet-500/10 via-transparent to-transparent flex items-center justify-between shadow-sm">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-400">
+                        <div className="h-10 w-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-700 dark:text-violet-400">
                           <TrendingUp className="w-5 h-5" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                            <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-wider">
                               Strategic Optimization Plan
                             </h3>
-                            <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 uppercase">
+                            <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 uppercase">
                               Collapsed
                             </span>
                           </div>
-                          <p className="text-xs text-slate-300 mt-0.5">
+                          <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-0.5">
                             Priority Headline Updates, Content Rewrite Suggestions & Missing Skill Remediations
                           </p>
                         </div>
@@ -7410,7 +7319,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       <button
                         type="button"
                         onClick={() => toggleSection("optimization-plan")}
-                        className="px-3.5 py-1.5 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 border border-teal-500/40 text-teal-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                        className="px-3.5 py-1.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 text-violet-800 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                       >
                         <span>Expand Section</span>
                         <ChevronDown className="w-3.5 h-3.5" />
@@ -7418,13 +7327,13 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     </GlassCard>
                   ) : (
                     <GlassCard className="p-0 overflow-hidden">
-                      <div className="p-8 border-b border-white/5 bg-gradient-to-r from-teal-500/5 to-transparent flex items-center justify-between">
+                      <div className="p-8 border-b border-zinc-200 dark:border-zinc-800 bg-gradient-to-r from-violet-500/5 to-transparent flex items-center justify-between">
                         <div>
-                          <h3 className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-3">
-                            <TrendingUp className="h-5 w-5 text-teal-400" />
+                          <h3 className="text-lg font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-3">
+                            <TrendingUp className="h-5 w-5 text-violet-700 dark:text-violet-400" />
                             Strategic Optimization Plan
                           </h3>
-                          <p className="text-xs text-slate-400 mt-2 font-medium">
+                          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2 font-medium">
                             To reach ATS matching perfection and secure the targeted
                             role, follow these prioritized actions.
                           </p>
@@ -7432,7 +7341,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         <button
                           type="button"
                           onClick={() => toggleSection("optimization-plan")}
-                          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer shrink-0"
+                          className="p-2 rounded-xl bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 border border-zinc-200 dark:border-white/10 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-all cursor-pointer shrink-0"
                           title="Collapse this section to declutter workspace"
                         >
                           <ChevronUp className="w-4 h-4" />
@@ -7441,12 +7350,12 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                   {/* High Priority Actions */}
                   {result.improvementPlan && (
-                    <div className="p-8 grid md:grid-cols-2 gap-6 bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/5">
+                    <div className="p-8 grid md:grid-cols-2 gap-6 bg-zinc-50 dark:bg-black/20 border-b border-zinc-200 dark:border-white/5">
                       {result.improvementPlan.resumeHeadlineUpdates &&
                         result.improvementPlan.resumeHeadlineUpdates.length >
                           0 && (
                           <div>
-                            <h4 className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <h4 className="text-[10px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                               <Layout className="w-3 h-3" /> Title Updates
                             </h4>
                             <ul className="space-y-2">
@@ -7455,9 +7364,9 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 .map((s, i) => (
                                   <li
                                     key={`upd-headline-${s.slice(0, 15)}-${i}`}
-                                    className="flex items-start gap-2 text-xs text-slate-300 font-medium"
+                                    className="flex items-start gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-medium"
                                   >
-                                    <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5" />
+                                    <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-purple-600 mt-1.5" />
                                     <span>{s}</span>
                                   </li>
                                 ))}
@@ -7468,7 +7377,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       {result.improvementPlan.formattingFixes &&
                         result.improvementPlan.formattingFixes.length > 0 && (
                           <div>
-                            <h4 className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <h4 className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                               <FileText className="w-3 h-3" /> Layout Fixes
                             </h4>
                             <ul className="space-y-2">
@@ -7477,7 +7386,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 .map((s, i) => (
                                   <li
                                     key={`upd-fmt-${s.slice(0, 15)}-${i}`}
-                                    className="flex items-start gap-2 text-xs text-slate-300 font-medium"
+                                    className="flex items-start gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-medium"
                                   >
                                     <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5" />
                                     <span>{s}</span>
@@ -7491,7 +7400,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         result.improvementPlan.recommendedCertifications
                           .length > 0 && (
                           <div>
-                            <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                               <Award className="w-3 h-3" /> Target Credentials
                             </h4>
                             <ul className="space-y-2">
@@ -7500,9 +7409,9 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 .map((s, i) => (
                                   <li
                                     key={`upd-cert-${s.slice(0, 15)}-${i}`}
-                                    className="flex items-start gap-2 text-xs text-slate-300 font-medium"
+                                    className="flex items-start gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-medium"
                                   >
-                                    <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5" />
+                                    <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-violet-600 mt-1.5" />
                                     <span>{s}</span>
                                   </li>
                                 ))}
@@ -7514,7 +7423,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         result.improvementPlan.projectsToHighlight.length >
                           0 && (
                           <div>
-                            <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <h4 className="text-[10px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                               <Briefcase className="w-3 h-3" /> Highlight
                               Experience
                             </h4>
@@ -7524,9 +7433,9 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 .map((s, i) => (
                                   <li
                                     key={`upd-proj-${s.slice(0, 15)}-${i}`}
-                                    className="flex items-start gap-2 text-xs text-slate-300 font-medium"
+                                    className="flex items-start gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-medium"
                                   >
-                                    <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5" />
+                                    <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-purple-600 mt-1.5" />
                                     <span>{s}</span>
                                   </li>
                                 ))}
@@ -7538,8 +7447,8 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                   {/* Deep AI Recommendations */}
                   <div className="p-8 space-y-6">
-                    <h4 className="text-[11px] font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-teal-400" /> AI Content
+                    <h4 className="text-[11px] font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                      <Wand2 className="h-4 w-4 text-violet-600 dark:text-violet-400" /> AI Content
                       Rewrite Suggestions
                     </h4>
                     {[
@@ -7549,23 +7458,23 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       .slice(0, 5)
                       .map((step, i) => (
                         <motion.div
-                          initial={{ opacity: 0, x: 20 }}
+                          initial={{ opacity: 0, x: 16 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.1 }}
+                          transition={{ delay: i * 0.08 }}
                           key={`rec-${step.slice(0, 20)}-${i}`}
                           className="space-y-3"
                         >
                           <div
-                            className={`flex gap-5 p-5 rounded-2xl bg-[#0A0A15]/80 border transition-all items-start group ${selectedRecommendation === step ? "border-teal-500 shadow-[0_0_20px_rgba(20,184,166,0.15)] bg-teal-500/5" : "border-white/5 hover:border-white/20"}`}
+                            className={`flex gap-5 p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-950/80 border transition-all items-start group ${selectedRecommendation === step ? "border-violet-600 bg-violet-500/5" : "border-zinc-200 dark:border-zinc-800 hover:border-violet-500/40"}`}
                           >
                             <div
-                              className={`h-10 w-10 mt-1 shrink-0 rounded-full border border-dashed flex items-center justify-center font-black text-xs transition-all ${selectedRecommendation === step ? "border-teal-500 bg-teal-500/20 text-teal-400" : "border-slate-600 text-slate-400 group-hover:border-teal-500 group-hover:text-teal-400 group-hover:bg-teal-500/10"}`}
+                              className={`h-10 w-10 mt-1 shrink-0 rounded-full border border-dashed flex items-center justify-center font-black text-xs transition-all ${selectedRecommendation === step ? "border-violet-600 bg-violet-500/20 text-violet-700 dark:text-violet-300" : "border-zinc-400 dark:border-zinc-600 text-zinc-500 dark:text-zinc-400 group-hover:border-violet-500 group-hover:text-violet-700 dark:group-hover:text-violet-400 group-hover:bg-violet-500/10"}`}
                             >
                               {i + 1}
                             </div>
                             <div className="flex-1 flex flex-col gap-3">
                               <div className="flex items-start justify-between gap-4">
-                                <p className="text-slate-200 font-medium text-sm leading-relaxed pr-4">
+                                <p className="text-zinc-800 dark:text-zinc-200 font-medium text-sm leading-relaxed pr-4">
                                   {step}
                                 </p>
                                 {selectedRecommendation === step ? (
@@ -7573,7 +7482,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                     onClick={() =>
                                       handleExpandRecommendation(step)
                                     }
-                                    className="p-2 rounded bg-white/5 hover:bg-white/10 text-teal-400 shrink-0 transition-colors"
+                                    className="p-2 rounded bg-zinc-200/70 dark:bg-white/5 hover:bg-zinc-300 dark:hover:bg-white/10 text-violet-700 dark:text-violet-400 shrink-0 transition-colors cursor-pointer"
                                   >
                                     <ChevronUp className="h-4 w-4" />
                                   </button>
@@ -7585,7 +7494,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                   onClick={() =>
                                     handleExpandRecommendation(step)
                                   }
-                                  className="self-start flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-teal-400/80 hover:text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 px-4 py-2.5 rounded-xl transition-all border border-teal-500/20 hover:border-teal-500/40"
+                                  className="self-start flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-violet-700 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white bg-violet-500/10 hover:bg-violet-500/20 px-4 py-2.5 rounded-xl transition-all border border-violet-500/25 hover:border-violet-500/40 cursor-pointer"
                                 >
                                   <BrainCircuit className="h-3.5 w-3.5" />{" "}
                                   Generate Actionable Example
@@ -7604,24 +7513,24 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 exit={{ opacity: 0, height: 0 }}
                                 className="overflow-hidden"
                               >
-                                <div className="dark dark-studio p-6 rounded-2xl bg-[#050510] border border-teal-500/20 shadow-inner ml-14 relative">
-                                  <div className="absolute top-[-10px] left-10 w-4 h-4 bg-[#050510] border-t border-l border-teal-500/20 rotate-45 transform origin-center z-10" />
+                                <div className="p-6 rounded-2xl bg-zinc-100 dark:bg-[#0D0D12] border border-violet-500/25 shadow-inner ml-14 relative">
+                                  <div className="absolute top-[-10px] left-10 w-4 h-4 bg-zinc-100 dark:bg-[#0D0D12] border-t border-l border-violet-500/25 rotate-45 transform origin-center z-10" />
 
                                   {isGeneratingRecDetail ? (
                                     <div className="flex flex-col items-center justify-center py-6 space-y-4">
-                                      <BrainCircuit className="h-6 w-6 text-teal-500 animate-pulse" />
-                                      <p className="text-xs font-black text-slate-400 uppercase tracking-widest animate-pulse">
+                                      <Loader2 className="h-6 w-6 text-violet-600 dark:text-violet-400 animate-spin" />
+                                      <p className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
                                         Generating strategic insights...
                                       </p>
                                     </div>
                                   ) : recommendationDetail ? (
                                     <div className="space-y-6">
                                       <div>
-                                        <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                        <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                                           <Info className="h-3.5 w-3.5" />{" "}
                                           Context & Rationale
                                         </h4>
-                                        <p className="text-slate-300 text-sm leading-relaxed">
+                                        <p className="text-zinc-700 dark:text-zinc-300 text-sm leading-relaxed">
                                           {recommendationDetail.explanation}
                                         </p>
                                       </div>
@@ -7630,7 +7539,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                         recommendationDetail.examples.length >
                                           0 && (
                                           <div>
-                                            <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                            <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                                               <TrendingUp className="h-3.5 w-3.5" />{" "}
                                               Implementation Examples
                                             </h4>
@@ -7639,7 +7548,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                                 (example, eIdx) => (
                                                   <div
                                                     key={`ex-${selectedRecommendation?.slice(0, 15)}-${eIdx}`}
-                                                    className="group/ex relative p-4 pr-12 rounded-xl bg-white/5 border border-white/5 text-sm text-slate-300 leading-relaxed font-mono"
+                                                    className="group/ex relative p-4 pr-12 rounded-xl bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/5 text-sm text-zinc-800 dark:text-zinc-300 leading-relaxed font-mono"
                                                   >
                                                     {example}
                                                     <button
@@ -7651,11 +7560,11 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                                           setCopiedExampleText((cur) => (cur === example ? null : cur));
                                                         }, 2000);
                                                       }}
-                                                      className="absolute top-4 right-4 p-2 rounded-lg bg-white/5 opacity-0 group-hover/ex:opacity-100 hover:bg-white/10 transition-all cursor-pointer text-slate-400 hover:text-white"
+                                                      className="absolute top-4 right-4 p-2 rounded-lg bg-zinc-100 dark:bg-white/5 opacity-0 group-hover/ex:opacity-100 hover:bg-zinc-200 dark:hover:bg-white/10 transition-all cursor-pointer text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                                                       title="Copy to clipboard"
                                                     >
                                                       {copiedExampleText === example ? (
-                                                        <Check className="h-3.5 w-3.5 text-teal-400" />
+                                                        <Check className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
                                                       ) : (
                                                         <Copy className="h-3.5 w-3.5" />
                                                       )}
@@ -7668,7 +7577,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                         )}
                                     </div>
                                   ) : (
-                                    <div className="text-center py-4 text-rose-400 text-xs">
+                                    <div className="text-center py-4 text-rose-500 text-xs">
                                       Failed to load details. Please try again.
                                     </div>
                                   )}
@@ -7686,34 +7595,34 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 {/* Sidebar Details */}
                 <div className="lg:col-span-4 space-y-8">
                   <GlassCard>
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6">
+                    <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-6">
                       Missing Skills
                     </h3>
                     <div className="space-y-4">
                       {result.skillGapReport.map((gap, i) => (
                         <div
                           key={`gap-${gap.skill || i}-${i}`}
-                          className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 group relative overflow-hidden transition-all duration-300"
+                          className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/5 group relative overflow-hidden transition-all duration-300"
                         >
-                          <div className="absolute inset-0 bg-emerald-500/10 translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
+                          <div className="absolute inset-0 bg-violet-500/10 translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
                           <div className="relative z-10 flex flex-col">
-                            <span className="text-[11px] font-black text-white uppercase">
+                            <span className="text-[11px] font-black text-zinc-950 dark:text-white uppercase">
                               {gap.skill}
                             </span>
-                            <span className="text-[9px] font-bold text-emerald-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-1">
+                            <span className="text-[9px] font-bold text-violet-700 dark:text-violet-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3" /> Fix for +
                               {gap.importance === "Critical" ? 10 : 5}% Boost
                             </span>
                           </div>
                           <span
-                            className={`text-[9px] font-black px-2 py-1 rounded relative z-10 transition-colors ${gap.importance === "Critical" ? "bg-rose-500/20 text-rose-400 group-hover:bg-rose-500/30" : "bg-amber-500/20 text-amber-400 group-hover:bg-amber-500/30"} uppercase`}
+                            className={`text-[9px] font-black px-2 py-1 rounded relative z-10 transition-colors ${gap.importance === "Critical" ? "bg-rose-500/15 text-rose-700 dark:text-rose-400 group-hover:bg-rose-500/25" : "bg-purple-500/15 text-purple-700 dark:text-purple-400 group-hover:bg-purple-500/25"} uppercase`}
                           >
                             {gap.importance}
                           </span>
                         </div>
                       ))}
                       {result.skillGapReport.length === 0 && (
-                        <p className="text-[11px] text-slate-500 italic">
+                        <p className="text-[11px] text-zinc-500 italic">
                           No significant missing skills detected.
                         </p>
                       )}
@@ -7722,12 +7631,12 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                   <GlassCard>
                     <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                      <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">
                         Keyword Analysis
                       </h3>
                       {result.atsAnalysis.jobKeywordsFound &&
                         result.atsAnalysis.jobKeywordsMissing && (
-                          <div className="text-xs font-black text-white">
+                          <div className="text-xs font-black text-zinc-950 dark:text-white">
                             {Math.round(
                               (result.atsAnalysis.jobKeywordsFound.length /
                                 (result.atsAnalysis.jobKeywordsFound.length +
@@ -7742,9 +7651,9 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                     {result.atsAnalysis.jobKeywordsFound &&
                       result.atsAnalysis.jobKeywordsMissing && (
-                        <div className="h-1.5 w-full bg-slate-700/50 rounded-full overflow-hidden mb-5">
+                        <div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden mb-5">
                           <div
-                            className="h-full bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.5)] rounded-full transition-all duration-1000"
+                            className="h-full bg-violet-600 rounded-full transition-all duration-1000"
                             style={{
                               width: `${Math.round((result.atsAnalysis.jobKeywordsFound.length / (result.atsAnalysis.jobKeywordsFound.length + result.atsAnalysis.jobKeywordsMissing.length)) * 100) || 0}%`,
                             }}
@@ -7754,7 +7663,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                     <div className="space-y-5">
                       <div>
-                        <h4 className="text-[9px] font-black text-teal-500 uppercase mb-2">
+                        <h4 className="text-[9px] font-black text-violet-700 dark:text-violet-400 uppercase mb-2">
                           Resume Top Keywords
                         </h4>
                         <div className="flex flex-wrap gap-2">
@@ -7763,7 +7672,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             .map((kw, i) => (
                               <span
                                 key={`kw-${kw}-${i}`}
-                                className="text-[10px] font-bold px-2.5 py-1 bg-teal-500/10 border border-teal-500/30 rounded-full text-teal-300 hover:bg-teal-500/20 hover:scale-105 transition-all shadow-[0_0_10px_rgba(20,184,166,0.1)] cursor-default"
+                                className="text-[10px] font-bold px-2.5 py-1 bg-violet-500/10 border border-violet-500/30 rounded-md text-violet-800 dark:text-violet-300 hover:bg-violet-500/20 transition-all cursor-default"
                               >
                                 {kw}
                               </span>
@@ -7774,8 +7683,8 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       {result.atsAnalysis.jobKeywordsFound &&
                         result.atsAnalysis.jobKeywordsFound.length > 0 && (
                           <div>
-                            <h4 className="text-[9px] font-black text-sky-400/80 uppercase mb-2 flex items-center gap-1.5 hover:text-sky-400 transition-colors">
-                              <CheckCircle2 className="h-3 w-3 text-sky-400" />{" "}
+                            <h4 className="text-[9px] font-black text-purple-700 dark:text-purple-400 uppercase mb-2 flex items-center gap-1.5">
+                              <CheckCircle2 className="h-3 w-3 text-purple-600 dark:text-purple-400" />{" "}
                               Matched Job Keywords
                             </h4>
                             <div className="flex flex-wrap gap-2">
@@ -7783,7 +7692,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 (kw, i) => (
                                   <span
                                     key={`jkf-${kw}-${i}`}
-                                    className="text-[10px] font-bold px-2.5 py-1 bg-sky-500/10 border border-sky-500/30 rounded-full text-sky-300 hover:bg-sky-500/20 hover:scale-105 transition-all shadow-[0_0_10px_rgba(56,189,248,0.1)] cursor-default"
+                                    className="text-[10px] font-bold px-2.5 py-1 bg-purple-500/10 border border-purple-500/30 rounded-md text-purple-800 dark:text-purple-300 hover:bg-purple-500/20 transition-all cursor-default"
                                   >
                                     {kw}
                                   </span>
@@ -7797,23 +7706,23 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         result.atsAnalysis.jobKeywordsMissing.length > 0 && (
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <h4 className="text-[9px] font-black text-rose-400/80 uppercase flex items-center gap-1.5 hover:text-rose-400 transition-colors">
+                              <h4 className="text-[9px] font-black text-rose-600 dark:text-rose-400 uppercase flex items-center gap-1.5">
                                 <XCircle className="h-3 w-3 text-rose-500" />{" "}
                                 Missing Job Keywords
                               </h4>
                               <button
                                 onClick={copyMissingKeywordsForDrafting}
-                                className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-[9px] font-black uppercase text-rose-200 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm"
+                                className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/35 text-[9px] font-black uppercase text-rose-700 dark:text-rose-200 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm"
                                 title="Copy missing keywords formatted for bullet point drafting prompt"
                               >
                                 {hasCopiedKeywords ? (
                                   <>
-                                    <Check className="w-3 h-3 text-emerald-400" />
-                                    <span className="text-emerald-300">Copied Prompt!</span>
+                                    <Check className="w-3 h-3 text-violet-600 dark:text-violet-400" />
+                                    <span className="text-violet-700 dark:text-violet-300">Copied Prompt!</span>
                                   </>
                                 ) : (
                                   <>
-                                    <Copy className="w-3 h-3 text-rose-300" />
+                                    <Copy className="w-3 h-3 text-rose-600 dark:text-rose-300" />
                                     <span>Copy Keywords for Bullet Drafting</span>
                                   </>
                                 )}
@@ -7827,10 +7736,10 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                     key={`jkm-${kw}-${i}`}
                                     onClick={(e) => handleMissingKeywordClick(kw, e)}
                                     title="Click for exact sentence placement recommendation"
-                                    className="text-[10px] font-bold px-2.5 py-1 bg-rose-500/10 border border-rose-500/30 rounded-full text-rose-300 hover:bg-rose-500/20 hover:scale-105 transition-all shadow-[0_0_10px_rgba(244,63,94,0.1)] cursor-pointer flex items-center gap-1 group active:scale-95"
+                                    className="text-[10px] font-bold px-2.5 py-1 bg-rose-500/10 border border-rose-500/30 rounded-md text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 transition-all cursor-pointer flex items-center gap-1 group active:scale-95"
                                   >
                                     <span>{kw}</span>
-                                    <Sparkles className="w-2.5 h-2.5 text-rose-400 group-hover:rotate-12 transition-transform" />
+                                    <Wand2 className="w-2.5 h-2.5 text-rose-600 dark:text-rose-400 transition-transform" />
                                   </button>
                                 ))}
                             </div>
@@ -7839,9 +7748,9 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                       {result.atsAnalysis.keywordOptimizations &&
                         result.atsAnalysis.keywordOptimizations.length > 0 && (
-                          <div className="pt-4 border-t border-white/10 mt-6">
-                            <h4 className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                              <Sparkles className="h-3.5 w-3.5" /> Keyword
+                          <div className="pt-4 border-t border-zinc-200 dark:border-white/10 mt-6">
+                            <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                              <Wand2 className="h-3.5 w-3.5" /> Keyword
                               Optimizations
                             </h4>
                             <div className="space-y-4">
@@ -7849,21 +7758,21 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 (opt, i) => (
                                   <details
                                     key={`ko-${opt.keyword}-${i}`}
-                                    className="group bg-white/5 border border-white/10 rounded-xl px-4 py-3 transition-colors hover:border-amber-500/30"
+                                    className="group bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 transition-colors hover:border-violet-500/35"
                                   >
-                                    <summary className="text-[11px] font-bold text-white flex items-center justify-between cursor-pointer outline-none list-none [&::-webkit-details-marker]:hidden">
+                                    <summary className="text-[11px] font-bold text-zinc-950 dark:text-white flex items-center justify-between cursor-pointer outline-none list-none [&::-webkit-details-marker]:hidden">
                                       <div className="flex items-center gap-2">
-                                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                                        <span className="h-1.5 w-1.5 rounded-full bg-violet-600" />
                                         {opt.keyword}
                                       </div>
-                                      <ChevronDown className="h-3.5 w-3.5 text-slate-400 transition-transform duration-200 group-open:rotate-180" />
+                                      <ChevronDown className="h-3.5 w-3.5 text-zinc-400 transition-transform duration-200 group-open:rotate-180" />
                                     </summary>
                                     <div className="space-y-2 mt-4">
                                       {opt.suggestedPhrases.map(
                                         (phrase, pIdx) => (
                                           <div
                                             key={`phrase-${opt.keyword}-${i}-${pIdx}`}
-                                            className="group/phrase relative p-3 pr-10 rounded-lg bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/5 text-xs text-slate-800 dark:text-slate-300 leading-relaxed font-mono"
+                                            className="group/phrase relative p-3 pr-10 rounded-lg bg-zinc-100 dark:bg-black/40 border border-zinc-200 dark:border-white/5 text-xs text-zinc-800 dark:text-zinc-300 leading-relaxed font-mono"
                                           >
                                             {phrase}
                                             <button
@@ -7877,11 +7786,11 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                                   setCopiedPhraseText((cur) => (cur === phrase ? null : cur));
                                                 }, 2000);
                                               }}
-                                              className="absolute top-1/2 -translate-y-1/2 right-3 p-1.5 rounded-md bg-white/5 opacity-0 group-hover/phrase:opacity-100 hover:bg-white/10 transition-all cursor-pointer text-slate-400 hover:text-white"
+                                              className="absolute top-1/2 -translate-y-1/2 right-3 p-1.5 rounded-md bg-white dark:bg-white/5 opacity-0 group-hover/phrase:opacity-100 hover:bg-zinc-200 dark:hover:bg-white/10 transition-all cursor-pointer text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
                                               title="Copy suggested phrase"
                                             >
                                               {copiedPhraseText === phrase ? (
-                                                <Check className="h-3 w-3 text-amber-400" />
+                                                <Check className="h-3 w-3 text-violet-600 dark:text-violet-400" />
                                               ) : (
                                                 <Copy className="h-3 w-3" />
                                               )}
@@ -7900,10 +7809,10 @@ AWS Certified Solutions Architect – Associate (2022)`;
                   </GlassCard>
 
                   <GlassCard>
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6">
+                    <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-6">
                       Expert Summary
                     </h3>
-                    <p className="text-xs text-slate-400 leading-relaxed italic border-l-2 border-teal-500/20 pl-4">
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed italic border-l-2 border-violet-500/30 pl-4">
                       "{result.summary}"
                     </p>
                   </GlassCard>
@@ -7911,19 +7820,19 @@ AWS Certified Solutions Architect – Associate (2022)`;
                   {result.sectionsDetailed &&
                     result.sectionsDetailed.length > 0 && (
                       <GlassCard>
-                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                          <Layers className="h-4 w-4 text-teal-400" /> Extracted
+                        <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                          <Layers className="h-4 w-4 text-violet-600 dark:text-violet-400" /> Extracted
                           Sections
                         </h3>
                         <div className="space-y-4">
                           {result.sectionsDetailed.map((section, idx) => (
                             <div key={`section-det-${section.sectionName || idx}-${idx}`} className="group relative">
-                              <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-white/5 border border-white/5 hover:border-teal-500/30 transition-colors">
-                                <h4 className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-2">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-teal-500 opacity-50 group-hover:opacity-100 transition-opacity" />
+                              <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/5 hover:border-violet-500/30 transition-colors">
+                                <h4 className="text-[11px] font-black text-zinc-950 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-violet-600 opacity-60 group-hover:opacity-100 transition-opacity" />
                                   {section.sectionName}
                                 </h4>
-                                <p className="text-[11px] text-slate-400 leading-relaxed border-l border-white/10 pl-3 ml-0.5 mt-1">
+                                <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed border-l border-zinc-200 dark:border-white/10 pl-3 ml-0.5 mt-1">
                                   {section.summary}
                                 </p>
                               </div>
@@ -7942,20 +7851,20 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     {result.interviewQuestions &&
                       result.interviewQuestions.length > 0 && (
                         <GlassCard>
-                          <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-2">
-                            <BrainCircuit className="h-4 w-4 text-purple-400" />
+                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-2">
+                            <BrainCircuit className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                             Interview Simulator
                           </h3>
-                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mb-6">
+                          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em] mb-6">
                             Likely questions based on your profile gaps
                           </p>
                           <div className="space-y-4">
                             {result.interviewQuestions.map((q, idx) => (
                               <div
                                 key={`iq-${q.slice(0, 20)}-${idx}`}
-                                className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/20 text-slate-300 text-sm font-medium"
+                                className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/25 text-zinc-700 dark:text-zinc-300 text-sm font-medium"
                               >
-                                <span className="text-purple-400 font-black mr-2">
+                                <span className="text-purple-600 dark:text-purple-400 font-black mr-2">
                                   Q:
                                 </span>
                                 {q}
@@ -7968,26 +7877,26 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     {/* AI Re-writes */}
                     <div className="space-y-8">
                       {result.resumeRewriteDraft && (
-                        <GlassCard className="border-t-2 border-t-amber-500">
-                          <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-2">
-                            <Sparkles className="h-4 w-4 text-amber-400" />
+                        <GlassCard className="border-t-2 border-t-violet-600">
+                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-2">
+                            <Wand2 className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                             Optimized Headline Draft
                           </h3>
-                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mb-4">
+                          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em] mb-4">
                             AI-generated rewrite for this role
                           </p>
-                          <div className="relative p-5 rounded-xl bg-amber-500/5 border border-amber-500/20 group">
+                          <div className="relative p-5 rounded-xl bg-violet-500/5 border border-violet-500/20 group">
                             <button
                               onClick={() =>
                                 navigator.clipboard.writeText(
                                   result.resumeRewriteDraft || "",
                                 )
                               }
-                              className="absolute top-2 right-2 p-2 rounded-lg bg-white/5 hover:bg-amber-500/20 text-slate-400 hover:text-amber-400 opacity-0 group-hover:opacity-100 transition-all"
+                              className="absolute top-2 right-2 p-2 rounded-lg bg-zinc-200/60 dark:bg-white/5 hover:bg-violet-500/20 text-zinc-600 dark:text-zinc-400 hover:text-violet-700 dark:hover:text-violet-400 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
                             >
                               <Copy className="h-3.5 w-3.5" />
                             </button>
-                            <p className="text-sm text-slate-200 italic leading-relaxed">
+                            <p className="text-sm text-zinc-800 dark:text-zinc-200 italic leading-relaxed">
                               "{result.resumeRewriteDraft}"
                             </p>
                           </div>
@@ -7995,22 +7904,22 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       )}
 
                       {result.recruiterSummary && (
-                        <GlassCard className="border-t-2 border-t-sky-500">
-                          <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-2">
-                            <Search className="h-4 w-4 text-sky-400" />
+                        <GlassCard className="border-t-2 border-t-purple-600">
+                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-2">
+                            <Search className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                             Recruiter Perspective
                           </h3>
-                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mb-4">
+                          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em] mb-4">
                             Candid assessment of your fit
                           </p>
-                          <p className="text-sm text-slate-300 leading-relaxed font-medium">
+                          <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium">
                             {result.recruiterSummary}
                           </p>
                           {result.globalBenchmarking && (
-                            <div className="mt-4 pt-4 border-t border-sky-500/20 flex items-start gap-3">
-                              <Award className="h-5 w-5 text-sky-400 shrink-0 mt-0.5" />
-                              <p className="text-[11px] text-slate-400 font-medium">
-                                <strong className="text-sky-300">
+                            <div className="mt-4 pt-4 border-t border-purple-500/20 flex items-start gap-3">
+                              <Award className="h-5 w-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                              <p className="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium">
+                                <strong className="text-purple-700 dark:text-purple-300">
                                   Global Benchmark:
                                 </strong>{" "}
                                 {result.globalBenchmarking}
@@ -8027,11 +7936,11 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     <GlassCard>
                       <div className="flex items-center justify-between mb-6">
                         <div>
-                          <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-emerald-400" />
+                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                             AI Cover Letter Draft
                           </h3>
-                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">
+                          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em] mt-1">
                             Starting template mapped to the JD
                           </p>
                         </div>
@@ -8041,12 +7950,12 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               result.coverLetterDraft || "",
                             )
                           }
-                          className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/30 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+                          className="px-4 py-2 rounded-lg bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-zinc-700 dark:text-zinc-300 hover:bg-violet-500/15 hover:text-violet-700 dark:hover:text-violet-400 hover:border-violet-500/30 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest cursor-pointer"
                         >
                           <Copy className="h-3 w-3" /> Copy to Clipboard
                         </button>
                       </div>
-                      <div className="p-6 md:p-8 rounded-2xl bg-white/5 border border-white/5 font-serif text-slate-300 leading-loose text-sm whitespace-pre-wrap">
+                      <div className="p-6 md:p-8 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/5 font-serif text-zinc-800 dark:text-zinc-300 leading-loose text-sm whitespace-pre-wrap">
                         {result.coverLetterDraft}
                       </div>
                     </GlassCard>
@@ -8056,11 +7965,11 @@ AWS Certified Solutions Architect – Associate (2022)`;
 {/* Floating Action Buttons */}
               {!isExecutiveMode && activeStudioTab !== "canvas" && (
                 <div className={`fixed top-1/4 left-4 z-50 transition-all duration-300 ${isQuickLinksOpen ? 'w-64' : 'w-12'}`}>
-                  <div className="dark dark-studio bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex">
-                    <div className="w-12 flex flex-col items-center py-4 border-r border-white/5 shrink-0">
+                  <div className="bg-white/95 dark:bg-[#111116]/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex">
+                    <div className="w-12 flex flex-col items-center py-4 border-r border-zinc-200 dark:border-white/5 shrink-0">
                       <button 
                         onClick={() => setIsQuickLinksOpen(!isQuickLinksOpen)}
-                        className="text-slate-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/5"
+                        className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-colors p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
                         title="Quick Links"
                       >
                         <Layers className="h-5 w-5" />
@@ -8068,12 +7977,12 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     </div>
                     {isQuickLinksOpen && (
                       <div className="p-4 w-52 flex flex-col gap-2">
-                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-2">Quick Links</h4>
-                        <button onClick={() => document.getElementById('scoring-infrastructure')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-slate-300 hover:text-teal-400 hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Overall Match</button>
-                        <button onClick={() => document.getElementById('skill-vector-engine')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-slate-300 hover:text-amber-400 hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Skill Landscape</button>
-                        <button onClick={() => document.getElementById('career-progression')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-slate-300 hover:text-blue-400 hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Career Timeline</button>
-                        <button onClick={() => document.getElementById('optimization-plan')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-slate-300 hover:text-emerald-400 hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Strategic Plan</button>
-                        <button onClick={() => document.getElementById('career-simulator')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-slate-300 hover:text-indigo-400 hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Career Simulator</button>
+                        <h4 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-2 px-2">Quick Links</h4>
+                        <button onClick={() => document.getElementById('scoring-infrastructure')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-violet-700 dark:hover:text-violet-400 hover:bg-zinc-100 dark:hover:bg-white/5 px-3 py-2 rounded-lg transition-colors cursor-pointer">Overall Match</button>
+                        <button onClick={() => document.getElementById('skill-vector-engine')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-violet-700 dark:hover:text-violet-400 hover:bg-zinc-100 dark:hover:bg-white/5 px-3 py-2 rounded-lg transition-colors cursor-pointer">Skill Landscape</button>
+                        <button onClick={() => document.getElementById('career-progression')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-violet-700 dark:hover:text-violet-400 hover:bg-zinc-100 dark:hover:bg-white/5 px-3 py-2 rounded-lg transition-colors cursor-pointer">Career Timeline</button>
+                        <button onClick={() => document.getElementById('optimization-plan')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-violet-700 dark:hover:text-violet-400 hover:bg-zinc-100 dark:hover:bg-white/5 px-3 py-2 rounded-lg transition-colors cursor-pointer">Strategic Plan</button>
+                        <button onClick={() => document.getElementById('career-simulator')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-violet-700 dark:hover:text-violet-400 hover:bg-zinc-100 dark:hover:bg-white/5 px-3 py-2 rounded-lg transition-colors cursor-pointer">Career Simulator</button>
                       </div>
                     )}
                   </div>
@@ -8081,12 +7990,12 @@ AWS Certified Solutions Architect – Associate (2022)`;
               )}
               <div className="fixed bottom-32 right-6 md:right-8 z-[195] flex flex-col gap-4">
                 <motion.button
-                  whileHover={{ scale: 1.08 }}
-                  whileTap={{ scale: 0.92 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={exportToExcel}
                   title="Export Summary to Excel"
                   aria-label="Export Summary to Excel"
-                  className="h-12 w-12 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white shadow-2xl shadow-teal-500/20 flex items-center justify-center group relative overflow-hidden active:scale-95 transition-all cursor-pointer"
+                  className="h-12 w-12 rounded-2xl bg-violet-700 hover:bg-violet-600 text-white shadow-2xl shadow-violet-500/20 flex items-center justify-center group relative overflow-hidden active:scale-95 transition-all cursor-pointer"
                 >
                   <Download className="h-5 w-5 relative z-10" />
                 </motion.button>
@@ -8096,10 +8005,10 @@ AWS Certified Solutions Architect – Associate (2022)`;
         </AnimatePresence>
       </main>
 
-      <footer className="py-20 border-t border-slate-200 dark:border-white/5 text-center mt-20 bg-slate-50/60 dark:bg-brand-deep/20 relative">
-        <div className="flex items-center justify-center gap-3 mb-6 opacity-80 dark:opacity-60">
-          <BrainCircuit className="h-5 w-5 text-teal-600 dark:text-teal-400" />
-          <span className="font-display font-black text-sm uppercase tracking-widest text-slate-800 dark:text-white">
+      <footer className="py-20 border-t border-zinc-200 dark:border-white/5 text-center mt-20 bg-zinc-50/70 dark:bg-[#09090B]/60 relative">
+        <div className="flex items-center justify-center gap-3 mb-6 opacity-90 dark:opacity-70">
+          <BrainCircuit className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+          <span className="font-display font-black text-sm uppercase tracking-widest text-zinc-900 dark:text-white">
             Executive Career Intelligence
           </span>
         </div>
@@ -8111,18 +8020,18 @@ AWS Certified Solutions Architect – Associate (2022)`;
             Purge Session
           </button>
         </div>
-        <div className="flex justify-center gap-8 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-6">
-          <a href="#" className="hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
+        <div className="flex justify-center gap-8 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-6">
+          <a href="#" className="hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
             Privacy Priority
           </a>
-          <a href="#" className="hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
+          <a href="#" className="hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
             Secure Processing
           </a>
-          <a href="#" className="hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
+          <a href="#" className="hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
             Session Only
           </a>
         </div>
-        <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">
+        <p className="text-zinc-500 dark:text-zinc-400 text-[10px] font-bold uppercase tracking-[0.2em]">
           © 2026 Professional Career Intelligence. All data processed locally
           for this session.
         </p>
@@ -8134,9 +8043,9 @@ AWS Certified Solutions Architect – Associate (2022)`;
           href="https://personal-portfolio--serenayt06.replit.app/"
           target="_blank"
           rel="noopener noreferrer"
-          className="dark dark-studio group flex items-center gap-3 bg-[#0A0A15]/90 backdrop-blur-xl border border-white/10 px-4 py-2.5 rounded-full shadow-xl hover:border-teal-500/40 hover:shadow-[0_0_20px_rgba(20,184,166,0.15)] transition-all ease-out duration-300 w-fit"
+          className="group flex items-center gap-3 bg-white/95 dark:bg-[#111116]/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-full shadow-xl hover:border-violet-500/40 transition-all ease-out duration-300 w-fit"
         >
-          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest group-hover:text-teal-400 transition-colors">
+          <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest group-hover:text-violet-700 dark:group-hover:text-violet-400 transition-colors">
             Portfolio
           </span>
           <svg
@@ -8149,7 +8058,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-teal-500"
+            className="text-violet-600 dark:text-violet-400"
           >
             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
             <polyline points="15 3 21 3 21 9"></polyline>
@@ -8160,12 +8069,12 @@ AWS Certified Solutions Architect – Associate (2022)`;
           href="https://www.linkedin.com/in/arjun-pv1312"
           target="_blank"
           rel="noopener noreferrer"
-          className="dark dark-studio group flex items-center gap-3 bg-[#0A0A15]/90 backdrop-blur-xl border border-white/10 px-4 py-2.5 rounded-full shadow-xl hover:border-[#0A66C2]/40 hover:shadow-[0_0_20px_rgba(10,102,194,0.15)] transition-all ease-out duration-300 w-fit"
+          className="group flex items-center gap-3 bg-white/95 dark:bg-[#111116]/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-full shadow-xl hover:border-purple-500/40 transition-all ease-out duration-300 w-fit"
         >
-          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest group-hover:text-[#0A66C2] transition-colors">
+          <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest group-hover:text-purple-700 dark:group-hover:text-purple-400 transition-colors">
             LinkedIn
           </span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#0A66C2" aria-hidden="true" className="opacity-85 group-hover:opacity-100 transition-opacity">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="text-violet-600 dark:text-violet-400 opacity-85 group-hover:opacity-100 transition-opacity">
             <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
           </svg>
         </a>
@@ -8177,17 +8086,17 @@ AWS Certified Solutions Architect – Associate (2022)`;
           <button
             type="button"
             onClick={() => setIsCopilotDrawerOpen((prev) => !prev)}
-            className="dark dark-studio fixed bottom-6 left-6 z-[180] flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-slate-950/95 hover:bg-slate-900 border border-teal-500/40 text-white shadow-2xl shadow-teal-500/20 transition-all cursor-pointer active:scale-95"
+            className="fixed bottom-6 left-6 z-[180] flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white/95 dark:bg-[#111116]/95 hover:bg-zinc-50 dark:hover:bg-zinc-900 border border-violet-500/35 text-zinc-950 dark:text-white shadow-2xl shadow-violet-500/15 transition-all cursor-pointer active:scale-95"
             title="Open ATS Gap Copilot to inspect what is missing and apply 1-click resume fixes"
           >
-            <div className="w-7 h-7 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-400">
+            <div className="w-7 h-7 rounded-lg bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-violet-600 dark:text-violet-400">
               <Bot className="w-4 h-4" />
             </div>
             <div className="text-left">
-              <div className="text-xs font-bold leading-tight text-white">
+              <div className="text-xs font-bold leading-tight text-zinc-950 dark:text-white">
                 ATS Gap Copilot
               </div>
-              <div className="text-[10px] font-mono tabular-nums text-teal-400">
+              <div className="text-[10px] font-mono tabular-nums text-violet-600 dark:text-violet-400">
                 Score {result.overallScore}% · Quick Fixes
               </div>
             </div>
@@ -8200,17 +8109,17 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -24 }}
                 transition={{ duration: 0.2 }}
-                className="dark dark-studio fixed bottom-20 left-6 z-[190] w-[420px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-7rem)] rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl overflow-hidden flex flex-col"
+                className="fixed bottom-20 left-6 z-[190] w-[420px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-7rem)] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111116] shadow-2xl overflow-hidden flex flex-col"
               >
-                <div className="px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-2 text-xs font-bold text-white">
-                    <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                <div className="px-4 py-2.5 bg-zinc-50 dark:bg-zinc-900/90 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2 text-xs font-bold text-zinc-950 dark:text-white">
+                    <Wand2 className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
                     <span>Synchronized ATS Gap Copilot</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsCopilotDrawerOpen(false)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                    className="p-1 rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-200/70 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                     aria-label="Close ATS Gap Copilot Drawer"
                   >
                     <X className="w-4 h-4" />

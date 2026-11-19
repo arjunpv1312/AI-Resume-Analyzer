@@ -26,7 +26,7 @@ export async function generateAtsResumePdfBlob(
   const marginTop = isCompact ? 34 : 42;
   const marginBottom = isCompact ? 34 : 42;
   const contentWidth = pageWidth - marginX * 2;
-  const accentColor = isModern ? rgb(0.05, 0.45, 0.45) : rgb(0.08, 0.12, 0.2);
+  const accentColor = isModern ? rgb(0.43, 0.16, 0.85) : rgb(0.06, 0.06, 0.08);
 
   const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
