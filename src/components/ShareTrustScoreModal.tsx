@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import {
   X,
   Share2,
@@ -182,8 +181,8 @@ export const ShareTrustScoreModal: React.FC<ShareTrustScoreModalProps> = ({
 
     const textPrimary = isLight ? "#09090b" : "#fafafa";
     const textSecondary = isLight ? "#52525b" : "#a1a1aa";
-    const accentPrimary = isLight ? "#6d28d9" : "#8b5cf6";
-    const accentSecondary = isLight ? "#9333ea" : "#a855f7";
+    const accentPrimary = isLight ? "#4c1d95" : "#a855f7";
+    const accentSecondary = isLight ? "#7e22ce" : "#c084fc";
 
     const pillX = cardPadding + 36;
     const pillY = cardPadding + 32;
@@ -476,15 +475,10 @@ Audited via Career Intelligence Studio: ${
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 md:p-6 bg-black/75 backdrop-blur-md overflow-y-auto">
-        <motion.div
-          initial={{ scale: 0.96, opacity: 0, y: 12 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.96, opacity: 0, y: 12 }}
-          transition={{ duration: 0.2 }}
-          className="max-w-4xl w-full bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden my-auto text-zinc-950 dark:text-zinc-100 flex flex-col max-h-[92vh]"
-        >
+    <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 md:p-6 bg-black/75 backdrop-blur-md overflow-y-auto">
+      <div
+        className="max-w-4xl w-full bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden my-auto text-zinc-950 dark:text-zinc-100 flex flex-col max-h-[92vh]"
+      >
           {/* Header */}
           <div className="p-6 bg-zinc-50 dark:bg-[#111116] border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
@@ -710,8 +704,7 @@ Audited via Career Intelligence Studio: ${
               </button>
             </div>
           </div>
-        </motion.div>
       </div>
-    </AnimatePresence>
+    </div>
   );
 };

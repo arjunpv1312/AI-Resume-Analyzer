@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import {
   Share2,
   ShieldCheck,
@@ -99,41 +98,33 @@ export const TrustScoreWalkthroughTooltip: React.FC<
   };
 
   return (
-    <AnimatePresence>
-      <motion.div
-        key="trust-walkthrough-backdrop"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[130] bg-black/70 backdrop-blur-[2px] pointer-events-auto flex items-end sm:items-center justify-center p-4"
-        onClick={handleDismiss}
-      >
-        {/* Clean static spotlight frame around target action */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {buttonRect && (
-            <div
-              style={{
-                position: "fixed",
-                top: Math.max(10, buttonRect.top - 6),
-                left: Math.max(10, buttonRect.left - 6),
-                width: buttonRect.width + 12,
-                height: buttonRect.height + 12,
-              }}
-              className="rounded-xl border-2 border-violet-500 ring-4 ring-violet-500/25 z-[131] transition-all duration-200"
-            />
-          )}
-        </div>
+    <div
+      key="trust-walkthrough-backdrop"
+      className="fixed inset-0 z-[130] bg-black/70 backdrop-blur-[2px] pointer-events-auto flex items-end sm:items-center justify-center p-4"
+      onClick={handleDismiss}
+    >
+      {/* Clean static spotlight frame around target action */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {buttonRect && (
+          <div
+            style={{
+              position: "fixed",
+              top: Math.max(10, buttonRect.top - 6),
+              left: Math.max(10, buttonRect.left - 6),
+              width: buttonRect.width + 12,
+              height: buttonRect.height + 12,
+            }}
+            className="rounded-xl border-2 border-violet-500 ring-4 ring-violet-500/25 z-[131] transition-colors duration-150"
+          />
+        )}
+      </div>
 
-        {/* Executive Tour Card */}
-        <motion.div
-          key="trust-walkthrough-card"
-          initial={{ scale: 0.96, opacity: 0, y: 12 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.96, opacity: 0, y: 12 }}
-          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          onClick={(e) => e.stopPropagation()}
-          className="relative max-w-lg w-full bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-2xl text-zinc-950 dark:text-white z-[135] overflow-hidden"
-        >
+      {/* Executive Tour Card */}
+      <div
+        key="trust-walkthrough-card"
+        onClick={(e) => e.stopPropagation()}
+        className="relative max-w-lg w-full bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-2xl text-zinc-950 dark:text-white z-[135] overflow-hidden"
+      >
           <button
             type="button"
             onClick={handleDismiss}
@@ -314,8 +305,7 @@ export const TrustScoreWalkthroughTooltip: React.FC<
               </>
             )}
           </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+      </div>
+    </div>
   );
 };

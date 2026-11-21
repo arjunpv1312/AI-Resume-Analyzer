@@ -1257,7 +1257,7 @@ ${verificationResult.auditChecks
                         <Tooltip
                           contentStyle={{
                             backgroundColor: isDark ? "#111116" : "#ffffff",
-                            borderColor: isDark ? "#7c3aed" : "#c4b5fd",
+                            borderColor: isDark ? "#7e22ce" : "#c4b5fd",
                             borderRadius: "10px",
                             fontSize: "11px",
                             color: isDark ? "#f4f4f5" : "#09090b",
@@ -1277,13 +1277,13 @@ ${verificationResult.auditChecks
                         />
                         <ReferenceLine
                           y={85}
-                          stroke={isDark ? "#a855f7" : "#6d28d9"}
+                          stroke={isDark ? "#a855f7" : "#4c1d95"}
                           strokeDasharray="4 4"
                           strokeOpacity={0.5}
                           label={{
                             value: "85% Target",
                             position: "insideTopRight",
-                            fill: isDark ? "#c084fc" : "#6d28d9",
+                            fill: isDark ? "#c084fc" : "#4c1d95",
                             fontSize: 10,
                           }}
                         />
@@ -1359,7 +1359,7 @@ ${verificationResult.auditChecks
                             Work History
                           </span>
                           <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-fuchsia-600 inline-block" />
+                            <span className="w-2 h-2 rounded-full bg-[#7e22ce] inline-block" />
                             Endorsements
                           </span>
                           <span className="flex items-center gap-1">

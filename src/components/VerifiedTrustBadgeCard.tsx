@@ -44,7 +44,7 @@ export const VerifiedTrustBadgeCard: React.FC<VerifiedTrustBadgeCardProps> = ({
   credibilityScore,
   credibilityTier,
   linkedinUrl = "",
-  candidateName = "Alex Mercer",
+  candidateName = "Candidate",
   targetRole = "Senior Technology & Operations Leader",
   trustFactors,
   isVerifying = false,
@@ -63,15 +63,17 @@ export const VerifiedTrustBadgeCard: React.FC<VerifiedTrustBadgeCardProps> = ({
   const [isExportingImage, setIsExportingImage] = useState(false);
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  const hasLinkedIn = Boolean(linkedinUrl.trim() || typeof credibilityScore === "number");
+
   const effectiveScore = useMemo(() => {
     if (typeof credibilityScore === "number") return credibilityScore;
-    return linkedinUrl.trim() ? 86 : 78;
+    return linkedinUrl.trim() ? 86 : 0;
   }, [credibilityScore, linkedinUrl]);
 
   const isLiveVerified = typeof credibilityScore === "number";
 
   const cleanHandle = useMemo(() => {
-    if (!linkedinUrl.trim()) return "in/verified-candidate";
+    if (!linkedinUrl.trim()) return "not-linked";
     const cleaned = linkedinUrl
       .trim()
       .replace(/^https?:\/\/(www\.)?linkedin\.com\/(in\/)?/i, "")
@@ -216,8 +218,8 @@ Credential URL: ${badgeSvgUrl}`;
       if (!ctx) return;
 
       const isLight = badgeStyle === "light";
-      const accentPrimary = isLight ? "#6d28d9" : "#8b5cf6";
-      const accentSecondary = isLight ? "#9333ea" : "#a855f7";
+      const accentPrimary = isLight ? "#4c1d95" : "#a855f7";
+      const accentSecondary = isLight ? "#7e22ce" : "#c084fc";
 
       const bgGrad = ctx.createLinearGradient(0, 0, width, height);
       if (isLight) {
@@ -625,7 +627,7 @@ Credential URL: ${badgeSvgUrl}`;
   };
 
   const handleDownloadSvg = () => {
-    const accentColor = "#7c3aed";
+    const accentColor = "#7e22ce";
     const bgFill = badgeStyle === "light" ? "#ffffff" : "#09090b";
     const cardStroke = badgeStyle === "light" ? "#e4e4e7" : "#27272a";
     const titleColor = badgeStyle === "light" ? "#09090b" : "#fafafa";
@@ -636,9 +638,9 @@ Credential URL: ${badgeSvgUrl}`;
     const svgContent =
       badgeStyle === "compact"
         ? `<svg xmlns="http://www.w3.org/2000/svg" width="310" height="36" viewBox="0 0 310 36" fill="none">
-  <rect width="310" height="36" rx="8" fill="#09090b" stroke="#7c3aed" stroke-opacity="0.6" stroke-width="1.5"/>
+  <rect width="310" height="36" rx="8" fill="#09090b" stroke="#7e22ce" stroke-opacity="0.6" stroke-width="1.5"/>
   <rect x="1" y="1" width="142" height="34" rx="7" fill="#18181b"/>
-  <path d="M18 11L24 13.5V18.5C24 22.1 21.4 25.4 18 26.5C14.6 25.4 12 22.1 12 18.5V13.5L18 11Z" stroke="#a855f7" stroke-width="1.75" fill="#7c3aed" fill-opacity="0.2"/>
+  <path d="M18 11L24 13.5V18.5C24 22.1 21.4 25.4 18 26.5C14.6 25.4 12 22.1 12 18.5V13.5L18 11Z" stroke="#a855f7" stroke-width="1.75" fill="#7e22ce" fill-opacity="0.2"/>
   <path d="M15.5 18.5L17.2 20.2L20.8 16.6" stroke="#a855f7" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
   <text x="31" y="22" fill="#fafafa" font-family="Outfit, sans-serif" font-size="11" font-weight="800" letter-spacing="0.06em">VERIFIED TRUST</text>
   <text x="155" y="22" fill="#c084fc" font-family="monospace" font-size="12" font-weight="800">${effectiveScore}% CREDIBILITY</text>
@@ -669,10 +671,39 @@ Credential URL: ${badgeSvgUrl}`;
     URL.revokeObjectURL(url);
   };
 
+  if (!hasLinkedIn) {
+    return (
+      <div
+        id="verified-trust-badge-section"
+        className="mb-8 rounded-2xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors duration-150"
+      >
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-violet-700 dark:text-purple-400" />
+            <h3 className="text-sm font-bold text-zinc-950 dark:text-white">
+              LinkedIn Profile: Missing (Not Linked)
+            </h3>
+          </div>
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 max-w-xl leading-relaxed">
+            No LinkedIn profile was submitted. LinkedIn verification is excluded from your resume score with zero penalty. Connect your profile anytime to verify identity alignment.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenVerificationModal}
+          className="px-4 py-2 rounded-xl bg-[#4c1d95] hover:bg-[#7e22ce] text-white font-bold text-xs transition-colors duration-150 flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
+        >
+          <Link2 className="w-3.5 h-3.5" />
+          <span>Connect LinkedIn</span>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div
       id="verified-trust-badge-section"
-      className="mb-8 rounded-2xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden transition-all"
+      className="mb-8 rounded-2xl bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden transition-colors duration-150"
     >
       {/* Main Verified Trust Badge Banner */}
       <div className="p-6 md:p-7 flex flex-col lg:flex-row lg:items-center justify-between gap-6">

@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import * as d3 from "d3";
-import { motion, AnimatePresence } from "motion/react";
 import {
   ZoomIn,
   ZoomOut,
@@ -75,15 +74,15 @@ export const CATEGORY_CONFIG: Record<
 > = {
   "cloud-infra": {
     label: "Cloud & Infrastructure",
-    color: "#7c3aed",
-    glowColor: "rgba(124, 58, 237, 0.35)",
+    color: "#7e22ce",
+    glowColor: "rgba(126, 34, 206, 0.35)",
     hubRadius: 28,
     description: "Cloud platforms, container orchestration & scalable infrastructure",
   },
   backend: {
     label: "Backend & Systems",
-    color: "#9333ea",
-    glowColor: "rgba(147, 51, 234, 0.35)",
+    color: "#a855f7",
+    glowColor: "rgba(168, 85, 247, 0.35)",
     hubRadius: 28,
     description: "Server runtimes, APIs, microservices & backend frameworks",
   },
@@ -96,22 +95,22 @@ export const CATEGORY_CONFIG: Record<
   },
   "data-ai": {
     label: "Data, Databases & AI",
-    color: "#6d28d9",
-    glowColor: "rgba(109, 40, 217, 0.35)",
+    color: "#4c1d95",
+    glowColor: "rgba(76, 29, 149, 0.35)",
     hubRadius: 28,
     description: "Relational/NoSQL databases, messaging, pipelines & ML/AI",
   },
   architecture: {
     label: "Systems Architecture",
-    color: "#c026d3",
-    glowColor: "rgba(192, 38, 211, 0.35)",
+    color: "#7e22ce",
+    glowColor: "rgba(126, 34, 206, 0.35)",
     hubRadius: 26,
     description: "Distributed systems, design patterns, high-throughput & reliability",
   },
   leadership: {
     label: "Leadership & Strategy",
-    color: "#5b21b6",
-    glowColor: "rgba(91, 33, 182, 0.35)",
+    color: "#4c1d95",
+    glowColor: "rgba(76, 29, 149, 0.35)",
     hubRadius: 26,
     description: "Executive engineering stewardship, team mentorship & roadmap",
   },
@@ -643,7 +642,7 @@ export const SkillNetworkGraph: React.FC<SkillNetworkGraphProps> = ({
           ? isDark
             ? "#fb7185"
             : "#e11d48"
-          : CATEGORY_CONFIG[d.category]?.color || "#7c3aed"
+          : CATEGORY_CONFIG[d.category]?.color || "#7e22ce"
       )
       .attr("stroke-width", 1.4)
       .attr("stroke-opacity", 0.5)
@@ -664,12 +663,12 @@ export const SkillNetworkGraph: React.FC<SkillNetworkGraphProps> = ({
       })
       .attr("stroke", (d) => {
         if (d.isCategoryHub) {
-          return CATEGORY_CONFIG[d.category]?.color || "#8b5cf6";
+          return CATEGORY_CONFIG[d.category]?.color || "#a855f7";
         }
         if (d.isMissing) {
           return isDark ? "#fb7185" : "#e11d48";
         }
-        return isDark ? "#a855f7" : "#6d28d9";
+        return isDark ? "#a855f7" : "#4c1d95";
       })
       .attr("stroke-width", (d) =>
         d.isCategoryHub ? 2.4 : d.isMissing ? 2 : 1.8
@@ -682,7 +681,7 @@ export const SkillNetworkGraph: React.FC<SkillNetworkGraphProps> = ({
       .attr("fill", (d) => {
         if (d.isCategoryHub) return CATEGORY_CONFIG[d.category]?.color || "#a855f7";
         if (d.isMissing) return isDark ? "#fb7185" : "#e11d48";
-        return isDark ? "#c084fc" : "#7c3aed";
+        return isDark ? "#c084fc" : "#7e22ce";
       });
 
     // Labels
@@ -1104,14 +1103,10 @@ export const SkillNetworkGraph: React.FC<SkillNetworkGraphProps> = ({
         )}
 
         {/* Inspector Slide-Out Drawer */}
-        <AnimatePresence>
-          {selectedNode && (
-            <motion.div
-              initial={{ x: 300, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 300, opacity: 0 }}
-              className="absolute top-4 right-4 bottom-4 w-80 max-w-[calc(100%-2rem)] bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl p-4 flex flex-col justify-between z-30 overflow-y-auto"
-            >
+        {selectedNode && (
+          <div
+            className="absolute top-4 right-4 bottom-4 w-80 max-w-[calc(100%-2rem)] bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl p-4 flex flex-col justify-between z-30 overflow-y-auto"
+          >
               <div>
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div>
@@ -1233,9 +1228,8 @@ export const SkillNetworkGraph: React.FC<SkillNetworkGraphProps> = ({
                   </button>
                 )}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          </div>
+        )}
       </div>
     </div>
   );

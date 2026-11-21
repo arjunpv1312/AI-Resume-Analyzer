@@ -241,11 +241,11 @@ export const D3CareerGraph: React.FC<D3CareerGraphProps> = ({
     linkGradient
       .append("stop")
       .attr("offset", "0%")
-      .attr("stop-color", isDark ? "#7c3aed" : "#6d28d9");
+      .attr("stop-color", isDark ? "#7e22ce" : "#4c1d95");
     linkGradient
       .append("stop")
       .attr("offset", "100%")
-      .attr("stop-color", isDark ? "#c084fc" : "#9333ea");
+      .attr("stop-color", isDark ? "#c084fc" : "#7e22ce");
 
     const nodeMap = new Map<string, GraphNode>();
     nodes.forEach((n) => nodeMap.set(n.id, n));
@@ -334,18 +334,18 @@ export const D3CareerGraph: React.FC<D3CareerGraphProps> = ({
       const nodeElem = d3.select(this);
 
       let radius = 24;
-      let strokeColor = isDark ? "#8b5cf6" : "#6d28d9";
+      let strokeColor = isDark ? "#a855f7" : "#4c1d95";
       let fillColor = isDark ? "#18181b" : "#f4f4f5";
       let textColor = isDark ? "#ffffff" : "#09090b";
 
       if (d.type === "primary") {
         radius = 32;
-        strokeColor = isDark ? "#a855f7" : "#6d28d9";
-        fillColor = "#6d28d9";
+        strokeColor = isDark ? "#a855f7" : "#4c1d95";
+        fillColor = "#4c1d95";
         textColor = "#ffffff";
       } else if (d.type === "pivot") {
         radius = 26;
-        strokeColor = isDark ? "#c084fc" : "#9333ea";
+        strokeColor = isDark ? "#c084fc" : "#7e22ce";
         fillColor = isDark ? "#2e1065" : "#f3e8ff";
         textColor = isDark ? "#f3e8ff" : "#581c87";
       } else if (d.type === "current") {
@@ -502,7 +502,7 @@ export const D3CareerGraph: React.FC<D3CareerGraphProps> = ({
           <span>Career Pivot Option</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-fuchsia-100 dark:bg-violet-950 border border-purple-400" />
+          <span className="w-3 h-3 rounded-full bg-purple-100 dark:bg-violet-950 border border-purple-400" />
           <span>Future Horizon</span>
         </div>
       </div>

@@ -106,7 +106,7 @@
   }
 
   .btn-primary {
-    @apply relative overflow-hidden px-7 py-3 rounded-xl bg-gradient-to-r from-[#4c1d95] to-[#7e22ce] text-white font-bold tracking-wide text-xs uppercase transition-colors duration-150 shadow-sm hover:from-[#5b21b6] hover:to-[#9333ea] active:scale-[0.99] cursor-pointer inline-flex items-center justify-center;
+    @apply relative overflow-hidden px-7 py-3 rounded-xl bg-gradient-to-r from-[#4c1d95] to-[#7e22ce] text-white font-bold tracking-wide text-xs uppercase transition-colors duration-150 shadow-sm hover:from-[#4c1d95] hover:to-[#6b21a8] active:scale-[0.99] cursor-pointer inline-flex items-center justify-center;
   }
 
   .roadmap-line {
@@ -185,13 +185,10 @@
 
 /* Deepen light-toned violet/purple/crimson accent text on light card surfaces for >=4.5:1 contrast */
 :root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) :where(.text-violet-200, .text-violet-300, .text-violet-400):not(.dark-studio *):not(button.bg-zinc-900 *):not(button.bg-zinc-950 *) {
-  color: #5b21b6;
+  color: #4c1d95;
 }
 :root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) :where(.text-purple-200, .text-purple-300, .text-purple-400):not(.dark-studio *):not(button.bg-zinc-900 *):not(button.bg-zinc-950 *) {
   color: #6b21a8;
-}
-:root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) :where(.text-fuchsia-200, .text-fuchsia-300, .text-fuchsia-400):not(.dark-studio *) {
-  color: #86198f;
 }
 :root:not([data-theme="figma-dark"]) :where(.glass-card, .glass-panel, .light-adaptive) :where(.text-rose-200, .text-rose-300, .text-rose-400):not(.dark-studio *) {
   color: #be123c;
@@ -265,7 +262,7 @@
 }
 
 [data-theme="figma-dark"] .glow-text-accent {
-  @apply text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-purple-400 to-fuchsia-400 font-extrabold;
+  @apply text-transparent bg-clip-text bg-gradient-to-r from-[#a855f7] via-[#c084fc] to-[#7e22ce] font-extrabold;
 }
 
 /* Print-Friendly Mode */

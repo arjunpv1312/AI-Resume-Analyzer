@@ -1,4 +1,3 @@
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { useReactToPrint } from "react-to-print";
@@ -54,7 +53,8 @@ import {
   Share2,
   Users,
   Sliders,
-  Bot
+  Bot,
+  FileSpreadsheet
 } from "lucide-react";
 import { ResumeBuilderModal } from "./components/ResumeBuilderModal";
 import { AtsCopilotChat } from "./components/AtsCopilotChat";
@@ -62,7 +62,6 @@ import { AtsResumeData } from "./utils/docxExport";
 import { D3CareerGraph } from "./components/D3CareerGraph";
 import { FullReportPrintView } from "./components/FullReportPrintView";
 import { ConnectLinkedInModal } from "./components/ConnectLinkedInModal";
-import { ResumeHealthWidget } from "./components/ResumeHealthWidget";
 import { MissingKeywordHelper } from "./components/MissingKeywordHelper";
 import { HistoryComparisonModal } from "./components/HistoryComparisonModal";
 import { LinkedInVerificationModal } from "./components/LinkedInVerificationModal";
@@ -85,15 +84,9 @@ import {
   AtsResumePatch,
 } from "./types";
 import { exportFullReportToDocx } from "./utils/fullReportExport";
-import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, animate } from "motion/react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import {
-  PieChart,
-  Pie,
-  Cell,
   ResponsiveContainer,
-  RadialBarChart,
-  RadialBar,
   Tooltip as RechartsTooltip,
   BarChart,
   Bar,
@@ -137,8 +130,8 @@ const STICKY_COLOR_CONFIG: Record<
 > = {
   yellow: {
     label: "Edit",
-    dotColor: "#7c3aed",
-    headerBg: "bg-violet-600 text-white hover:bg-violet-700",
+    dotColor: "#7e22ce",
+    headerBg: "bg-violet-700 text-white hover:bg-violet-800",
     bodyBg: "bg-violet-50/95 text-zinc-950 border-violet-400",
     borderColor: "border-violet-400",
     textColor: "text-zinc-900",
@@ -147,8 +140,8 @@ const STICKY_COLOR_CONFIG: Record<
   },
   green: {
     label: "Keep",
-    dotColor: "#9333ea",
-    headerBg: "bg-purple-600 text-white hover:bg-purple-700",
+    dotColor: "#6b21a8",
+    headerBg: "bg-purple-700 text-white hover:bg-purple-800",
     bodyBg: "bg-purple-50/95 text-zinc-950 border-purple-400",
     borderColor: "border-purple-400",
     textColor: "text-zinc-900",
@@ -167,8 +160,8 @@ const STICKY_COLOR_CONFIG: Record<
   },
   blue: {
     label: "Idea",
-    dotColor: "#5b21b6",
-    headerBg: "bg-violet-800 text-white hover:bg-violet-900",
+    dotColor: "#4c1d95",
+    headerBg: "bg-violet-900 text-white hover:bg-violet-950",
     bodyBg: "bg-zinc-50/95 text-zinc-950 border-violet-500",
     borderColor: "border-violet-500",
     textColor: "text-zinc-900",
@@ -245,7 +238,6 @@ const INDUSTRY_SKILL_DATABASE: Record<string, { category: string; skills: string
 const GlassCard = ({
   children,
   className = "",
-  delay = 0,
   id,
   style,
 }: {
@@ -255,16 +247,13 @@ const GlassCard = ({
   id?: string;
   style?: React.CSSProperties;
 }) => (
-  <motion.div
+  <div
     id={id}
     style={style}
-    initial={{ opacity: 0, y: 18, scale: 0.99 }}
-    animate={{ opacity: 1, y: 0, scale: 1 }}
-    transition={{ duration: 0.55, delay, ease: [0.16, 1, 0.3, 1] }}
-    className={`glass-card p-8 relative overflow-hidden group ${className}`}
+    className={`glass-card p-6 sm:p-8 relative overflow-hidden ${className}`}
   >
     {children}
-  </motion.div>
+  </div>
 );
 
 const getScoreLevel = (score: number) => {
@@ -301,108 +290,92 @@ const ScoringCircle = ({
   score,
   label,
   color,
-  delay = 0,
+  subtitle,
   tooltip,
 }: {
   score: number;
   label: string;
   color: string;
-  delay: number;
+  delay?: number;
+  subtitle?: string;
   tooltip?: React.ReactNode;
 }) => {
-  const [displayScore, setDisplayScore] = useState(0);
-  const motionVal = useMotionValue(0);
-
-  useEffect(() => {
-    motionVal.set(0);
-    const controls = animate(motionVal, score, {
-      duration: 1.35,
-      delay: Math.max(0, delay) + 0.12,
-      ease: [0.16, 1, 0.3, 1],
-      onUpdate: (latest) => {
-        setDisplayScore(Math.round(latest));
-      },
-    });
-    return () => controls.stop();
-  }, [score, delay, motionVal]);
-
-  const data = [{ name: "Score", value: displayScore, fill: color }];
-  const level = getScoreLevel(displayScore);
-  const isNeedsOptimization = displayScore < 70;
+  const clampedScore = Math.max(0, Math.min(100, Math.round(score)));
+  const arcLength = Math.PI * 54; // ~169.65 for radius 54 semicircle
+  const dashOffset = arcLength * (1 - clampedScore / 100);
+  const level = getScoreLevel(clampedScore);
+  const isNeedsOptimization = clampedScore < 70;
+  const strokeColor = isNeedsOptimization ? "#e11d48" : color;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 14, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.6, delay: Math.max(0, delay), ease: [0.16, 1, 0.3, 1] }}
-      className="flex flex-col items-center justify-center relative w-full pt-4 pb-2 group"
-    >
-      <div className="h-40 w-full max-w-[220px] relative overflow-hidden -mb-10">
-        <ResponsiveContainer width="100%" height="200%">
-          <RadialBarChart
-            cx="50%"
-            cy="50%"
-            innerRadius="75%"
-            outerRadius="100%"
-            barSize={14}
-            data={data}
-            startAngle={180}
-            endAngle={180 - 1.8 * displayScore}
-          >
-            <RadialBar
-              background={{ fill: "rgba(113,113,122,0.14)" }}
-              dataKey="value"
-              cornerRadius={8}
-            />
-          </RadialBarChart>
-        </ResponsiveContainer>
-        <div className="absolute inset-0 flex flex-col items-center justify-start pt-16">
-          <motion.span
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: Math.max(0, delay) + 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="text-5xl font-black font-display flex flex-col items-center leading-none text-zinc-950 dark:text-white tracking-tighter"
-          >
-            <span className="tabular-nums font-mono">{displayScore}</span>
-            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-sans tracking-widest uppercase mt-2">
-              out of 100
-            </span>
-          </motion.span>
-        </div>
-        <div className="absolute bottom-11 w-full flex justify-between px-6 text-[9px] font-black tracking-widest text-zinc-400 dark:text-zinc-500">
-          <span>0</span>
-          <span>100</span>
+    <div className="flex flex-col items-center justify-center relative w-full pt-2 pb-1">
+      <div className="w-full max-w-[210px] relative flex flex-col items-center">
+        <svg
+          viewBox="0 0 140 82"
+          className="w-full h-auto overflow-visible"
+          role="img"
+          aria-label={`${label || "Score"}: ${clampedScore} out of 100`}
+        >
+          <path
+            d="M 16 72 A 54 54 0 0 1 124 72"
+            fill="none"
+            stroke="rgba(113,113,122,0.18)"
+            strokeWidth="11"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 16 72 A 54 54 0 0 1 124 72"
+            fill="none"
+            stroke={strokeColor}
+            strokeWidth="11"
+            strokeLinecap="round"
+            strokeDasharray={arcLength}
+            strokeDashoffset={dashOffset}
+          />
+        </svg>
+
+        <div className="absolute inset-x-0 bottom-2 flex flex-col items-center justify-center">
+          <span className="text-4xl font-black font-display leading-none text-zinc-950 dark:text-white tracking-tight tabular-nums font-mono">
+            {clampedScore}
+          </span>
+          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold tracking-wider uppercase mt-1">
+            out of 100
+          </span>
         </div>
       </div>
 
-      <div className="mt-10 flex flex-col items-center justify-center gap-2.5">
-        <motion.div
-          initial={{ y: 6, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.45, delay: Math.max(0, delay) + 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className={`px-5 py-1.5 rounded-full border shadow-sm ${level.bg} ${level.border} transition-all duration-300`}
+      <div className="mt-3 flex flex-col items-center justify-center gap-1.5 text-center">
+        <div
+          className={`px-3.5 py-1 rounded-lg border ${level.bg} ${level.border}`}
         >
           <span
-            className={`text-xs font-black uppercase tracking-widest ${level.color}`}
+            className={`text-[11px] font-bold uppercase tracking-wider ${level.color}`}
           >
-            Level: {level.label}
+            {level.label}
           </span>
-        </motion.div>
+        </div>
+
         {isNeedsOptimization && (
-          <div className="px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-[9px] font-black uppercase text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-600 dark:bg-rose-400" />
-            <span>Optimization Needed (&lt;70%)</span>
+          <div className="text-[11px] font-semibold text-rose-700 dark:text-rose-400">
+            Below 70% threshold · Needs improvement
           </div>
         )}
+
+        {subtitle && (
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-snug max-w-[230px] mt-1">
+            {subtitle}
+          </p>
+        )}
+
         {label && (
-          <div className="flex items-center gap-1.5 mt-2">
+          <div className="flex items-center gap-1.5 mt-1">
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
               {label}
             </p>
             {tooltip && (
               <div className="group/tooltip relative cursor-help">
-                <Info className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 bg-zinc-950 text-zinc-100 text-[11px] font-medium p-4 rounded-xl opacity-0 group-hover/tooltip:opacity-100 transition-all pointer-events-none z-50 border border-zinc-800 shadow-2xl leading-relaxed text-center">
+                <Info className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500 hover:text-violet-700 dark:hover:text-violet-400 transition-colors duration-150" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 bg-zinc-950 text-zinc-100 text-[11px] font-medium p-3.5 rounded-xl opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-150 pointer-events-none z-50 border border-zinc-800 shadow-2xl leading-relaxed text-center">
                   <strong className="text-violet-400 block mb-1 uppercase tracking-widest text-[9px] font-black">What this means</strong>
                   {tooltip}
                   <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-zinc-950 rotate-45 border-r border-b border-zinc-800"></div>
@@ -412,7 +385,7 @@ const ScoringCircle = ({
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 };
 
@@ -545,11 +518,8 @@ const SkillCloud = ({
           }
 
           return (
-            <motion.span
+            <span
               key={`${skill.text}-${i}`}
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.015, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
               onClick={() => {
                 if ((isMissing || skill.isPassive) && onSkillClick) {
                   onSkillClick(skill.text);
@@ -566,7 +536,7 @@ const SkillCloud = ({
               }
               className={`inline-flex items-center rounded-xl px-3 py-1.5 ${styleClasses} ${
                 isMissing || skill.isPassive ? "cursor-pointer" : "cursor-default"
-              } font-bold uppercase tracking-wider hover:scale-[1.03] hover:z-10 transition-transform relative`}
+              } font-bold uppercase tracking-wider transition-colors duration-150 relative`}
               style={{
                 fontSize: `${size}px`,
               }}
@@ -587,7 +557,7 @@ const SkillCloud = ({
                   Frame
                 </span>
               )}
-            </motion.span>
+            </span>
           );
         })}
       </div>
@@ -658,8 +628,8 @@ function SkillDemandTrend({ role }: { role: string }) {
             >
               <defs>
                 <linearGradient id="colorDemand" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.32} />
-                  <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#7e22ce" stopOpacity={0.32} />
+                  <stop offset="95%" stopColor="#7e22ce" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid
@@ -701,7 +671,8 @@ function SkillDemandTrend({ role }: { role: string }) {
               <Area
                 type="monotone"
                 dataKey="demand"
-                stroke="#7c3aed"
+                isAnimationActive={false}
+                stroke="#7e22ce"
                 strokeWidth={2.5}
                 fillOpacity={1}
                 fill="url(#colorDemand)"
@@ -771,7 +742,7 @@ export default function App() {
       return "canva-light";
     }
   });
-  const [activeStudioTab, setActiveStudioTab] = useState<"scorecard" | "canvas" | "skills" | "career" | "recruiter" | "all">("scorecard");
+  const [activeStudioTab, setActiveStudioTab] = useState<"scorecard" | "skills" | "career" | "canvas">("scorecard");
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -828,10 +799,22 @@ export default function App() {
     }
   };
 
-  // Skill visualization mode (D3 force-directed network graph vs flat cloud list)
-  const [skillVisualizationMode, setSkillVisualizationMode] = useState<"network" | "cloud">("network");
+  // Skill visualization mode (clean cloud default, optional D3 force network)
+  const [skillVisualizationMode, setSkillVisualizationMode] = useState<"network" | "cloud">("cloud");
+  const [linkedInSubView, setLinkedInSubView] = useState<"network" | "trust">("trust");
 
   const handleVerifyLinkedInTrust = async (customUrl?: string, customData?: string) => {
+    const targetUrl = (customUrl !== undefined ? customUrl : linkedinUrl).trim();
+    const targetData = (customData !== undefined ? customData : linkedinData).trim();
+
+    if (!targetUrl && !targetData) {
+      setLinkedInTrustScore(null);
+      setLinkedInTrustReport(null);
+      setIsVerifyingLinkedInTrust(false);
+      setIsLinkedInVerificationModalOpen(true);
+      return;
+    }
+
     setIsVerifyingLinkedInTrust(true);
     try {
       let extractedResumeText = result?.summary || "";
@@ -849,13 +832,6 @@ export default function App() {
       if (!extractedResumeText && jobDescription) {
         extractedResumeText = jobDescription;
       }
-
-      const targetUrl =
-        (customUrl !== undefined ? customUrl : linkedinUrl).trim() ||
-        "https://www.linkedin.com/in/alexmercer-tech";
-      const targetData =
-        (customData !== undefined ? customData : linkedinData).trim() ||
-        "Headline: Senior Staff Software Engineer & Cloud Architect | Distributed Systems, Node.js, AWS\nAbout: 8+ years architecting high-throughput cloud infrastructure and leading engineering teams.";
 
       let savedWeights = null;
       try {
@@ -878,8 +854,8 @@ export default function App() {
       });
 
       const data = await response.json();
-      if (response.ok && data) {
-        const score = data.credibilityScore ?? data.trustScore ?? 88;
+      if (response.ok && data && data.status !== "missing" && data.credibilityScore !== null && data.trustScore !== null) {
+        const score = data.credibilityScore ?? data.trustScore;
         setLinkedInTrustScore(score);
         setLinkedInTrustReport(data);
         sessionStorage.setItem("current_linkedin_trust_score", String(score));
@@ -900,6 +876,9 @@ export default function App() {
         } catch {
           // ignore
         }
+      } else {
+        setLinkedInTrustScore(null);
+        setLinkedInTrustReport(null);
       }
     } catch (err) {
       console.error("Failed to verify LinkedIn Trust Score:", err);
@@ -1040,20 +1019,19 @@ export default function App() {
     "sticky",
   );
   const [highlightColor, setHighlightColor] = useState<string>(
-    "rgba(139, 92, 246, 0.35)",
+    "rgba(126, 34, 206, 0.35)",
   );
   const [visibleStickyNotes, setVisibleStickyNotes] = useState(true);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [visibleHighlightColors, setVisibleHighlightColors] = useState<string[]>([
-    "rgba(139, 92, 246, 0.35)",
+    "rgba(126, 34, 206, 0.35)",
     "rgba(168, 85, 247, 0.35)",
-    "rgba(109, 40, 217, 0.32)",
+    "rgba(76, 29, 149, 0.32)",
     "rgba(225, 29, 72, 0.32)",
   ]);
   const [batchInput, setBatchInput] = useState("");
   const [batchFeedback, setBatchFeedback] = useState<string | null>(null);
   const [activeBatchKeywords, setActiveBatchKeywords] = useState<{ keyword: string; color: string }[]>([]);
-  const [isPrintFriendly, setIsPrintFriendly] = useState(false);
   const [isBatchSuggestOpen, setIsBatchSuggestOpen] = useState(false);
   const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
   const [isResumeBuilderOpen, setIsResumeBuilderOpen] = useState(false);
@@ -1088,18 +1066,6 @@ export default function App() {
     setPendingPatchToApply({ patch, messageId });
     setIsCopilotDrawerOpen(false);
     setIsResumeBuilderOpen(true);
-  };
-
-  const togglePrintFriendlyTheme = () => {
-    setIsPrintFriendly((prev) => {
-      const next = !prev;
-      if (next) {
-        document.documentElement.classList.add("print-friendly-mode");
-      } else {
-        document.documentElement.classList.remove("print-friendly-mode");
-      }
-      return next;
-    });
   };
 
   const getMatchedIndustrySkills = useCallback(
@@ -1279,9 +1245,9 @@ export default function App() {
   }, []);
 
   const colorPalette = [
-    "rgba(139, 92, 246, 0.35)",
+    "rgba(126, 34, 206, 0.35)",
     "rgba(168, 85, 247, 0.35)",
-    "rgba(109, 40, 217, 0.32)",
+    "rgba(76, 29, 149, 0.32)",
     "rgba(225, 29, 72, 0.32)",
   ];
 
@@ -1400,66 +1366,8 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [pageNumber, activeBatchKeywords, findKeywordRectsInContainer]);
   const [isExecutiveMode, setIsExecutiveMode] = useState(false);
-  const [sectionOrder, setSectionOrder] = useState([
-    'career-progress',
-    'scoring-infrastructure',
-    'career-progression',
-    'skill-vector-engine',
-    'optimization-plan',
-    'career-simulator'
-  ]);
-
-  // Section expand / collapse state for decluttering dashboard workspace
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
-    try {
-      const saved = localStorage.getItem("resume_dashboard_collapsed_sections");
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) {
-      return {};
-    }
-  });
-
-  const toggleSection = (sectionId: string) => {
-    setCollapsedSections((prev) => {
-      const next = { ...prev, [sectionId]: !prev[sectionId] };
-      try {
-        localStorage.setItem("resume_dashboard_collapsed_sections", JSON.stringify(next));
-      } catch (e) {}
-      return next;
-    });
-  };
-
-  const setAllSectionsCollapsed = (collapsed: boolean) => {
-    const allIds = [
-      "executive-summary",
-      "career-progress",
-      "scoring-infrastructure",
-      "career-progression",
-      "skill-vector-engine",
-      "optimization-plan",
-      "linkedin-network",
-    ];
-    const next: Record<string, boolean> = {};
-    allIds.forEach((id) => {
-      next[id] = collapsed;
-    });
-    setCollapsedSections(next);
-    try {
-      localStorage.setItem("resume_dashboard_collapsed_sections", JSON.stringify(next));
-    } catch (e) {}
-  };
-
   // LinkedIn View Mode: "network" (Referral Connection Graph) or "badge" (Profile Trust Badge)
-  const [linkedInViewTab, setLinkedInViewTab] = useState<"network" | "badge">("network");
-  
-  const handleDragEnd = (result: any) => {
-    if (!result.destination) return;
-    const items = Array.from(sectionOrder);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-    setSectionOrder(items);
-  };
-  const [isQuickLinksOpen, setIsQuickLinksOpen] = useState(false);
+  const [linkedInViewTab, setLinkedInViewTab] = useState<"network" | "badge">("badge");
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }): void {
     setNumPages(numPages);
@@ -2238,6 +2146,13 @@ export default function App() {
     document.body.removeChild(link);
   };
 
+  const hasLinkedInConnected = Boolean(
+    linkedinUrl.trim() ||
+    linkedinData.trim() ||
+    result?.linkedinComparison?.hasLinkedIn ||
+    linkedInTrustScore !== null
+  );
+
   return (
     <div className="min-h-screen">
       <div className="bg-gradient-body"></div>
@@ -2358,15 +2273,9 @@ export default function App() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-6 py-12">
-        <AnimatePresence>
-          {isGuideOpen && (
-            <div key="guide-modal" className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/75 backdrop-blur-sm overflow-y-auto">
-              <motion.div
-                initial={{ scale: 0.96, opacity: 0, y: 12 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.96, opacity: 0, y: 12 }}
-                className="max-w-4xl w-full bg-white dark:bg-[#111116] rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl p-8 md:p-12 space-y-8 my-auto"
-              >
+        {isGuideOpen && (
+          <div key="guide-modal" className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/75 backdrop-blur-sm overflow-y-auto">
+            <div className="max-w-4xl w-full bg-white dark:bg-[#111116] rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl p-8 md:p-12 space-y-8 my-auto">
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="text-3xl font-black text-zinc-950 dark:text-white font-display uppercase tracking-tighter mb-2">
@@ -2548,17 +2457,13 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             </div>
           )}
 
           {isLinkedInModalOpen && (
             <div key="linkedin-post-modal" className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/75 backdrop-blur-sm">
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="max-w-xl w-full bg-white dark:bg-[#111116] rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl p-10 space-y-6"
-              >
+              <div className="max-w-xl w-full bg-white dark:bg-[#111116] rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl p-10 space-y-6">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xl font-black text-zinc-950 dark:text-white uppercase tracking-tighter">
                     LinkedIn Post Content
@@ -2579,7 +2484,7 @@ export default function App() {
                 >
                   {copiedText ? "Copied!" : "Copy to Clipboard"}
                 </button>
-              </motion.div>
+              </div>
             </div>
           )}
 
@@ -2730,7 +2635,7 @@ export default function App() {
             credibilityScore={linkedInTrustScore}
             credibilityTier={linkedInTrustReport?.credibilityTier}
             linkedinUrl={linkedinUrl}
-            candidateName={linkedInTrustReport?.candidateName || (file ? file.name.replace(/\.[^/.]+$/, "") : "Executive Candidate")}
+            candidateName={linkedInTrustReport?.candidateName || (file ? file.name.replace(/\.[^/.]+$/, "") : "Candidate")}
             targetRole={result?.careerPath?.topRole || "Senior Technology Leader"}
             trustFactors={linkedInTrustReport?.trustFactors}
           />
@@ -2743,7 +2648,7 @@ export default function App() {
             onOpenShareModal={() => setIsShareTrustScoreOpen(true)}
             credibilityScore={linkedInTrustScore}
             credibilityTier={linkedInTrustReport?.credibilityTier}
-            candidateName={linkedInTrustReport?.candidateName || (file ? file.name.replace(/\.[^/.]+$/, "") : "Alex Mercer")}
+            candidateName={linkedInTrustReport?.candidateName || (file ? file.name.replace(/\.[^/.]+$/, "") : "Candidate")}
             targetRole={result?.careerPath?.topRole || "Executive Leadership"}
           />
 
@@ -2757,7 +2662,7 @@ export default function App() {
               fileName={file?.name}
               linkedinUrl={linkedinUrl}
               linkedInTrustScore={linkedInTrustScore}
-              candidateName={linkedInTrustReport?.candidateName || (file ? file.name.replace(/\.[^/.]+$/, "") : "Alex Mercer")}
+              candidateName={linkedInTrustReport?.candidateName || (file ? file.name.replace(/\.[^/.]+$/, "") : "Candidate")}
             />
           </PanelErrorBoundary>
 
@@ -2781,11 +2686,7 @@ export default function App() {
 
           {isPurgePromptOpen && (
             <div key="purge-prompt-modal" className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/75 backdrop-blur-sm">
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="max-w-md w-full bg-white dark:bg-[#111116] rounded-3xl border border-rose-500/35 p-10 space-y-6 shadow-2xl"
-              >
+              <div className="max-w-md w-full bg-white dark:bg-[#111116] rounded-3xl border border-rose-500/35 p-10 space-y-6 shadow-2xl">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-rose-500/10 flex items-center justify-center">
@@ -2812,27 +2713,24 @@ export default function App() {
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     onClick={() => setIsPurgePromptOpen(false)}
-                    className="py-3 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white font-bold text-[11px] uppercase tracking-widest transition-all cursor-pointer"
+                    className="py-3 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white font-bold text-[11px] uppercase tracking-widest transition-colors duration-150 cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={purgeSession}
-                    className="py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] uppercase tracking-widest transition-all shadow-sm cursor-pointer"
+                    className="py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] uppercase tracking-widest transition-colors duration-150 shadow-sm cursor-pointer"
                   >
                     Delete Data
                   </button>
                 </div>
-              </motion.div>
+              </div>
             </div>
           )}
 
           {isHistoryOpen && (
-            <motion.div
+            <div
               key="history-drawer"
-              initial={{ opacity: 0, x: 100 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 100 }}
               className="fixed inset-y-0 right-0 w-96 bg-white/95 dark:bg-[#09090b]/95 backdrop-blur-3xl border-l border-zinc-200 dark:border-zinc-800 z-[60] shadow-2xl p-6 overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
@@ -2851,7 +2749,7 @@ export default function App() {
               {result && (
                 <button
                   onClick={() => takeSnapshot()}
-                  className="w-full mb-6 py-2.5 px-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 cursor-pointer"
+                  className="w-full mb-6 py-2.5 px-3 rounded-xl bg-violet-700 hover:bg-violet-600 text-white font-extrabold text-xs uppercase tracking-wider transition-colors duration-150 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
                 >
                   <BookmarkPlus className="w-4 h-4" />
                   Snapshot Current State
@@ -2868,10 +2766,7 @@ export default function App() {
               ) : (
                 <div className="relative pl-6 space-y-6 before:absolute before:inset-y-0 before:left-[11px] before:w-px before:bg-gradient-to-b before:from-violet-600/50 before:to-transparent">
                   {history.map((item, mapIdx) => (
-                    <motion.div
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: mapIdx * 0.06 }}
+                    <div
                       key={item.id + "-" + mapIdx}
                       onClick={() => {
                         setResult(item.result);
@@ -2971,7 +2866,7 @@ export default function App() {
                           <Highlighter className="w-2.5 h-2.5" /> {item.highlights?.length || 0} Highlights
                         </span>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -2996,21 +2891,19 @@ export default function App() {
                       setIsComparisonModalOpen(true);
                       setIsHistoryOpen(false);
                     }}
-                    className="w-full py-3 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-violet-700 dark:text-violet-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    className="w-full py-3 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-violet-700 dark:text-violet-300 text-xs font-bold flex items-center justify-center gap-2 transition-colors duration-150 cursor-pointer"
                   >
                     <Layers className="w-4 h-4" />
                     <span>Side-by-Side Version Comparison</span>
                   </button>
                 </div>
               ) : null}
-            </motion.div>
+            </div>
           )}
 
           {compareIds.length >= 2 && !result && (
-            <motion.div
+            <div
               key="delta-comparison-view"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
               className="fixed inset-0 z-[70] bg-zinc-50 dark:bg-[#09090b] flex flex-col p-12 overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-12">
@@ -3046,14 +2939,12 @@ export default function App() {
                               {new Date(item.date).toLocaleDateString()}
                             </span>
                             {idx > 0 && scoreDiff !== 0 && (
-                              <motion.span
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
+                              <span
                                 className={`px-2 py-0.5 rounded-full text-[9px] font-black ${scoreDiff > 0 ? "bg-violet-500/15 text-violet-700 dark:text-violet-300" : "bg-rose-500/15 text-rose-700 dark:text-rose-400"}`}
                               >
                                 {scoreDiff > 0 ? "+" : ""}
                                 {scoreDiff} pts
-                              </motion.span>
+                              </span>
                             )}
                           </p>
                           <h3 className="text-xl font-black text-zinc-950 dark:text-white truncate">
@@ -3184,94 +3075,61 @@ export default function App() {
                     );
                   })}
               </div>
-            </motion.div>
+            </div>
           )}
 
           {isSessionPurged && (
-            <motion.div
+            <div
               key="session-purged-toast"
-              initial={{ opacity: 0, y: -24 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -24 }}
               className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-zinc-950 dark:bg-violet-700 text-white border border-violet-500/40 px-8 py-3 rounded-2xl shadow-2xl flex items-center gap-3 font-black uppercase tracking-widest text-xs"
             >
               <ShieldCheck className="h-5 w-5 text-violet-300" />
               Memory Purged Successfully
-            </motion.div>
+            </div>
           )}
 
           {snapshotToast && (
-            <motion.div
+            <div
               key="snapshot-toast"
-              initial={{ opacity: 0, y: 24, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 24, scale: 0.96 }}
               className="fixed bottom-8 right-8 z-[100] bg-zinc-950 text-white border border-violet-500/40 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-xs uppercase tracking-wide"
             >
               <BookmarkPlus className="w-5 h-5 text-violet-400 shrink-0" />
               <span>{snapshotToast}</span>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
 
-        <AnimatePresence mode="wait">
           {!result ? (
-            <motion.div
+            <div
               key="landing"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, y: -20 }}
               className="max-w-4xl mx-auto"
             >
               {/* Hero Section */}
               <div className="text-center mb-16 relative">
-                <motion.h2
-                  initial={{ opacity: 0, y: 24 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-                  className="text-5xl md:text-[4.5rem] lg:text-[5.5rem] font-black font-display text-transparent bg-clip-text bg-gradient-to-b from-zinc-950 to-zinc-700 dark:from-white dark:to-zinc-300 mb-8 tracking-tighter leading-[1.05]"
-                >
+                <h2 className="text-5xl md:text-[4.5rem] lg:text-[5.5rem] font-black font-display text-transparent bg-clip-text bg-gradient-to-b from-zinc-950 to-zinc-700 dark:from-white dark:to-zinc-300 mb-8 tracking-tighter leading-[1.05]">
                   Dominate the Executive Search.
                   <br />
                   <span className="glow-text-accent relative inline-block mt-2">
                     Secure Your Next Leadership Role.
-                    <motion.div
-                      initial={{ scaleX: 0, opacity: 0 }}
-                      animate={{ scaleX: 1, opacity: 0.6 }}
-                      transition={{ duration: 0.9, delay: 0.5, ease: "easeOut" }}
-                      className="absolute -bottom-2 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-violet-600 to-transparent origin-left"
-                    />
+                    <div className="absolute -bottom-2 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-purple-700 to-transparent opacity-60" />
                   </span>
-                </motion.h2>
-                <motion.p
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.7, delay: 0.35, ease: "easeOut" }}
-                  className="text-zinc-600 dark:text-zinc-400 text-lg md:text-xl max-w-3xl mx-auto font-medium leading-relaxed tracking-wide"
-                >
+                </h2>
+                <p className="text-zinc-600 dark:text-zinc-400 text-lg md:text-xl max-w-3xl mx-auto font-medium leading-relaxed tracking-wide">
                   Upload your executive brief and target mandate. Our AI
                   assesses your strategic positioning against top-tier search firm
                   criteria, identifies critical capability gaps, and provides
                   board-ready narrative recommendations to solidify your candidacy.
-                </motion.p>
+                </p>
 
                 {/* Floating 'Verify with LinkedIn' Action Badge (Pre-Upload Instant Trigger) */}
-                <motion.div
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                  className="mt-8 flex justify-center"
-                >
-                  <motion.button
+                <div className="mt-8 flex justify-center">
+                  <button
                     id="hero-verify-linkedin-badge"
                     type="button"
                     onClick={() => setIsLinkedInVerificationModalOpen(true)}
-                    whileHover={{ y: -2, scale: 1.01 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="group inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2.5 min-h-[44px] max-w-full rounded-full bg-white/95 dark:bg-[#111116]/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 hover:border-violet-600/60 dark:hover:border-violet-400/70 shadow-[0_10px_28px_-10px_rgba(9,9,11,0.16)] dark:shadow-[0_14px_34px_-10px_rgba(124,58,237,0.28)] transition-colors cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950"
-                    title="Verify your LinkedIn profile and inspect your real-time Credibility Score before uploading a resume"
+                    className="group inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2.5 min-h-[44px] max-w-full rounded-full bg-white/95 dark:bg-[#111116]/95 border border-zinc-200 dark:border-zinc-800 hover:border-purple-700/60 dark:hover:border-purple-400/70 shadow-sm transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-700 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950"
+                    title="Verify your LinkedIn profile before uploading a resume (optional)"
                   >
-                    <span className="w-7 h-7 rounded-full bg-violet-600/10 dark:bg-violet-500/20 flex items-center justify-center text-violet-700 dark:text-violet-300 shrink-0">
+                    <span className="w-7 h-7 rounded-full bg-purple-700/10 dark:bg-purple-500/20 flex items-center justify-center text-purple-800 dark:text-purple-300 shrink-0">
                       <svg
                         width="15"
                         height="15"
@@ -3283,25 +3141,25 @@ export default function App() {
                       </svg>
                     </span>
 
-                    <span className="text-xs font-extrabold tracking-wide text-zinc-950 dark:text-white group-hover:text-violet-700 dark:group-hover:text-violet-300 transition-colors">
+                    <span className="text-xs font-extrabold tracking-wide text-zinc-950 dark:text-white group-hover:text-purple-800 dark:group-hover:text-purple-300 transition-colors duration-150">
                       Verify with LinkedIn
                     </span>
 
                     <span aria-hidden="true" className="h-4 w-px bg-zinc-200 dark:bg-zinc-700" />
 
                     <span className="inline-flex items-center gap-1.5 font-mono tabular-nums">
-                      <ShieldCheck className="w-4 h-4 text-violet-700 dark:text-violet-400 shrink-0" />
-                      <span className="text-xs font-black text-violet-700 dark:text-violet-300">
-                        {linkedInTrustScore !== null ? `${linkedInTrustScore}%` : "~84%"}
+                      <ShieldCheck className="w-4 h-4 text-purple-800 dark:text-purple-400 shrink-0" />
+                      <span className="text-xs font-black text-purple-800 dark:text-purple-300">
+                        {linkedInTrustScore !== null ? `${linkedInTrustScore}%` : "Verify Profile"}
                       </span>
                       <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
-                        {linkedInTrustScore !== null ? "Verified Trust" : "Est. Trust"}
+                        {linkedInTrustScore !== null ? "Verified Trust" : "Optional Check"}
                       </span>
                     </span>
 
-                    <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-violet-700 dark:group-hover:text-violet-300 group-hover:translate-x-0.5 transition-all shrink-0" />
-                  </motion.button>
-                </motion.div>
+                    <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-purple-800 dark:group-hover:text-purple-300 transition-colors duration-150 shrink-0" />
+                  </button>
+                </div>
               </div>
 
               {/* Upload Interface */}
@@ -3309,24 +3167,22 @@ export default function App() {
                 <GlassCard delay={0.1}>
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                      <Layers className="h-4 w-4 text-violet-700 dark:text-violet-400" />
+                      <Layers className="h-4 w-4 text-purple-800 dark:text-purple-400" />
                       Resume Upload
                     </h3>
                   </div>
-                  <motion.div
+                  <div
                     {...(getRootProps() as any)}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    className={`group relative rounded-2xl transition-all cursor-pointer text-center h-[14rem] flex flex-col items-center justify-center overflow-hidden
-                      ${isDragReject ? "bg-rose-500/10 border-rose-500/50" : isDragActive ? "bg-violet-500/10 border-violet-500/50" : "bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900/50 dark:hover:bg-zinc-900"}`}
+                    className={`group relative rounded-2xl transition-colors duration-150 cursor-pointer text-center h-[14rem] flex flex-col items-center justify-center overflow-hidden
+                      ${isDragReject ? "bg-rose-500/10 border-rose-500/50" : isDragActive ? "bg-purple-500/10 border-purple-500/50" : "bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900/50 dark:hover:bg-zinc-900"}`}
                   >
                     <div
-                      className="absolute inset-0 border-2 border-dashed rounded-2xl opacity-60 transition-colors duration-300 group-hover:border-violet-600/60"
+                      className="absolute inset-0 border-2 border-dashed rounded-2xl opacity-60 transition-colors duration-150 group-hover:border-purple-700/60"
                       style={{
                         borderColor: isDragReject
                           ? "#e11d48"
                           : isDragActive
-                            ? "#7c3aed"
+                            ? "#7e22ce"
                             : currentTheme === "figma-dark"
                               ? "rgba(255,255,255,0.18)"
                               : "rgba(113,113,122,0.38)",
@@ -3393,7 +3249,7 @@ export default function App() {
                         </div>
                       )}
                     </div>
-                  </motion.div>
+                  </div>
 
                   <div className="flex justify-center mt-3">
                     <button
@@ -3526,12 +3382,10 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         </div>
                       ) : (
                         <div className="flex flex-col sm:flex-row items-stretch gap-2">
-                          <motion.button
+                          <button
                             type="button"
-                            whileHover={{ scale: 1.01 }}
-                            whileTap={{ scale: 0.99 }}
                             onClick={() => setIsConnectLinkedInModalOpen(true)}
-                            className="flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl border transition-all bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 cursor-pointer whitespace-nowrap"
+                            className="flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl border transition-colors duration-150 bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-900 dark:hover:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 cursor-pointer whitespace-nowrap"
                           >
                             <svg
                               width="16"
@@ -3539,14 +3393,14 @@ AWS Certified Solutions Architect – Associate (2022)`;
                               viewBox="0 0 24 24"
                               fill="currentColor"
                               aria-hidden="true"
-                              className="shrink-0 text-violet-700 dark:text-violet-400"
+                              className="shrink-0 text-purple-800 dark:text-purple-400"
                             >
                               <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
                             </svg>
                             <span className="text-xs font-bold tracking-wide">
                               Connect LinkedIn Profile
                             </span>
-                          </motion.button>
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleVerifyLinkedInTrust()}
@@ -3757,9 +3611,9 @@ Qualifications:
                             {annotationMode === "highlight" && (
                               <div className="flex items-center gap-1 ml-2 pl-2 border-l border-zinc-200 dark:border-zinc-700">
                                 {[
-                                  "rgba(139, 92, 246, 0.35)",
+                                  "rgba(126, 34, 206, 0.35)",
                                   "rgba(168, 85, 247, 0.35)",
-                                  "rgba(109, 40, 217, 0.32)",
+                                  "rgba(76, 29, 149, 0.32)",
                                   "rgba(225, 29, 72, 0.32)",
                                 ].map((color) => (
                                   <button
@@ -3782,9 +3636,9 @@ Qualifications:
                               </button>
                               <div className="flex items-center gap-1 ml-1 bg-zinc-200/70 dark:bg-white/5 rounded-md p-1">
                                 {[
-                                  "rgba(139, 92, 246, 0.35)",
+                                  "rgba(126, 34, 206, 0.35)",
                                   "rgba(168, 85, 247, 0.35)",
-                                  "rgba(109, 40, 217, 0.32)",
+                                  "rgba(76, 29, 149, 0.32)",
                                   "rgba(225, 29, 72, 0.32)",
                                 ].map((color) => {
                                   const isVisible = visibleHighlightColors.includes(color);
@@ -4191,7 +4045,7 @@ Qualifications:
                                           } else {
                                             handleBatchHighlight(
                                               sk,
-                                              "rgba(139, 92, 246, 0.35)",
+                                              "rgba(126, 34, 206, 0.35)",
                                             );
                                           }
                                         }}
@@ -4249,7 +4103,7 @@ Qualifications:
                                         if (isHighlighted) {
                                           clearBatchHighlight(kw);
                                         } else {
-                                          handleBatchHighlight(kw, "rgba(109, 40, 217, 0.32)");
+                                          handleBatchHighlight(kw, "rgba(76, 29, 149, 0.32)");
                                         }
                                       }}
                                       className={`px-2.5 py-1 rounded-md border text-[10px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -4440,20 +4294,15 @@ Qualifications:
                                 ))}
                               </div>
                             ))}
-                          <AnimatePresence>
                             {visibleStickyNotes && stickyNotes
                               .filter((n) => n.pageNumber === pageNumber)
                               .map((note, noteIdx) => {
                                 const colorKey = note.color && STICKY_COLOR_CONFIG[note.color] ? note.color : "yellow";
                                 const conf = STICKY_COLOR_CONFIG[colorKey];
                                 return (
-                                  <motion.div
+                                  <div
                                     key={`note-${note.id || noteIdx}-${noteIdx}`}
-                                    initial={{ scale: 0.3, opacity: 0, y: -15 }}
-                                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                                    exit={{ scale: 0.2, opacity: 0, transition: { duration: 0.15 } }}
-                                    transition={{ type: "spring", stiffness: 450, damping: 25 }}
-                                    className={`sticky-note absolute z-50 rounded-xl ${conf.bodyBg} backdrop-blur-md shadow-2xl border ${conf.borderColor} overflow-hidden transform transition-all hover:scale-[1.02]`}
+                                    className={`sticky-note absolute z-50 rounded-xl ${conf.bodyBg} backdrop-blur-md shadow-2xl border ${conf.borderColor} overflow-hidden transition-colors duration-150`}
                                     style={{
                                       left: note.x,
                                       top: note.y,
@@ -4555,10 +4404,9 @@ Qualifications:
                                         </div>
                                       </div>
                                     )}
-                                  </motion.div>
+                                  </div>
                                 );
                               })}
-                          </AnimatePresence>
                         </div>
 
                         {/* Page Summary & Notes Input Field */}
@@ -4863,11 +4711,7 @@ Qualifications:
                   )}
                 </button>
                 {error && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 8 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    className="mt-8 max-w-2xl mx-auto p-5 rounded-2xl border text-left flex items-start gap-4 transition-all relative bg-rose-500/10 border-rose-500/25 text-rose-700 dark:text-rose-300 shadow-xl shadow-rose-500/5"
-                  >
+                  <div className="mt-8 max-w-2xl mx-auto p-5 rounded-2xl border text-left flex items-start gap-4 transition-colors duration-150 relative bg-rose-500/10 border-rose-500/25 text-rose-700 dark:text-rose-300 shadow-sm">
                     <div className="shrink-0 mt-0.5">
                       <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-600 dark:text-rose-400">
                         <AlertCircle className="h-5 w-5" />
@@ -4889,7 +4733,7 @@ Qualifications:
                             type="button"
                             onClick={analyzeResume}
                             disabled={isAnalyzing}
-                            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-violet-700 to-purple-700 hover:from-violet-600 hover:to-purple-600 text-white text-[11px] font-black flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+                            className="px-3 py-1.5 rounded-xl bg-[#4c1d95] hover:bg-[#7e22ce] text-white text-[11px] font-black flex items-center gap-1.5 transition-colors duration-150 shadow-sm cursor-pointer"
                           >
                             <RefreshCw className="w-3.5 h-3.5" />
                             <span>Retry Analysis</span>
@@ -4902,22 +4746,22 @@ Qualifications:
                     <button
                       type="button"
                       onClick={() => setError(null)}
-                      className="absolute top-4 right-4 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                      className="absolute top-4 right-4 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white p-1 rounded-lg hover:bg-zinc-200/60 dark:hover:bg-white/10 transition-colors duration-150 cursor-pointer"
                       title="Dismiss error message"
                     >
                       <X className="w-4 h-4" />
                     </button>
-                  </motion.div>
+                  </div>
                 )}
               </div>
 
               {/* Trust & How It Works */}
-              <div className="mt-32 pt-16 border-t border-slate-200 dark:border-white/10">
+              <div className="mt-32 pt-16 border-t border-zinc-200 dark:border-white/10">
                 <div className="text-center mb-16">
-                  <h3 className="text-2xl font-black font-display text-slate-900 dark:text-white mb-4">
+                  <h3 className="text-2xl font-black font-display text-zinc-900 dark:text-white mb-4">
                     How It Works
                   </h3>
-                  <p className="text-slate-600 dark:text-slate-400 text-sm max-w-2xl mx-auto">
+                  <p className="text-zinc-600 dark:text-zinc-400 text-sm max-w-2xl mx-auto">
                     Our AI engine reverse-engineers the Applicant Tracking
                     Systems used by top Fortune 500 companies to give you a
                     competitive edge.
@@ -4925,16 +4769,10 @@ Qualifications:
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-8 relative">
-                  <div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent -z-10 hidden md:block"></div>
+                  <div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-600/20 to-transparent -z-10 hidden md:block"></div>
 
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    viewport={{ once: true }}
-                    className="flex flex-col items-center text-center p-6 bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none rounded-2xl relative z-10"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-violet-500/10 border border-violet-500/25 flex items-center justify-center mb-6 text-violet-700 dark:text-violet-400 font-black">
+                  <div className="flex flex-col items-center text-center p-6 bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none rounded-2xl relative z-10">
+                    <div className="w-12 h-12 rounded-full bg-purple-700/10 border border-purple-700/25 flex items-center justify-center mb-6 text-purple-800 dark:text-purple-400 font-black">
                       1
                     </div>
                     <h4 className="text-zinc-950 dark:text-white font-bold mb-3 uppercase tracking-wider text-sm">
@@ -4945,16 +4783,10 @@ Qualifications:
                       engine parses your formatting just like Workday or
                       Greenhouse.
                     </p>
-                  </motion.div>
+                  </div>
 
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    viewport={{ once: true }}
-                    className="flex flex-col items-center text-center p-6 bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none rounded-2xl relative z-10"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-violet-500/10 border border-violet-500/25 flex items-center justify-center mb-6 text-violet-700 dark:text-violet-400 font-black">
+                  <div className="flex flex-col items-center text-center p-6 bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none rounded-2xl relative z-10">
+                    <div className="w-12 h-12 rounded-full bg-purple-700/10 border border-purple-700/25 flex items-center justify-center mb-6 text-purple-800 dark:text-purple-400 font-black">
                       2
                     </div>
                     <h4 className="text-zinc-950 dark:text-white font-bold mb-3 uppercase tracking-wider text-sm">
@@ -4964,16 +4796,10 @@ Qualifications:
                       We scan for keyword density, structural integrity, and
                       skill gaps using the latest Gemini models.
                     </p>
-                  </motion.div>
+                  </div>
 
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    viewport={{ once: true }}
-                    className="flex flex-col items-center text-center p-6 bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none rounded-2xl relative z-10"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-violet-500/10 border border-violet-500/25 flex items-center justify-center mb-6 text-violet-700 dark:text-violet-400 font-black">
+                  <div className="flex flex-col items-center text-center p-6 bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none rounded-2xl relative z-10">
+                    <div className="w-12 h-12 rounded-full bg-purple-700/10 border border-purple-700/25 flex items-center justify-center mb-6 text-purple-800 dark:text-purple-400 font-black">
                       3
                     </div>
                     <h4 className="text-zinc-950 dark:text-white font-bold mb-3 uppercase tracking-wider text-sm">
@@ -4983,7 +4809,7 @@ Qualifications:
                       Get a visual dashboard with your ATS score, missing
                       keywords, and ready-to-copy bullet point improvements.
                     </p>
-                  </motion.div>
+                  </div>
                 </div>
 
                 <div className="mt-24 text-center">
@@ -5038,9 +4864,8 @@ Qualifications:
                       </div>
                     </a>
 
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                    <button
+                      type="button"
                       onClick={() => {
                         window.scrollTo({ top: 0, behavior: "smooth" });
                         const sampleContent = `Alex Mercer
@@ -5081,22 +4906,20 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         );
                         setLinkedinUrl("https://linkedin.com/in/alexmercer-tech");
                       }}
-                      className="btn-primary py-4 px-12 text-sm uppercase flex items-center justify-center gap-3 mx-auto"
+                      className="btn-primary py-4 px-12 text-sm uppercase flex items-center justify-center gap-3 mx-auto cursor-pointer"
                     >
                       <Zap className="h-5 w-5" /> Try Live Demo Now
-                    </motion.button>
-                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-6">
+                    </button>
+                    <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mt-6">
                       Private Stateless Processing • Executive ATS Intelligence
                     </p>
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ) : (
-            <motion.div
+            <div
               key="dashboard"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
               className="space-y-8"
               ref={printRef}
             >
@@ -5126,43 +4949,54 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       <h2 className="text-3xl font-black font-display text-zinc-950 dark:text-white tracking-tight">
                         Executive Summary
                       </h2>
-                      <span className="px-3 py-1 rounded-lg bg-violet-50 dark:bg-violet-950/60 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 text-xs font-black">
+                      <span className="px-3 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-800 dark:text-purple-300 text-xs font-black tabular-nums">
                         {result.overallScore}% Overall Fit
                       </span>
+                      {hasLinkedInConnected ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveStudioTab("scorecard");
+                            setTimeout(() => {
+                              const el = document.getElementById("linkedin-network");
+                              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+                            }, 50);
+                          }}
+                          className="px-3 py-1 rounded-xl bg-purple-700/15 hover:bg-purple-700/25 border border-purple-700/35 text-purple-900 dark:text-purple-300 text-xs font-bold flex items-center gap-1.5 transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0"
+                          title="LinkedIn connected — click to inspect verification and match status"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5 text-purple-800 dark:text-purple-400" />
+                          <span>Verified Trust</span>
+                          <span aria-hidden="true" className="text-purple-700/60">·</span>
+                          <span className="font-mono font-extrabold tabular-nums text-zinc-950 dark:text-white">
+                            {linkedInTrustScore !== null ? `${linkedInTrustScore}%` : "Synced"}
+                          </span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setIsConnectLinkedInModalOpen(true)}
+                          className="px-3 py-1 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-bold flex items-center gap-1.5 transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0"
+                          title="No LinkedIn profile attached — excluded from your score with zero penalty"
+                        >
+                          <Info className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
+                          <span>LinkedIn: Missing · Connect (Optional)</span>
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => {
-                          const el = document.getElementById("verified-trust-badge-section");
-                          if (el) {
-                            el.scrollIntoView({ behavior: "smooth", block: "center" });
-                          } else {
-                            setIsLinkedInVerificationModalOpen(true);
-                          }
+                          setActiveStudioTab("scorecard");
+                          setTimeout(() => {
+                            const el = document.getElementById("why-this-score-section");
+                            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                          }, 50);
                         }}
-                        className="px-3 py-1 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 text-violet-800 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
-                        title="Verified Trust Badge — Click to share or embed your LinkedIn Credibility Score"
+                        className="px-3 py-1 rounded-xl bg-[#4c1d95]/10 hover:bg-[#4c1d95]/20 border border-[#4c1d95]/30 text-[#4c1d95] dark:text-purple-300 text-xs font-bold flex items-center gap-1.5 transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0"
+                        title="See plain-English reasons explaining every point of your score"
                       >
-                        <ShieldCheck className="w-3.5 h-3.5 text-violet-700 dark:text-violet-400" />
-                        <span>Verified Trust</span>
-                        <span aria-hidden="true" className="text-violet-600/60 dark:text-violet-500/60">·</span>
-                        <span className="font-mono font-extrabold tabular-nums text-zinc-950 dark:text-white">
-                          {linkedInTrustScore ?? (linkedinUrl ? 86 : 78)}%
-                        </span>
-                        <Share2 className="w-3 h-3 text-violet-700 dark:text-violet-400 ml-0.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const el = document.getElementById("model-training-studio-section");
-                          if (el) {
-                            el.scrollIntoView({ behavior: "smooth", block: "start" });
-                          }
-                        }}
-                        className="px-3 py-1 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/35 text-purple-800 dark:text-purple-300 hover:text-purple-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
-                        title="Inspect itemized score reasons or retrain & calibrate the AI scoring model"
-                      >
-                        <BrainCircuit className="w-3.5 h-3.5 text-purple-700 dark:text-purple-400" />
-                        <span>Score Reasons & Retrain Model</span>
+                        <BrainCircuit className="w-3.5 h-3.5" />
+                        <span>Why This Score?</span>
                       </button>
                       {activeVersionId && (
                         <span className="px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-[10px] font-bold">
@@ -5180,7 +5014,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                   <div className="flex items-center gap-2.5 flex-wrap no-print">
                     <button
                       onClick={() => setIsResumeBuilderOpen(true)}
-                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-700 to-purple-700 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-sm hover:from-violet-600 hover:to-purple-600 active:scale-95 cursor-pointer"
+                      className="px-4 py-2.5 rounded-xl bg-[#4c1d95] hover:bg-[#7e22ce] text-white font-bold text-xs transition-colors duration-150 flex items-center gap-2 shadow-sm cursor-pointer whitespace-nowrap shrink-0"
                     >
                       <Wand2 className="h-4 w-4" />
                       <span>ATS Builder & Coach</span>
@@ -5188,9 +5022,9 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                     <button
                       onClick={() => setIsExecutiveMode(!isExecutiveMode)}
-                      className={`px-4 py-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                      className={`px-4 py-2.5 rounded-xl border text-xs font-bold transition-colors duration-150 flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
                         isExecutiveMode 
-                          ? "bg-violet-600 text-white border-violet-600 shadow-sm" 
+                          ? "bg-[#7e22ce] text-white border-[#7e22ce] shadow-sm" 
                           : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                       }`}
                     >
@@ -5202,7 +5036,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                     <div className="relative">
                       <button
                         onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-                        className="px-4 py-2.5 rounded-xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 font-bold text-xs flex items-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer hover:bg-zinc-800 dark:hover:bg-zinc-100"
+                        className="px-4 py-2.5 rounded-xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 font-bold text-xs flex items-center gap-2 shadow-sm transition-colors duration-150 cursor-pointer hover:bg-zinc-800 dark:hover:bg-zinc-100 whitespace-nowrap shrink-0"
                       >
                         <Download className="w-4 h-4" />
                         <span>Export</span>
@@ -5210,7 +5044,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       </button>
 
                       {isExportMenuOpen && (
-                        <div className="absolute right-0 mt-2 w-60 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                        <div className="absolute right-0 mt-2 w-60 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl py-2 z-50">
                           <button
                             onClick={() => {
                               setIsExportMenuOpen(false);
@@ -5218,11 +5052,11 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             }}
                             className="w-full px-4 py-2.5 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center gap-2.5 cursor-pointer"
                           >
-                            <Printer className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                            <Printer className="w-4 h-4 text-purple-700 dark:text-purple-400" />
                             <div>
                               <div className="font-bold flex items-center gap-1.5">
                                 <span>PDF Export Preview</span>
-                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-700 dark:text-purple-300 font-extrabold uppercase">Custom</span>
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-800 dark:text-purple-300 font-extrabold uppercase">Custom</span>
                               </div>
                               <div className="text-[10px] text-zinc-400">Toggle sections & print dossier</div>
                             </div>
@@ -5247,7 +5081,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             }}
                             className="w-full px-4 py-2.5 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center gap-2.5 cursor-pointer"
                           >
-                            <FileText className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                            <FileText className="w-4 h-4 text-purple-700 dark:text-purple-400" />
                             <div>
                               <div className="font-bold">Word Document (.docx)</div>
                               <div className="text-[10px] text-zinc-400">Editable executive briefing</div>
@@ -5260,7 +5094,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                             }}
                             className="w-full px-4 py-2.5 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center gap-2.5 cursor-pointer"
                           >
-                            <Download className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                            <Download className="w-4 h-4 text-purple-700 dark:text-purple-400" />
                             <div>
                               <div className="font-bold">Excel Spreadsheet (.xlsx)</div>
                               <div className="text-[10px] text-zinc-400">Full audit score matrix</div>
@@ -5288,7 +5122,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         setResult(null);
                         setFile(null);
                       }}
-                      className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all cursor-pointer"
+                      className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors duration-150 cursor-pointer shrink-0"
                       title="New Analysis"
                     >
                       <RefreshCw className="h-4 w-4" />
@@ -5296,16 +5130,14 @@ AWS Certified Solutions Architect – Associate (2022)`;
                   </div>
                 </div>
 
-                {/* Segmented Studio Navigation Tabs */}
+                {/* Simplified 4-Tab Studio Navigation */}
                 <div className="flex items-center justify-between gap-4 p-1.5 bg-zinc-100/90 dark:bg-zinc-900/90 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 overflow-x-auto no-print">
                   <div className="flex items-center gap-1 min-w-max">
                     {[
-                      { id: "scorecard", label: "Scorecard & Health", icon: BarChart2 },
-                      { id: "canvas", label: "Resume Canvas", icon: FileText, badge: file ? "Live" : undefined },
+                      { id: "scorecard", label: "Scorecard", icon: BarChart2 },
                       { id: "skills", label: "Skills & Keywords", icon: Target, badge: `${(result.missingSkills?.length ?? result.skillGapReport?.length ?? 0)} Gaps` },
-                      { id: "career", label: "Career Roadmap", icon: TrendingUp },
-                      { id: "recruiter", label: "Recruiter Brief", icon: Briefcase },
-                      { id: "all", label: "Complete Overview", icon: Layout },
+                      { id: "career", label: "Career & Prep", icon: TrendingUp },
+                      { id: "canvas", label: "Resume Canvas", icon: FileText, badge: file ? "Live" : undefined },
                     ].map((tab) => {
                       const Icon = tab.icon;
                       const isActive = activeStudioTab === tab.id;
@@ -5313,17 +5145,17 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         <button
                           key={tab.id}
                           onClick={() => setActiveStudioTab(tab.id as any)}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0 ${
                             isActive
-                              ? "bg-white dark:bg-zinc-950 text-violet-700 dark:text-violet-400 shadow-sm border border-zinc-200/80 dark:border-zinc-800 font-extrabold"
+                              ? "bg-white dark:bg-zinc-950 text-[#4c1d95] dark:text-purple-300 shadow-sm border border-zinc-200/80 dark:border-zinc-800 font-extrabold"
                               : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:bg-white/60 dark:hover:bg-zinc-800/70"
                           }`}
                         >
-                          <Icon className={`w-3.5 h-3.5 ${isActive ? "text-violet-700 dark:text-violet-400" : "text-zinc-400"}`} />
+                          <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#7e22ce] dark:text-purple-400" : "text-zinc-400"}`} />
                           <span>{tab.label}</span>
                           {tab.badge && (
-                            <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-bold ${
-                              isActive ? "bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold tabular-nums ${
+                              isActive ? "bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
                             }`}>
                               {tab.badge}
                             </span>
@@ -5335,7 +5167,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                 </div>
               </div>
 
-              {/* Resume Artboard View */}
+              {/* TAB 4: Resume Artboard View */}
               {activeStudioTab === "canvas" && (
                 <div className="mb-12">
                   <PanelErrorBoundary compact title="Resume Canvas View">
@@ -5349,1517 +5181,799 @@ AWS Certified Solutions Architect – Associate (2022)`;
                   </PanelErrorBoundary>
                 </div>
               )}
-              
-              {/* Workspace Declutter & Section Quick Toggle Bar */}
-              {activeStudioTab !== "canvas" && (
-                <div className="mb-6 p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-violet-500/15 border border-violet-500/30 text-violet-700 dark:text-violet-400">
-                      <Layers className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black uppercase tracking-wider text-zinc-950 dark:text-white">
-                          Workspace Declutter
-                        </span>
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-white dark:bg-zinc-800 text-violet-700 dark:text-violet-300 border border-violet-500/30">
-                          {Object.values(collapsedSections).filter(Boolean).length} of 6 Sections Collapsed
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-zinc-600 dark:text-zinc-400">
-                        Expand or collapse dashboard modules to keep your analytical workspace focused
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex flex-wrap items-center gap-1.5 bg-white dark:bg-zinc-950/60 p-1 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                      {[
-                        { id: "executive-summary", label: "Executive Summary" },
-                        { id: "scoring-infrastructure", label: "ATS Benchmarks" },
-                        { id: "career-progression", label: "Career Progression" },
-                        { id: "skill-vector-engine", label: "Skill Ecosystem" },
-                        { id: "optimization-plan", label: "Optimization Plan" },
-                        { id: "linkedin-network", label: "LinkedIn Network" },
-                      ].map((sec) => {
-                        const isCollapsed = !!collapsedSections[sec.id];
-                        return (
-                          <button
-                            key={sec.id}
-                            type="button"
-                            onClick={() => toggleSection(sec.id)}
-                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                              isCollapsed
-                                ? "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:text-zinc-950 dark:hover:text-white"
-                                : "bg-violet-500/15 text-violet-800 dark:text-violet-300 border border-violet-500/35"
-                            }`}
-                            title={`Click to ${isCollapsed ? "expand" : "collapse"} ${sec.label}`}
-                          >
-                            <span>{sec.label}</span>
-                            {isCollapsed ? (
-                              <ChevronDown className="w-3 h-3 text-zinc-400" />
-                            ) : (
-                              <ChevronUp className="w-3 h-3 text-violet-700 dark:text-violet-400" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="flex items-center gap-1 text-xs">
-                      <button
-                        type="button"
-                        onClick={() => setAllSectionsCollapsed(false)}
-                        className="px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white text-[11px] font-bold transition-all border border-zinc-200 dark:border-zinc-700 cursor-pointer"
-                      >
-                        Expand All
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAllSectionsCollapsed(true)}
-                        className="px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white text-[11px] font-bold transition-all border border-zinc-200 dark:border-zinc-700 cursor-pointer"
-                      >
-                        Collapse All
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {activeStudioTab !== "canvas" && (isExecutiveMode || activeStudioTab === "scorecard" || activeStudioTab === "all" || isPrintFriendly) && (
-                <div className="mb-8" id="executive-summary">
-                  {collapsedSections["executive-summary"] ? (
-                    <GlassCard className="p-4 border-l-4 border-l-violet-600 bg-gradient-to-r from-violet-500/10 via-transparent to-transparent flex items-center justify-between shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-700 dark:text-violet-400">
-                          <Briefcase className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-wider">
-                              Executive Summary
-                            </h3>
-                            <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 uppercase">
-                              Collapsed
-                            </span>
-                          </div>
-                          <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-0.5">
-                            {result.overallScore}% Overall Match · Target Mandate: {result.careerPath?.topRole} · High-Level Narrative Analysis
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setIsPdfPreviewOpen(true)}
-                          className="px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 border border-zinc-200 dark:border-white/10 text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>Preview PDF</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => toggleSection("executive-summary")}
-                          className="px-3.5 py-1.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 text-violet-800 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                        >
-                          <span>Expand Section</span>
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </GlassCard>
-                  ) : (
-                    <GlassCard className="p-8 md:p-12 border-t-4 border-t-violet-600 bg-gradient-to-b from-violet-500/5 to-transparent">
+              {/* TAB 1: SCORECARD (Also shown in Executive Brief Mode) */}
+              {activeStudioTab !== "canvas" && (isExecutiveMode || activeStudioTab === "scorecard") && (
+                <div className="space-y-8">
+                  {/* Executive Summary */}
+                  <div id="executive-summary">
+                    <GlassCard className="p-6 md:p-8 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111116]">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                         <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-xl bg-violet-500/15 flex items-center justify-center border border-violet-500/30">
-                            <Briefcase className="h-6 w-6 text-violet-700 dark:text-violet-400" />
+                          <div className="h-11 w-11 rounded-xl bg-purple-700/10 flex items-center justify-center border border-purple-700/25 shrink-0">
+                            <Briefcase className="h-5 w-5 text-[#4c1d95] dark:text-purple-400" />
                           </div>
                           <div>
-                            <h2 className="text-2xl font-black text-zinc-950 dark:text-white font-display uppercase tracking-widest">Executive Summary</h2>
-                            <p className="text-violet-700 dark:text-violet-400 text-xs font-bold uppercase tracking-[0.2em]">High-Level Narrative Analysis</p>
+                            <h2 className="text-xl font-black text-zinc-950 dark:text-white font-display uppercase tracking-wider">Executive Summary</h2>
+                            <p className="text-purple-800 dark:text-purple-400 text-xs font-bold uppercase tracking-widest">Plain-English Hiring Fit Brief</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 self-start sm:self-auto">
                           <button
                             onClick={() => setIsPdfPreviewOpen(true)}
-                            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-700 to-violet-700 hover:from-purple-600 hover:to-violet-600 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
+                            className="px-4 py-2 rounded-xl bg-[#4c1d95] hover:bg-[#7e22ce] text-white font-bold text-xs uppercase tracking-wider transition-colors duration-150 flex items-center gap-2 shadow-sm cursor-pointer whitespace-nowrap shrink-0"
                             title="Preview and toggle sections to include in PDF report"
                           >
                             <Eye className="w-4 h-4" /> PDF Preview
                           </button>
                           <button
                             onClick={handleFullReportPdfPrint}
-                            className="px-4 py-2.5 rounded-xl bg-zinc-950 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-950 font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
+                            className="px-4 py-2 rounded-xl bg-zinc-950 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-950 font-bold text-xs uppercase tracking-wider transition-colors duration-150 flex items-center gap-2 shadow-sm cursor-pointer whitespace-nowrap shrink-0"
                           >
                             <Printer className="w-4 h-4" /> Direct Print
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => toggleSection("executive-summary")}
-                            className="p-2.5 rounded-xl bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 border border-zinc-200 dark:border-white/10 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-all cursor-pointer"
-                            title="Collapse this section to declutter workspace"
-                          >
-                            <ChevronUp className="w-4 h-4" />
-                          </button>
                         </div>
                       </div>
-                    
-                    <div className="space-y-8">
-                      <div className="bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 p-6 rounded-2xl">
-                        <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-4 flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-violet-600 dark:text-violet-400" /> Bottom Line Recommendation
-                        </h3>
-                        <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed text-sm">
-                          {result.executiveSummary || `Based on an overall match of ${result.overallScore}%, this candidate shows strong potential for the ${result.careerPath.topRole} role. The resume demonstrates ${result.skillsMatch}% skill alignment with the job description.`}
-                        </p>
-                      </div>
-                      
-                      <div className="grid md:grid-cols-2 gap-6">
-                        <div className="bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 p-6 rounded-2xl">
-                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 text-violet-600 dark:text-violet-400" /> Core Strengths
+
+                      <div className="space-y-6">
+                        <div className="bg-zinc-50 dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl">
+                          <h3 className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-2.5 flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-[#7e22ce] dark:text-purple-400" /> Bottom Line Assessment
                           </h3>
-                          <ul className="space-y-3">
-                            {result.foundSkills.slice(0, 3).map((skill, idx) => (
-                              <li key={`found-str-${skill || idx}-${idx}`} className="flex items-start gap-2">
-                                <div className="h-4 w-4 rounded-full bg-violet-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                                  <div className="h-1.5 w-1.5 rounded-full bg-violet-600 dark:bg-violet-400" />
-                                </div>
-                                <span className="text-xs text-zinc-700 dark:text-zinc-300">{skill}</span>
-                              </li>
-                            ))}
-                            {result.foundSkills.length === 0 && (
-                              <li className="text-xs text-zinc-500 italic">No critical matching skills identified.</li>
-                            )}
-                          </ul>
-                        </div>
-                        
-                        <div className="bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 p-6 rounded-2xl">
-                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <AlertCircle className="h-4 w-4 text-rose-600 dark:text-rose-400" /> Critical Gaps
-                          </h3>
-                          <ul className="space-y-3">
-                            {(result.missingSkills || result.skillGapReport?.map(s => s.skill) || []).slice(0, 3).map((skill, idx) => (
-                              <li key={`crit-gap-${skill || idx}-${idx}`} className="flex items-start gap-2">
-                                <div className="h-4 w-4 rounded-full bg-rose-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                                  <div className="h-1.5 w-1.5 rounded-full bg-rose-600 dark:bg-rose-400" />
-                                </div>
-                                <span className="text-xs text-zinc-700 dark:text-zinc-300">{skill}</span>
-                              </li>
-                            ))}
-                             {(!result.missingSkills?.length && !result.skillGapReport?.length) && (
-                              <li className="text-xs text-zinc-500 italic">No critical missing skills identified.</li>
-                            )}
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </GlassCard>
-                )}
-              </div>
-            )}
-
-              {activeStudioTab !== "canvas" && !isExecutiveMode && (
-                <div className="flex flex-col">
-              {/* Career Progress Badges */}
-              <div className="mb-8" id="career-progress" style={{ order: sectionOrder.indexOf('career-progress') }}>
-                <GlassCard className="p-8 border-t-4 border-t-purple-600 bg-gradient-to-b from-purple-500/5 to-transparent">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                        <Award className="h-4 w-4 text-purple-600 dark:text-purple-400" /> Career Progress
-                      </h3>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider mt-1">
-                        Executive Strengths Unlocked
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-black text-violet-700 dark:text-violet-400">
-                        {
-                          [
-                            result.overallScore >= 85,
-                            result.skillsMatch >= 80,
-                            result.atsAnalysis.formattingScore >= 80,
-                            result.careerPath.confidence >= 80
-                          ].filter(Boolean).length
-                        } / 4
-                      </div>
-                      <div className="text-[9px] text-zinc-500 uppercase font-black tracking-widest">
-                        Badges Earned
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Progress Bar */}
-                  <div className="h-2 w-full bg-zinc-200 dark:bg-white/10 rounded-full overflow-hidden mb-8">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${([result.overallScore >= 85, result.skillsMatch >= 80, result.atsAnalysis.formattingScore >= 80, result.careerPath.confidence >= 80].filter(Boolean).length / 4) * 100}%` }}
-                      transition={{ duration: 0.9, ease: "easeOut" }}
-                      className="h-full bg-gradient-to-r from-violet-600 to-purple-600 rounded-full"
-                    />
-                  </div>
-
-                  {/* Badges Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.overallScore >= 85 ? 'bg-violet-500/10 border-violet-500/35' : 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10 opacity-55 grayscale'}`}>
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.overallScore >= 85 ? 'bg-violet-500/20 text-violet-700 dark:text-violet-400' : 'bg-zinc-200 dark:bg-white/10 text-zinc-400'}`}>
-                        <Briefcase className="h-5 w-5" />
-                      </div>
-                      <span className="text-xs font-black uppercase tracking-widest text-zinc-950 dark:text-white mb-1">Executive Fit</span>
-                      <span className="text-[9px] text-zinc-500 dark:text-zinc-400">Score 85%+</span>
-                    </div>
-
-                    <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.skillsMatch >= 80 ? 'bg-purple-500/10 border-purple-500/35' : 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10 opacity-55 grayscale'}`}>
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.skillsMatch >= 80 ? 'bg-purple-500/20 text-purple-700 dark:text-purple-400' : 'bg-zinc-200 dark:bg-white/10 text-zinc-400'}`}>
-                        <Zap className="h-5 w-5" />
-                      </div>
-                      <span className="text-xs font-black uppercase tracking-widest text-zinc-950 dark:text-white mb-1">Keyword Master</span>
-                      <span className="text-[9px] text-zinc-500 dark:text-zinc-400">Skills 80%+</span>
-                    </div>
-
-                    <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.atsAnalysis.formattingScore >= 80 ? 'bg-violet-500/10 border-violet-500/35' : 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10 opacity-55 grayscale'}`}>
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.atsAnalysis.formattingScore >= 80 ? 'bg-violet-500/20 text-violet-700 dark:text-violet-400' : 'bg-zinc-200 dark:bg-white/10 text-zinc-400'}`}>
-                        <Layout className="h-5 w-5" />
-                      </div>
-                      <span className="text-xs font-black uppercase tracking-widest text-zinc-950 dark:text-white mb-1">ATS Specialist</span>
-                      <span className="text-[9px] text-zinc-500 dark:text-zinc-400">Format 80%+</span>
-                    </div>
-
-                    <div className={`p-4 rounded-xl border flex flex-col items-center text-center transition-all ${result.careerPath.confidence >= 80 ? 'bg-purple-500/10 border-purple-500/35' : 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10 opacity-55 grayscale'}`}>
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${result.careerPath.confidence >= 80 ? 'bg-purple-500/20 text-purple-700 dark:text-purple-400' : 'bg-zinc-200 dark:bg-white/10 text-zinc-400'}`}>
-                        <Target className="h-5 w-5" />
-                      </div>
-                      <span className="text-xs font-black uppercase tracking-widest text-zinc-950 dark:text-white mb-1">Trajectory Pro</span>
-                      <span className="text-[9px] text-zinc-500 dark:text-zinc-400">Confidence 80%+</span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const el = document.getElementById("verified-trust-badge-section");
-                        if (el) {
-                          el.scrollIntoView({ behavior: "smooth", block: "center" });
-                        } else {
-                          setIsLinkedInVerificationModalOpen(true);
-                        }
-                      }}
-                      className="p-4 rounded-xl border bg-violet-500/15 border-violet-500/40 hover:bg-violet-500/25 flex flex-col items-center text-center transition-all cursor-pointer group"
-                      title="Click to share or embed your Verified Trust LinkedIn Credibility Badge"
-                    >
-                      <div className="h-10 w-10 rounded-full flex items-center justify-center mb-2 bg-violet-500/20 text-violet-700 dark:text-violet-400 group-hover:scale-105 transition-transform">
-                        <ShieldCheck className="h-5 w-5" />
-                      </div>
-                      <span className="text-xs font-black uppercase tracking-widest text-zinc-950 dark:text-white mb-1">
-                        Verified Trust
-                      </span>
-                      <span className="text-[10px] font-mono font-bold text-violet-700 dark:text-violet-300 tabular-nums">
-                        {linkedInTrustScore ?? (linkedinUrl ? 86 : 78)}% Credibility · Share
-                      </span>
-                    </button>
-                  </div>
-                </GlassCard>
-              </div>
-
-              {/* LinkedIn Connection Network & Verified Trust Intelligence Section */}
-              <div id="linkedin-network" className="mb-8">
-                {collapsedSections["linkedin-network"] ? (
-                  <GlassCard className="p-4 border-l-4 border-l-violet-600 bg-gradient-to-r from-violet-500/10 via-purple-500/5 to-transparent flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-700 dark:text-violet-400">
-                        <Users className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-wider">
-                            LinkedIn Referral Network & Trust Audit
-                          </h3>
-                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 uppercase">
-                            Collapsed
-                          </span>
-                        </div>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-0.5">
-                          5 Shared Professional Circles · Trust Score {linkedInTrustScore ?? (linkedinUrl ? 86 : 78)}% · Warm Referral Finder
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => toggleSection("linkedin-network")}
-                      className="px-3.5 py-1.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 text-violet-800 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <span>Expand Section</span>
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    </button>
-                  </GlassCard>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Section Header with Mode Selector and Collapse Toggle */}
-                    <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-violet-500/15 border border-violet-500/35 flex items-center justify-center text-violet-700 dark:text-violet-400">
-                          <Users className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-[0.25em]">
-                              LinkedIn Network & Credibility Intelligence
-                            </h3>
-                            <span className="px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 text-[9px] font-mono font-bold uppercase">
-                              {linkedInViewTab === "network" ? "Referral Graph" : "Trust Badge"}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-0.5">
-                            {linkedInViewTab === "network"
-                              ? "D3 force-directed network mapping common industry contacts, shared professional circles, and warm executive referral pathways"
-                              : "Verified cross-vector LinkedIn trust score card, factor breakdown, and embeddable portfolio credentials"}
+                          <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed text-sm">
+                            {result.executiveSummary || `Based on an overall match of ${result.overallScore}%, this resume demonstrates ${result.skillsMatch}% skill alignment for the ${result.careerPath.topRole} role.`}
                           </p>
                         </div>
-                      </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        {/* Tab Switcher */}
-                        <div className="flex items-center p-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs">
-                          <button
-                            type="button"
-                            onClick={() => setLinkedInViewTab("network")}
-                            className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
-                              linkedInViewTab === "network"
-                                ? "bg-gradient-to-r from-violet-700 to-purple-700 text-white shadow-sm"
-                                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
-                            }`}
-                          >
-                            <Share2 className="w-3.5 h-3.5" />
-                            <span>Referral Network Graph</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setLinkedInViewTab("badge")}
-                            className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
-                              linkedInViewTab === "badge"
-                                ? "bg-gradient-to-r from-violet-700 to-purple-700 text-white shadow-sm"
-                                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
-                            }`}
-                          >
-                            <ShieldCheck className="w-3.5 h-3.5" />
-                            <span>Profile Trust Audit</span>
-                          </button>
+                        <div className="grid md:grid-cols-2 gap-5">
+                          <div className="bg-zinc-50 dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl">
+                            <h3 className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-3 flex items-center gap-2">
+                              <TrendingUp className="h-4 w-4 text-[#7e22ce] dark:text-purple-400" /> Top Strengths
+                            </h3>
+                            <ul className="space-y-2.5">
+                              {result.foundSkills.slice(0, 3).map((skill, idx) => (
+                                <li key={`found-str-${skill || idx}-${idx}`} className="flex items-center gap-2.5">
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-[#7e22ce] dark:text-purple-400 shrink-0" />
+                                  <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">{skill}</span>
+                                </li>
+                              ))}
+                              {result.foundSkills.length === 0 && (
+                                <li className="text-xs text-zinc-500 italic">No critical matching skills identified.</li>
+                              )}
+                            </ul>
+                          </div>
+
+                          <div className="bg-zinc-50 dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl">
+                            <h3 className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-3 flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4 text-rose-600 dark:text-rose-400" /> Key Gaps to Address
+                            </h3>
+                            <ul className="space-y-2.5">
+                              {(result.missingSkills || result.skillGapReport?.map(s => s.skill) || []).slice(0, 3).map((skill, idx) => (
+                                <li key={`crit-gap-${skill || idx}-${idx}`} className="flex items-center gap-2.5">
+                                  <XCircle className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                                  <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">{skill}</span>
+                                </li>
+                              ))}
+                              {(!result.missingSkills?.length && !result.skillGapReport?.length) && (
+                                <li className="text-xs text-zinc-500 italic">No critical missing skills identified.</li>
+                              )}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </GlassCard>
+                  </div>
+
+                  {!isExecutiveMode && (
+                    <>
+                      {/* 4 Core Static Score Gauges + Compact Sub-Metrics */}
+                      <div id="scoring-infrastructure" className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                          <GlassCard className="flex flex-col items-center justify-center p-6 border border-zinc-200 dark:border-zinc-800">
+                            <h3 className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-3 text-center">
+                              Overall Match
+                            </h3>
+                            <ScoringCircle
+                              score={result.overallScore}
+                              label=""
+                              color="#4c1d95"
+                              subtitle="Combines skill overlap, ATS readability, and measurable achievement quality."
+                            />
+                          </GlassCard>
+
+                          <GlassCard className="flex flex-col items-center justify-center p-6 border border-zinc-200 dark:border-zinc-800">
+                            <h3 className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-3 text-center">
+                              ATS Compatibility
+                            </h3>
+                            <ScoringCircle
+                              score={result.atsCompatibility}
+                              label=""
+                              color="#7e22ce"
+                              subtitle="How cleanly recruiting software extracts your headings, dates, and experience."
+                            />
+                          </GlassCard>
+
+                          <GlassCard className="flex flex-col items-center justify-center p-6 border border-zinc-200 dark:border-zinc-800">
+                            <h3 className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-3 text-center">
+                              Skills Match
+                            </h3>
+                            <ScoringCircle
+                              score={result.skillsMatch}
+                              label=""
+                              color="#4c1d95"
+                              subtitle="Direct alignment between your documented skills and target job keywords."
+                            />
+                          </GlassCard>
+
+                          <GlassCard className="flex flex-col items-center justify-center p-6 border border-zinc-200 dark:border-zinc-800">
+                            <h3 className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-3 text-center">
+                              Formatting & Impact
+                            </h3>
+                            <ScoringCircle
+                              score={
+                                result.formattingHealthScore ||
+                                result.atsAnalysis.formattingScore ||
+                                0
+                              }
+                              label=""
+                              color="#7e22ce"
+                              subtitle="Layout hierarchy, readability, and quantified impact in your bullet points."
+                            />
+                          </GlassCard>
                         </div>
 
-                        {/* Download Network & Trust PDF Dossier Button */}
-                        <button
-                          type="button"
-                          onClick={handleDownloadNetworkDossier}
-                          disabled={isDownloadingNetworkDossier}
-                          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-700 to-violet-700 hover:from-purple-600 hover:to-violet-600 text-white font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 shadow-sm active:scale-95 disabled:opacity-60"
-                          title="Generate and download a structured PDF dossier of your network graph and trust metrics"
-                        >
-                          {isDownloadingNetworkDossier ? (
-                            <>
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              <span>Generating PDF...</span>
-                            </>
-                          ) : networkDossierSuccess ? (
-                            <>
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Dossier Downloaded!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Download className="w-3.5 h-3.5" />
-                              <span>Download PDF Dossier</span>
-                            </>
-                          )}
-                        </button>
-
-                        {/* Collapse Section Toggle Button */}
-                        <button
-                          type="button"
-                          onClick={() => toggleSection("linkedin-network")}
-                          className="p-2 rounded-xl bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-all cursor-pointer"
-                          title="Collapse this section to declutter workspace"
-                        >
-                          <ChevronUp className="w-4 h-4" />
-                        </button>
+                        {/* 4 Compact Static Sub-Metric Bars */}
+                        <GlassCard className="p-6 border border-zinc-200 dark:border-zinc-800">
+                          <div className="flex items-center justify-between mb-5">
+                            <h3 className="text-xs font-black text-zinc-600 dark:text-zinc-400 uppercase tracking-widest">
+                              Core Scoring Signals
+                            </h3>
+                            <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
+                              Instant Snapshot
+                            </span>
+                          </div>
+                          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {[
+                              {
+                                label: "Skills Overlap",
+                                score: result.skillsMatch,
+                                color: "#4c1d95",
+                                desc: "Required skills found",
+                              },
+                              {
+                                label: "Keyword Density",
+                                score: result.atsAnalysis.keywordDensity,
+                                color: "#7e22ce",
+                                desc: "Target role terms",
+                              },
+                              {
+                                label: "Formatting Health",
+                                score: result.atsAnalysis.formattingScore,
+                                color: "#4c1d95",
+                                desc: "Parser readability",
+                              },
+                              {
+                                label: "Bullet Impact",
+                                score: result.atsAnalysis.bulletPointQualityScore || 0,
+                                color: "#7e22ce",
+                                desc: "Metrics & outcomes",
+                              },
+                            ].map((m, i) => (
+                              <div key={`submetric-${m.label}-${i}`} className="space-y-2">
+                                <div className="flex justify-between items-baseline">
+                                  <div>
+                                    <span className="text-[11px] font-black text-zinc-900 dark:text-white uppercase tracking-wider block">
+                                      {m.label}
+                                    </span>
+                                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                                      {m.desc}
+                                    </span>
+                                  </div>
+                                  <span className="text-xl font-black font-mono tabular-nums text-zinc-950 dark:text-white">
+                                    {m.score}%
+                                  </span>
+                                </div>
+                                <div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full transition-all duration-150"
+                                    style={{
+                                      width: `${Math.min(100, Math.max(0, m.score))}%`,
+                                      backgroundColor: m.color,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </GlassCard>
                       </div>
+
+                      {/* Why You Got This Score (Plain-English Ledger) */}
+                      <div id="why-this-score-section">
+                        <GlassCard className="p-6 md:p-8 border border-zinc-200 dark:border-zinc-800">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                            <div>
+                              <h3 className="text-base font-black text-zinc-950 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                                <BrainCircuit className="w-5 h-5 text-[#7e22ce] dark:text-purple-400" />
+                                Why You Got This Score
+                              </h3>
+                              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                                A plain-English breakdown of each factor behind your {result.overallScore}% overall fit—no hidden math.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveStudioTab("career");
+                                setTimeout(() => {
+                                  document.getElementById("model-training-studio-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                }, 80);
+                              }}
+                              className="px-3.5 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-800 dark:text-zinc-200 transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0"
+                            >
+                              Calibrate Scoring Weights
+                            </button>
+                          </div>
+
+                          <div className="space-y-4">
+                            {(result.scoreReasons && result.scoreReasons.length > 0
+                              ? result.scoreReasons
+                              : [
+                                  {
+                                    category: "Skills & Role Alignment",
+                                    factor: "Technical & Functional Skill Match",
+                                    impactDelta: `${result.skillsMatch}%`,
+                                    pointsEarned: Math.round(result.skillsMatch * 0.4),
+                                    maxPossiblePoints: 40,
+                                    status: result.skillsMatch >= 80 ? "strong" : result.skillsMatch >= 65 ? "partial" : "missing",
+                                    evidenceFromResume: result.foundSkills.length > 0 ? `Matched ${result.foundSkills.slice(0, 4).join(", ")}` : "Limited exact skill matches found.",
+                                    detailedReason: "Evaluates how many required competencies from the target mandate appear clearly in your experience and skills sections.",
+                                    howToFix: result.skillGapReport?.[0]?.skill ? `Weave "${result.skillGapReport[0].skill}" into relevant experience bullets.` : "Keep your skills list focused on role-specific competencies."
+                                  },
+                                  {
+                                    category: "ATS Structure & Parsing",
+                                    factor: "Recruiting System Readability",
+                                    impactDelta: `${result.atsCompatibility}%`,
+                                    pointsEarned: Math.round(result.atsCompatibility * 0.35),
+                                    maxPossiblePoints: 35,
+                                    status: result.atsCompatibility >= 80 ? "strong" : result.atsCompatibility >= 65 ? "partial" : "missing",
+                                    evidenceFromResume: `Formatting score ${result.atsAnalysis.formattingScore}% with ${result.atsAnalysis.keywordDensity}% keyword density.`,
+                                    detailedReason: "Measures clean section headings, standard chronological flow, and reliable text extraction without parser blockers.",
+                                    howToFix: "Use standard section headers (Summary, Experience, Skills, Education) and single-column clean layouts."
+                                  },
+                                  {
+                                    category: "Achievement Impact",
+                                    factor: "Quantified Outcomes & Action Verbs",
+                                    impactDelta: `${result.atsAnalysis.bulletPointQualityScore || 0}%`,
+                                    pointsEarned: Math.round((result.atsAnalysis.bulletPointQualityScore || 0) * 0.25),
+                                    maxPossiblePoints: 25,
+                                    status: (result.atsAnalysis.bulletPointQualityScore || 0) >= 80 ? "strong" : (result.atsAnalysis.bulletPointQualityScore || 0) >= 65 ? "partial" : "missing",
+                                    evidenceFromResume: "Evaluated bullet statements for concrete %, $, scale, and leadership ownership.",
+                                    detailedReason: "Recruiters and ATS filters prioritize measurable business impact over generic job descriptions.",
+                                    howToFix: "Add specific metrics (e.g., revenue growth %, latency cut, or team scale) to recent role bullets."
+                                  }
+                                ]
+                            ).map((reason: any, idx: number) => {
+                              const st = String(reason.status || "").toLowerCase();
+                              const isStrong = st === "strong" || st === "positive";
+                              const isMissing = st === "missing" || st === "negative" || st === "critical";
+                              return (
+                                <div
+                                  key={`reason-${reason.factor || idx}-${idx}`}
+                                  className="p-4 md:p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 space-y-2.5"
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2.5 flex-wrap">
+                                      <span className="text-[10px] font-black uppercase tracking-widest text-purple-800 dark:text-purple-300 bg-purple-500/10 border border-purple-500/25 px-2 py-0.5 rounded">
+                                        {reason.category}
+                                      </span>
+                                      <h4 className="text-sm font-bold text-zinc-950 dark:text-white">
+                                        {reason.factor}
+                                      </h4>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {reason.pointsEarned !== undefined && reason.maxPossiblePoints !== undefined && (
+                                        <span className="text-xs font-mono font-bold tabular-nums text-zinc-700 dark:text-zinc-300">
+                                          {reason.pointsEarned} / {reason.maxPossiblePoints} pts
+                                        </span>
+                                      )}
+                                      <span
+                                        className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${
+                                          isStrong
+                                            ? "bg-purple-500/15 text-purple-800 dark:text-purple-300 border border-purple-500/30"
+                                            : isMissing
+                                              ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30"
+                                              : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700"
+                                        }`}
+                                      >
+                                        {isStrong ? "Strong" : isMissing ? "Missing" : "Partial"}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                                    {reason.detailedReason}
+                                  </p>
+
+                                  {reason.evidenceFromResume && (
+                                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                      <strong className="text-zinc-700 dark:text-zinc-300">Observed:</strong> {reason.evidenceFromResume}
+                                    </p>
+                                  )}
+
+                                  {!isStrong && reason.howToFix && (
+                                    <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2">
+                                      <p className="text-[11px] text-[#4c1d95] dark:text-purple-300 font-medium">
+                                        <strong>How to improve:</strong> {reason.howToFix}
+                                      </p>
+                                      <button
+                                        type="button"
+                                        onClick={() => setIsResumeBuilderOpen(true)}
+                                        className="text-[11px] font-bold text-white bg-[#4c1d95] hover:bg-[#7e22ce] px-3 py-1 rounded-lg transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0"
+                                      >
+                                        Fix in Builder
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </GlassCard>
+                      </div>
+
+                      {/* Strict LinkedIn Status Section */}
+                      <div id="linkedin-network">
+                        {!hasLinkedInConnected ? (
+                          <GlassCard className="p-6 border border-zinc-200 dark:border-zinc-800">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                              <div className="flex items-start gap-4">
+                                <div className="h-11 w-11 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 shrink-0">
+                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+                                  </svg>
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-wider">
+                                      LinkedIn Profile: Missing (Not Linked)
+                                    </h3>
+                                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800">
+                                      Excluded From Score
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 leading-relaxed max-w-2xl">
+                                    No LinkedIn URL or profile text was provided. LinkedIn consistency checks are skipped and excluded with zero penalty to your resume score.
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setIsConnectLinkedInModalOpen(true)}
+                                className="px-4 py-2.5 rounded-xl bg-[#4c1d95] hover:bg-[#7e22ce] text-white text-xs font-bold uppercase tracking-wider transition-colors duration-150 cursor-pointer whitespace-nowrap shrink-0"
+                              >
+                                Connect LinkedIn
+                              </button>
+                            </div>
+                          </GlassCard>
+                        ) : (
+                          <GlassCard className="p-6 border border-zinc-200 dark:border-zinc-800 space-y-6">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-[#4c1d95] dark:text-purple-400 shrink-0">
+                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+                                  </svg>
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="text-base font-black text-zinc-950 dark:text-white uppercase tracking-tight">
+                                      LinkedIn Profile Sync
+                                    </h3>
+                                    <span className="px-2 py-0.5 rounded bg-purple-500/15 text-[#4c1d95] dark:text-purple-300 border border-purple-500/30 text-[10px] font-bold uppercase tracking-wider">
+                                      Connected
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                    Cross-checking resume claims against your attached LinkedIn profile.
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {linkedinUrl && (
+                                  <a
+                                    href={linkedinUrl.startsWith("http") ? linkedinUrl : `https://${linkedinUrl}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-[#4c1d95] dark:text-purple-300 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 transition-colors duration-150 font-mono flex items-center gap-1.5"
+                                  >
+                                    <span>in/{linkedinUrl.replace(/^https?:\/\/(www\.)?linkedin\.com\/(in\/)?/i, "").replace(/\/+$/, "")}</span>
+                                    <ArrowRight className="w-3 h-3 -rotate-45" />
+                                  </a>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setIsConnectLinkedInModalOpen(true)}
+                                  className="text-xs text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 transition-colors duration-150 flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  <Edit2 className="w-3 h-3 text-[#7e22ce] dark:text-purple-400" />
+                                  <span>Manage Sync</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleVerifyLinkedInTrust()}
+                                  disabled={isVerifyingLinkedInTrust}
+                                  className="text-xs text-white bg-[#4c1d95] hover:bg-[#7e22ce] px-3.5 py-1.5 rounded-xl transition-colors duration-150 flex items-center gap-1.5 cursor-pointer whitespace-nowrap disabled:opacity-50 font-bold"
+                                >
+                                  <ShieldCheck className={`w-3.5 h-3.5 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
+                                  <span>{isVerifyingLinkedInTrust ? "Verifying..." : "Verify Trust Score"}</span>
+                                  {linkedInTrustScore !== null && (
+                                    <span className="font-mono font-bold tabular-nums ml-1">{linkedInTrustScore}%</span>
+                                  )}
+                                </button>
+                                <button
+                                  id="share-trust-score-linkedin-btn"
+                                  type="button"
+                                  onClick={() => setIsShareTrustScoreOpen(true)}
+                                  className="text-xs text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 transition-colors duration-150 flex items-center gap-1.5 cursor-pointer whitespace-nowrap font-bold"
+                                >
+                                  <Share2 className="w-3.5 h-3.5 text-[#7e22ce] dark:text-purple-400" />
+                                  <span>Share Trust Score</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleDownloadNetworkDossier}
+                                  disabled={isDownloadingNetworkDossier}
+                                  className="text-xs text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 transition-colors duration-150 flex items-center gap-1.5 cursor-pointer whitespace-nowrap font-bold disabled:opacity-50"
+                                >
+                                  <Download className="w-3.5 h-3.5 text-[#7e22ce] dark:text-purple-400" />
+                                  <span>{networkDossierSuccess ? "Saved PDF" : isDownloadingNetworkDossier ? "Exporting..." : "Download PDF Dossier"}</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            {linkedInTrustScore !== null && (
+                              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 border border-purple-500/30 space-y-2.5">
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                  <div className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300">
+                                    <ShieldCheck className="w-4 h-4 text-[#7e22ce] dark:text-purple-400 shrink-0" />
+                                    <span className="font-bold text-zinc-950 dark:text-white">Credibility Score</span>
+                                    <span aria-hidden="true">·</span>
+                                    <span className="text-[#4c1d95] dark:text-purple-300 font-semibold">
+                                      {linkedInTrustReport?.credibilityTier || (linkedInTrustScore >= 85 ? "Verified High Credibility" : linkedInTrustScore >= 70 ? "Strong Profile Credibility" : "Moderate Credibility")}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-base font-mono font-bold tabular-nums text-[#4c1d95] dark:text-purple-400">
+                                      {linkedInTrustScore}% Credibility
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setIsLinkedInVerificationModalOpen(true)}
+                                      className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white bg-white dark:bg-zinc-950 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800 transition-colors duration-150 cursor-pointer whitespace-nowrap"
+                                    >
+                                      Detailed Audit
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-[#7e22ce] rounded-full transition-all duration-150"
+                                    style={{ width: `${linkedInTrustScore}%` }}
+                                  />
+                                </div>
+                                {linkedInTrustReport?.verificationSummary && (
+                                  <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                                    {linkedInTrustReport.verificationSummary}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl w-fit">
+                              <button
+                                type="button"
+                                onClick={() => setLinkedInSubView("trust")}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors duration-150 cursor-pointer ${
+                                  linkedInSubView === "trust"
+                                    ? "bg-[#4c1d95] text-white"
+                                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
+                                }`}
+                              >
+                                Profile Trust Audit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setLinkedInSubView("network")}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors duration-150 cursor-pointer ${
+                                  linkedInSubView === "network"
+                                    ? "bg-[#4c1d95] text-white"
+                                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
+                                }`}
+                              >
+                                Referral Network Graph
+                              </button>
+                            </div>
+
+                            {linkedInSubView === "trust" ? (
+                              <VerifiedTrustBadgeCard
+                                credibilityScore={linkedInTrustScore}
+                                credibilityTier={linkedInTrustReport?.credibilityTier}
+                                linkedinUrl={linkedinUrl}
+                                candidateName={
+                                  linkedInTrustReport?.candidateName ||
+                                  (file ? file.name.replace(/\.[^/.]+$/, "") : "Candidate")
+                                }
+                                targetRole={result.careerPath?.topRole || "Target Role"}
+                                trustFactors={linkedInTrustReport?.trustFactors}
+                                isVerifying={isVerifyingLinkedInTrust}
+                                onVerifyNow={() => handleVerifyLinkedInTrust()}
+                                onOpenVerificationModal={() => setIsLinkedInVerificationModalOpen(true)}
+                                onShareTrustScore={() => setIsShareTrustScoreOpen(true)}
+                                onOpenWalkthrough={() => setIsTrustScoreWalkthroughOpen(true)}
+                              />
+                            ) : (
+                              <LinkedInConnectionNetwork
+                                candidateName={
+                                  linkedInTrustReport?.candidateName ||
+                                  (file ? file.name.replace(/\.[^/.]+$/, "") : "Candidate")
+                                }
+                                targetRole={result.careerPath?.topRole || "Target Role"}
+                                linkedinUrl={linkedinUrl}
+                                trustScore={linkedInTrustScore}
+                                height={480}
+                              />
+                            )}
+
+                            {result.linkedinComparison?.hasLinkedIn && (
+                              <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 space-y-5">
+                                <div className="grid md:grid-cols-2 gap-6">
+                                  <div className="bg-zinc-50 dark:bg-zinc-950/60 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                                    <h4 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-1.5">
+                                      Resume Headline
+                                    </h4>
+                                    <p className="text-zinc-950 dark:text-white text-sm font-bold">
+                                      {result.linkedinComparison.resumeHeadline}
+                                    </p>
+                                  </div>
+                                  <div className="bg-purple-500/10 p-4 rounded-xl border border-purple-500/25">
+                                    <h4 className="text-[10px] font-black text-[#4c1d95] dark:text-purple-300 uppercase tracking-widest mb-1.5">
+                                      LinkedIn Headline
+                                    </h4>
+                                    <p className="text-zinc-950 dark:text-white text-sm font-bold">
+                                      {result.linkedinComparison.linkedinHeadline}
+                                    </p>
+                                  </div>
+                                </div>
+                                {result.linkedinComparison.matchAnalysis && (
+                                  <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                                    {result.linkedinComparison.matchAnalysis}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </GlassCard>
+                        )}
+                      </div>
+
+                      {/* Export Full Analyzed Report Banner */}
+                      <GlassCard className="p-6 border border-zinc-200 dark:border-zinc-800">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div>
+                            <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-wider">
+                              Export Complete Analysis Report
+                            </h3>
+                            <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                              Save your scorecard, plain-English explanations, and skill audit as PDF or Excel.
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => setIsPdfPreviewOpen(true)}
+                              className="px-4 py-2 rounded-xl bg-[#4c1d95] hover:bg-[#7e22ce] text-white font-bold text-xs uppercase tracking-wider transition-colors duration-150 flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
+                            >
+                              <Eye className="w-3.5 h-3.5" /> PDF Preview
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleFullReportPdfPrint}
+                              className="px-4 py-2 rounded-xl bg-zinc-950 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-950 font-bold text-xs uppercase tracking-wider transition-colors duration-150 flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
+                            >
+                              <Printer className="w-3.5 h-3.5" /> Print Report
+                            </button>
+                            <button
+                              type="button"
+                              onClick={exportToExcel}
+                              className="px-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 font-bold text-xs uppercase tracking-wider transition-colors duration-150 flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
+                            >
+                              <FileSpreadsheet className="w-3.5 h-3.5 text-[#7e22ce] dark:text-purple-400" /> Export Excel
+                            </button>
+                          </div>
+                        </div>
+                      </GlassCard>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {activeStudioTab === "skills" && !isExecutiveMode && (
+                <div id="skill-vector-engine" className="space-y-8">
+                  <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Share2 className="w-4 h-4 text-[#7e22ce] dark:text-purple-400 shrink-0" />
+                        <h3 className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-[0.2em]">
+                          Skills Ecosystem & Keyword Alignment
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-md bg-purple-500/15 text-[#4c1d95] dark:text-purple-300 border border-purple-500/30 text-[10px] font-bold uppercase">
+                          {skillVisualizationMode === "network" ? "Network Graph" : "Tag Cloud"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                        {skillVisualizationMode === "network"
+                          ? "Interactive network map showing your matched skills and the missing skills needed for this role."
+                          : "Clear overview of matched capabilities, missing skills, and exact target job keywords."}
+                      </p>
                     </div>
 
-                    {/* Tab 1: Interactive D3 Force-Directed LinkedIn Connection Network Graph */}
-                    {linkedInViewTab === "network" && (
-                      <PanelErrorBoundary compact title="LinkedIn Connection Network">
-                        <LinkedInConnectionNetwork
-                          candidateName={linkedInTrustReport?.candidateName || (file ? file.name.replace(/\.[^/.]+$/, "") : "Alex Mercer")}
-                          targetRole={result.careerPath?.topRole || "Executive Leadership"}
-                          linkedinUrl={linkedinUrl}
-                          trustScore={linkedInTrustScore || 88}
-                          onOpenLinkedInModal={() => setIsLinkedInVerificationModalOpen(true)}
+                    <div className="flex items-center p-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setSkillVisualizationMode("cloud")}
+                        className={`px-3.5 py-1.5 rounded-lg font-bold transition-colors duration-150 flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
+                          skillVisualizationMode === "cloud"
+                            ? "bg-[#4c1d95] text-white"
+                            : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
+                        }`}
+                      >
+                        <Tag className="w-3.5 h-3.5" />
+                        <span>Tag Cloud & Severity</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSkillVisualizationMode("network")}
+                        className={`px-3.5 py-1.5 rounded-lg font-bold transition-colors duration-150 flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
+                          skillVisualizationMode === "network"
+                            ? "bg-[#4c1d95] text-white"
+                            : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
+                        }`}
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span>D3 Force Network</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {skillVisualizationMode === "network" ? (
+                    <div className="space-y-6">
+                      <PanelErrorBoundary compact title="D3 Skill Network Graph">
+                        <SkillNetworkGraph
+                          foundSkills={result.foundSkills || []}
+                          missingSkills={(result.skillGapReport || []).map((g) => g.skill)}
+                          skillGapReport={result.skillGapReport || []}
+                          onSkillClick={handleMissingSkillClick}
                           height={540}
                         />
                       </PanelErrorBoundary>
-                    )}
 
-                    {/* Tab 2: Verified Trust Badge Card */}
-                    {linkedInViewTab === "badge" && (
-                      <VerifiedTrustBadgeCard
-                        credibilityScore={linkedInTrustScore}
-                        credibilityTier={linkedInTrustReport?.credibilityTier}
-                        linkedinUrl={linkedinUrl}
-                        candidateName={linkedInTrustReport?.candidateName || "Alex Mercer"}
-                        targetRole={result.careerPath?.topRole || "Executive Leadership"}
-                        trustFactors={linkedInTrustReport?.trustFactors}
-                        isVerifying={isVerifyingLinkedInTrust}
-                        onVerifyNow={() => handleVerifyLinkedInTrust()}
-                        onOpenVerificationModal={() => setIsLinkedInVerificationModalOpen(true)}
-                        onShareTrustScore={() => setIsShareTrustScoreOpen(true)}
-                        onOpenWalkthrough={() => setIsTrustScoreWalkthroughOpen(true)}
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Deep Score Reasoning & AI Model Calibration Studio */}
-              <div id="model-training-studio-section">
-                <ModelTrainingStudio
-                  result={result}
-                  resumeText={result.atsMetadata?.rawText || ""}
-                  jobDescription={jobDescription}
-                  linkedinUrl={linkedinUrl}
-                  linkedinData={linkedinData}
-                  onAnalysisUpdated={(updated) => setResult(updated)}
-                />
-              </div>
-
-              {/* Full Analysis Report Export & ATS Generator Banner */}
-              <GlassCard className="mb-8 border-l-4 border-l-violet-600 bg-gradient-to-r from-violet-500/10 via-purple-500/5 to-transparent p-6 md:p-8 flex flex-wrap items-center justify-between gap-6">
-                <div className="space-y-1.5 max-w-2xl">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-violet-700 dark:text-violet-300">
-                    <span>Complete Career Report</span>
-                    <span aria-hidden="true" className="text-zinc-400">·</span>
-                    <span className="text-purple-700 dark:text-purple-300">DOCX & PDF Verified</span>
-                  </div>
-                  <h3 className="text-lg font-black text-zinc-950 dark:text-white font-display uppercase tracking-wider">
-                    Download Full Analyzed Report
-                  </h3>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium leading-relaxed">
-                    Export your complete executive summary, skill gap report, D3 career roadmap, and strategic optimization plan as a clean, presentation-ready PDF or Word document.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={() => setIsPdfPreviewOpen(true)}
-                    className="px-5 py-3 rounded-xl bg-gradient-to-r from-purple-700 to-violet-700 hover:from-purple-600 hover:to-violet-600 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer whitespace-nowrap"
-                    title="Customize and toggle sections before exporting PDF"
-                  >
-                    <Eye className="w-4 h-4" /> PDF Export Preview
-                  </button>
-
-                  <button
-                    onClick={handleFullReportPdfPrint}
-                    className="px-4 py-3 rounded-xl bg-zinc-100 dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/15 border border-zinc-300 dark:border-white/20 text-zinc-800 dark:text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 active:scale-95 cursor-pointer whitespace-nowrap"
-                    title="Print full executive report directly"
-                  >
-                    <Printer className="w-4 h-4 text-purple-600 dark:text-purple-300" /> Direct Print PDF
-                  </button>
-
-                  <button
-                    onClick={() => exportFullReportToDocx(result)}
-                    className="px-5 py-3 rounded-xl bg-violet-700 hover:bg-violet-600 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer whitespace-nowrap"
-                  >
-                    <Download className="w-4 h-4" /> Download DOCX Report
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setIsCopilotDrawerOpen(true);
-                      setCopilotExternalPrompt({
-                        id: Date.now(),
-                        prompt:
-                          "Give me a short, crystal-clear breakdown of what is missing from my resume for this job and the best quick fixes I can apply.",
-                      });
-                    }}
-                    className="px-5 py-3 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-violet-500/40 text-violet-300 hover:text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 active:scale-95 cursor-pointer whitespace-nowrap"
-                  >
-                    <Bot className="w-4 h-4 text-violet-400" /> Ask Copilot What&apos;s Missing
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setSelectedSkillToFrame(null);
-                      setIsResumeBuilderOpen(true);
-                    }}
-                    className="px-5 py-3 rounded-xl bg-purple-700 hover:bg-purple-600 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer whitespace-nowrap"
-                  >
-                    <Briefcase className="w-4 h-4" /> Open Resume Builder & AI Coach
-                  </button>
-                </div>
-              </GlassCard>
-
-{/* Scoring Infrastructure */}
-              <div id="scoring-infrastructure" className="mb-8" style={{ order: sectionOrder.indexOf('scoring-infrastructure') }}>
-                {collapsedSections["scoring-infrastructure"] ? (
-                  <GlassCard className="p-4 border-l-4 border-l-violet-600 bg-gradient-to-r from-violet-500/10 via-transparent to-transparent flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-700 dark:text-violet-400">
-                        <Target className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-wider">
-                            ATS Scoring Infrastructure & Core Benchmarks
-                          </h3>
-                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 uppercase">
-                            Collapsed
-                          </span>
-                        </div>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-0.5">
-                          Overall Match: {result.overallScore}% · ATS Parseability: {result.atsCompatibility}% · Skills Overlap: {result.skillsMatch}%
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => toggleSection("scoring-infrastructure")}
-                      className="px-3.5 py-1.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 text-violet-800 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <span>Expand Section</span>
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    </button>
-                  </GlassCard>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between px-2">
-                      <div className="flex items-center gap-2">
-                        <Target className="w-4 h-4 text-violet-700 dark:text-violet-400" />
-                        <span className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-                          Scoring Infrastructure & Core ATS Metrics
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => toggleSection("scoring-infrastructure")}
-                        className="px-2.5 py-1 rounded-xl bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 border border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-all cursor-pointer flex items-center gap-1 text-xs"
-                        title="Collapse section to declutter workspace"
-                      >
-                        <span className="text-[10px] font-bold">Collapse</span>
-                        <ChevronUp className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-8">
-                <GlassCard className="flex flex-col items-center justify-center py-8 border-t-4 border-t-violet-600 bg-gradient-to-b from-violet-500/5 to-transparent relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-4 opacity-60">
-                    <CheckCircle2 className="h-6 w-6 text-violet-600 dark:text-violet-400" />
-                  </div>
-                  <h3 className="text-xl font-black text-zinc-950 dark:text-white font-display uppercase tracking-widest mb-2">
-                    Overall Match
-                  </h3>
-                  <p className="text-zinc-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-[0.2em] mb-8 text-center max-w-xs">
-                    Holistic evaluation of your resume against the target role
-                  </p>
-                  <ScoringCircle
-                    score={result.overallScore}
-                    label="Executive Leadership Score"
-                    color="#7c3aed"
-                    delay={0.08}
-                  />
-                  <div className="mt-6 flex items-center justify-center">
-                    <span className="px-3 py-1 bg-violet-500/10 border border-violet-500/25 rounded-md text-[9px] font-black tracking-widest text-violet-700 dark:text-violet-400 uppercase">
-                      <BarChart2 className="w-3 h-3 inline-block mr-1.5 -mt-0.5" />
-                      Benchmarked via 2000B+ Outcomes • High-Accuracy ML
-                    </span>
-                  </div>
-
-                  {/* Historical ATS Score Trajectory Sparkline */}
-                  <div className="w-full mt-6 pt-5 border-t border-zinc-200 dark:border-white/10 flex flex-col space-y-2">
-                    <div className="flex items-center justify-between text-[10px] uppercase font-black tracking-wider px-2">
-                      <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
-                        <TrendingUp className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" /> Historical ATS Trajectory
-                      </span>
-                      <span className="text-violet-700 dark:text-violet-300 bg-violet-500/15 px-2 py-0.5 rounded-md border border-violet-500/30">
-                        +{Math.max(8, Math.min(32, Math.round(result.overallScore * 0.22)))}% Score Improvement
-                      </span>
-                    </div>
-
-                    <div className="h-20 w-full pt-1">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart
-                          data={
-                            history.length >= 2
-                              ? [
-                                  ...history.slice(-4).map((h, idx) => ({
-                                    version: `v${idx + 1}`,
-                                    score: h.result.overallScore,
-                                  })),
-                                  { version: "Current", score: result.overallScore },
-                                ]
-                              : [
-                                  { version: "Base Audit", score: Math.max(30, result.overallScore - 22) },
-                                  { version: "Iteration 1", score: Math.max(42, result.overallScore - 14) },
-                                  { version: "Iteration 2", score: Math.max(58, result.overallScore - 6) },
-                                  { version: "Current Audit", score: result.overallScore },
-                                ]
-                          }
-                          margin={{ top: 5, right: 10, left: 10, bottom: 0 }}
-                        >
-                          <defs>
-                            <linearGradient id="overallSparklineGradient" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.45} />
-                              <stop offset="95%" stopColor="#7c3aed" stopOpacity={0.0} />
-                            </linearGradient>
-                          </defs>
-                          <RechartsTooltip
-                            content={({ active, payload }) => {
-                              if (active && payload && payload.length) {
-                                return (
-                                  <div className="bg-white dark:bg-[#111116] border border-violet-500/40 px-2.5 py-1 rounded shadow-lg">
-                                    <p className="text-[10px] font-black text-violet-700 dark:text-violet-300 uppercase">
-                                      {payload[0].payload.version}: {payload[0].value} pts
-                                    </p>
-                                  </div>
-                                );
-                              }
-                              return null;
-                            }}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="score"
-                            stroke="#7c3aed"
-                            strokeWidth={2.5}
-                            fillOpacity={1}
-                            fill="url(#overallSparklineGradient)"
-                            dot={{ r: 3, fill: "#7c3aed", stroke: "#ffffff", strokeWidth: 1.5 }}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                </GlassCard>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                  <GlassCard className="flex flex-col items-center justify-center p-6 md:p-8 border-t-2 border-t-purple-600 relative overflow-hidden group/card hover:border-purple-500 transition-colors">
-                    <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-4">
-                      ATS Fit
-                    </h3>
-                    <ScoringCircle
-                      score={result.atsCompatibility}
-                      label=""
-                      color="#9333ea"
-                      delay={0.16}
-                      tooltip="Measures how well your resume is formatted and structured to pass through an Applicant Tracking System (ATS) without losing critical data."
-                    />
-                  </GlassCard>
-
-                  <GlassCard className="flex flex-col items-center justify-center p-6 md:p-8 border-t-2 border-t-violet-700 relative overflow-hidden group/card hover:border-violet-500 transition-colors">
-                    <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-4">
-                      Skills Match
-                    </h3>
-                    <ScoringCircle
-                      score={result.skillsMatch}
-                      label=""
-                      color="#6d28d9"
-                      delay={0.24}
-                      tooltip="Evaluates the density of relevant skills and keywords in your resume compared to the requirements of your target role."
-                    />
-                  </GlassCard>
-
-                  <GlassCard className="flex flex-col items-center justify-center p-6 md:p-8 border-t-2 border-t-purple-500 relative overflow-hidden group/card hover:border-purple-400 transition-colors">
-                    <h3 className="text-[11px] font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-4 text-center">
-                      Formatting Health
-                    </h3>
-                    <ScoringCircle
-                      score={
-                        result.formattingHealthScore ||
-                        result.atsAnalysis.formattingScore ||
-                        0
-                      }
-                      label=""
-                      color="#a855f7"
-                      delay={0.32}
-                      tooltip="Assesses the visual structure, layout consistency, and readability of your document for human reviewers and parsers."
-                    />
-                  </GlassCard>
-
-                  <GlassCard className="flex flex-col items-center justify-center p-6 md:p-8 border-t-2 border-t-violet-900 relative overflow-hidden group/card hover:border-violet-700 transition-colors">
-                    <h3 className="text-[11px] font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-4 text-center">
-                      Career Trajectory
-                    </h3>
-                    <ScoringCircle
-                      score={result.careerTrajectoryFitScore || 0}
-                      label=""
-                      color="#5b21b6"
-                      delay={0.40}
-                      tooltip="Analyzes the progression of your roles and achievements to determine if you show the expected growth for this executive position."
-                    />
-                  </GlassCard>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-              {/* 4-Quadrant Spider Chart: Resume Health Overview Widget */}
-              <div className="mb-8" id="resume-health-overview">
-                <ResumeHealthWidget
-                  result={result}
-                  onOpenOptimizer={(focusArea) => {
-                    if (focusArea) setSelectedSkillToFrame(focusArea);
-                    setIsResumeBuilderOpen(true);
-                  }}
-                />
-              </div>
-
-              <div id="career-progression" className="mb-8" style={{ order: sectionOrder.indexOf('career-progression') }}>
-                {collapsedSections["career-progression"] ? (
-                  <GlassCard className="p-4 border-l-4 border-l-violet-600 bg-gradient-to-r from-violet-500/10 via-transparent to-transparent flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-700 dark:text-violet-400">
-                        <TrendingUp className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-wider">
-                            Career Progression & Sub-Metrics
-                          </h3>
-                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 uppercase">
-                            Collapsed
-                          </span>
-                        </div>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-0.5">
-                          Target Mandate: {result.careerPath?.topRole} · Trajectory Confidence {result.careerPath?.confidence || 88}%
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => toggleSection("career-progression")}
-                      className="px-3.5 py-1.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 text-violet-800 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <span>Expand Section</span>
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    </button>
-                  </GlassCard>
-                ) : (
-                  <>
-                    <GlassCard className="mb-8">
-                    <div className="flex justify-between items-center mb-8">
-                      <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.3em]">
-                        Detailed Sub-Metrics
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest">
-                          <Target className="h-3 w-3" />
-                          Deep Analysis
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => toggleSection("career-progression")}
-                          className="p-1.5 rounded-lg bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-all cursor-pointer ml-2 flex items-center gap-1 text-xs"
-                          title="Collapse this section to declutter workspace"
-                        >
-                          <ChevronUp className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                <div className="grid sm:grid-cols-3 lg:grid-cols-5 gap-x-8 gap-y-8">
-                  {[
-                    {
-                      label: "Skills Match",
-                      score: result.skillsMatch,
-                      color: "#7c3aed",
-                      desc: "Role alignment",
-                      tooltip: (
-                        <>
-                          <strong className="text-violet-400 block mb-2 uppercase tracking-widest text-xs border-b border-zinc-800 pb-1">
-                            Skills Match
-                          </strong>
-                          The overlap between your extracted skills and the
-                          job's core requirements. High scores indicate strong
-                          technical and domain alignment.
-                        </>
-                      ),
-                    },
-                    {
-                      label: "Keywords",
-                      score: result.atsAnalysis.keywordDensity,
-                      color: "#9333ea",
-                      desc: "Density factor",
-                    },
-                    {
-                      label: "Formatting",
-                      score: result.atsAnalysis.formattingScore,
-                      color: "#6d28d9",
-                      desc: "Visual health",
-                      tooltip: (
-                        <>
-                          <strong className="text-purple-400 block mb-2 uppercase tracking-widest text-xs border-b border-zinc-800 pb-1">
-                            Formatting Health
-                          </strong>
-                          Assesses how easily an ATS parser can process your
-                          resume. Penalizes complex layouts, graphics, tables,
-                          or unreadable fonts.
-                        </>
-                      ),
-                    },
-                    {
-                      label: "System Match",
-                      score: Math.round(
-                        (result.atsAnalysis.formattingScore +
-                          result.atsCompatibility) /
-                          2,
-                      ),
-                      color: "#a855f7",
-                      desc: "Averaged health",
-                      tooltip: (
-                        <>
-                          <strong className="text-purple-300 block mb-2 uppercase tracking-widest text-xs border-b border-zinc-800 pb-1">
-                            Average Health
-                          </strong>
-                          Combines your formatting score and base ATS score into
-                          a single indicator of parsing reliability.
-                        </>
-                      ),
-                    },
-                    {
-                      label: "Bullet Quality",
-                      score: result.atsAnalysis.bulletPointQualityScore || 0,
-                      color: "#5b21b6",
-                      desc: "Impact score",
-                      tooltip: (
-                        <>
-                          <strong className="text-violet-300 block mb-2 uppercase tracking-widest text-xs border-b border-zinc-800 pb-1">
-                            Bullet Quality
-                          </strong>
-                          Focuses on the presence of strong action verbs and
-                          quantifiable metrics (numbers, %, $) in your
-                          experience descriptions.
-                        </>
-                      ),
-                    },
-                  ].map((m, i) => (
-                    <div key={`m-${m.label}-${i}`} className="space-y-3">
-                      <div className="flex justify-between items-end">
-                        <div className="flex items-center gap-2">
-                          <div>
-                            <span className="text-[10px] font-black text-zinc-600 dark:text-zinc-400 uppercase tracking-widest block">
-                              {m.label}
-                            </span>
-                            <span className="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-tighter">
-                              {m.desc}
-                            </span>
-                          </div>
-                          {m.tooltip && (
-                            <div className="group relative cursor-pointer">
-                              <Info className="h-4 w-4 text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-colors" />
-                              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 w-64 bg-zinc-950 text-white text-[10px] font-medium p-4 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-zinc-800 shadow-2xl leading-relaxed">
-                                {m.tooltip}
-                                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-zinc-950 rotate-45 border-r border-b border-zinc-800"></div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-2xl font-black text-zinc-950 dark:text-white font-display leading-none">
-                          {m.score}%
-                        </span>
-                      </div>
-                      <div className="h-1.5 w-full bg-zinc-200 dark:bg-white/10 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${m.score}%` }}
-                          className="h-full rounded-full"
-                          style={{ backgroundColor: m.color }}
-                          transition={{
-                            delay: 0.35 + i * 0.08,
-                            duration: 0.9,
-                            ease: "easeOut",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </GlassCard>
-
-              {/* Career Progression Timeline */}
-              {result.careerTimeline && result.careerTimeline.length > 0 && (
-                <GlassCard className="mb-8">
-                  <div className="flex flex-col items-center justify-center space-y-2 mb-10">
-                    <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.3em] text-center">
-                      Career Progression Timeline
-                    </h3>
-                    <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase">
-                      Trajectory extracted from your resume
-                    </p>
-                  </div>
-
-                  <div className="relative pl-4 md:pl-8 max-w-4xl mx-auto">
-                    <div className="absolute left-[27px] md:left-[43px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-violet-600 via-purple-600 to-transparent opacity-30"></div>
-
-                    <div className="space-y-12">
-                      {result.careerTimeline.map((item, idx) => (
-                        <div
-                          key={`timeline-${item.role || idx}-${item.company || idx}-${idx}`}
-                          className="relative pl-12 md:pl-16"
-                        >
-                          {/* Timeline dot */}
-                          <div className="absolute left-[-5px] md:left-[11px] top-1 h-6 w-6 rounded-full bg-white dark:bg-[#111116] border-2 border-violet-600 flex items-center justify-center shadow-sm z-10">
-                            <div className="h-2 w-2 rounded-full bg-violet-600 dark:bg-violet-400"></div>
-                          </div>
-
-                          <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-2 gap-2">
-                            <h4 className="text-lg md:text-xl font-black text-zinc-950 dark:text-white">
-                              {item.role}
+                      <div className="grid lg:grid-cols-2 gap-6">
+                        <GlassCard className="border border-zinc-200 dark:border-zinc-800">
+                          <div className="mb-4">
+                            <h4 className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-widest">
+                              Skill Gap Priority Severity
                             </h4>
-                            <span className="text-xs font-bold text-violet-700 dark:text-violet-300 bg-violet-500/10 px-3 py-1 rounded-md border border-violet-500/25 whitespace-nowrap">
-                              {item.duration}
-                            </span>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                              Relative urgency of missing requirements for this role.
+                            </p>
                           </div>
-
-                          <p className="text-sm font-bold text-zinc-600 dark:text-zinc-400 mb-4">
-                            {item.company}
-                          </p>
-
-                          <ul className="space-y-2">
-                            {item.highlights.map((highlight, hIdx) => (
-                              <li
-                                key={`timeline-hl-${idx}-${hIdx}`}
-                                className="text-[12px] text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium flex items-start gap-3"
+                          <div className="h-56 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart
+                                data={result.skillGapReport.map((sg) => ({
+                                  name: sg.skill,
+                                  severity: sg.importance.toLowerCase().includes("critical")
+                                    ? 95
+                                    : sg.importance.toLowerCase().includes("high")
+                                    ? 75
+                                    : sg.importance.toLowerCase().includes("medium")
+                                    ? 50
+                                    : 30,
+                                }))}
+                                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                               >
-                                <span className="text-violet-600 dark:text-violet-400 mt-1.5 opacity-60">
-                                  •
-                                </span>
-                                <span>{highlight}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </GlassCard>
-              )}
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(161,161,170,0.2)" vertical={false} />
+                                <XAxis
+                                  dataKey="name"
+                                  stroke="#71717a"
+                                  tick={{ fill: "#71717a", fontSize: 10, fontWeight: 700 }}
+                                  tickMargin={10}
+                                />
+                                <YAxis
+                                  stroke="#71717a"
+                                  tick={{ fill: "#71717a", fontSize: 10 }}
+                                  tickFormatter={(val) => `${val}%`}
+                                />
+                                <RechartsTooltip
+                                  cursor={{ fill: "rgba(126,34,206,0.08)" }}
+                                  content={({ active, payload }) => {
+                                    if (active && payload && payload.length) {
+                                      return (
+                                        <div className="bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg shadow-xl">
+                                          <p className="text-zinc-950 dark:text-white text-xs font-bold uppercase">
+                                            {payload[0].payload.name}
+                                          </p>
+                                          <p className="text-rose-600 dark:text-rose-400 text-[10px] font-black uppercase mt-1">
+                                            Gap Severity: {payload[0].value}%
+                                          </p>
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  }}
+                                />
+                                <Bar dataKey="severity" fill="#e11d48" radius={[4, 4, 0, 0]} barSize={20} isAnimationActive={false} />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </GlassCard>
 
-              {/* LinkedIn Comparison (if available) */}
-              {result.linkedinComparison &&
-              result.linkedinComparison.hasLinkedIn ? (
-                <GlassCard className="mb-8 border-t-2 border-t-violet-600 overflow-hidden relative group">
-                  <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-                    <svg width="150" height="150" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                      <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
-                    </svg>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-700 dark:text-violet-400">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
-                          <rect x="2" y="9" width="4" height="12"></rect>
-                          <circle cx="4" cy="4" r="2"></circle>
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-xl font-black text-zinc-950 dark:text-white uppercase tracking-tighter">
-                            LinkedIn Profile Sync
-                          </h3>
-                          <span className="px-2 py-0.5 rounded bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/25 text-[9px] font-bold uppercase tracking-wider">
-                            Connected
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-violet-700 dark:text-violet-400 font-bold tracking-widest uppercase">
-                          Cross-Vector Evaluation Active
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {linkedinUrl && (
-                        <a
-                          href={linkedinUrl.startsWith("http") ? linkedinUrl : `https://${linkedinUrl}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-violet-700 dark:text-violet-300 hover:text-zinc-950 dark:hover:text-white bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-white/10 transition-all font-mono flex items-center gap-1.5"
-                        >
-                          <span>in/{linkedinUrl.replace(/^https?:\/\/(www\.)?linkedin\.com\/(in\/)?/i, "").replace(/\/+$/, "")}</span>
-                          <ArrowRight className="w-3 h-3 -rotate-45" />
-                        </a>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setIsConnectLinkedInModalOpen(true)}
-                        className="text-xs text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Edit2 className="w-3 h-3 text-violet-600 dark:text-violet-400" />
-                        <span>Manage Sync</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleVerifyLinkedInTrust()}
-                        disabled={isVerifyingLinkedInTrust}
-                        className="text-xs text-violet-800 dark:text-white bg-violet-500/15 dark:bg-violet-500/20 hover:bg-violet-500/25 dark:hover:bg-violet-500/30 px-3.5 py-1.5 rounded-xl border border-violet-500/35 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap disabled:opacity-50"
-                        title="Perform real-time verification of LinkedIn profile data against resume content for Credibility Score"
-                      >
-                        <ShieldCheck className={`w-3.5 h-3.5 text-violet-700 dark:text-violet-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
-                        <span>{isVerifyingLinkedInTrust ? "Verifying..." : "LinkedIn Trust Score"}</span>
-                        {linkedInTrustScore !== null && (
-                          <span className="font-mono font-bold tabular-nums text-violet-700 dark:text-violet-300 ml-1">
-                            {linkedInTrustScore}%
-                          </span>
-                        )}
-                      </button>
-                      <button
-                        id="share-trust-score-linkedin-btn"
-                        type="button"
-                        onClick={() => setIsShareTrustScoreOpen(true)}
-                        className="text-xs text-white bg-gradient-to-r from-violet-700 to-purple-700 hover:from-violet-600 hover:to-purple-600 px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 whitespace-nowrap font-bold"
-                        title="Generate social media card of your verified credibility score"
-                      >
-                        <Share2 className="w-3.5 h-3.5" />
-                        <span>Share my Trust Score</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsTrustScoreWalkthroughOpen(true)}
-                        className="text-xs text-purple-800 dark:text-purple-300 hover:text-purple-950 dark:hover:text-white bg-purple-500/10 hover:bg-purple-500/20 px-2.5 py-1.5 rounded-xl border border-purple-500/30 transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap font-bold"
-                        title="Interactive guide on how to customize and share your Trust Score card"
-                      >
-                        <Info className="w-3 h-3 text-purple-700 dark:text-purple-400" />
-                        <span>Tour</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Real-Time Credibility Score Banner in Connected LinkedIn Section */}
-                  {linkedInTrustScore !== null && (
-                    <div className="mb-6 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/90 border border-violet-500/30 space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
-                          <ShieldCheck className="w-4 h-4 text-violet-700 dark:text-violet-400 shrink-0" />
-                          <span className="font-bold text-zinc-950 dark:text-white">Credibility Score</span>
-                          <span aria-hidden="true">·</span>
-                          <span className="text-violet-700 dark:text-violet-300 font-medium">
-                            {linkedInTrustReport?.credibilityTier ||
-                              (linkedInTrustScore >= 85
-                                ? "Verified High Credibility"
-                                : linkedInTrustScore >= 70
-                                ? "Strong Profile Credibility"
-                                : "Moderate Credibility")}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg font-mono font-bold tabular-nums text-violet-700 dark:text-violet-400">
-                            {linkedInTrustScore}% Credibility
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setIsLinkedInVerificationModalOpen(true)}
-                            className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white bg-white dark:bg-white/5 hover:bg-zinc-100 dark:hover:bg-white/10 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-white/10 transition-all cursor-pointer whitespace-nowrap"
-                          >
-                            Detailed Audit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setIsShareTrustScoreOpen(true)}
-                            className="text-xs font-bold text-white bg-violet-700 hover:bg-violet-600 px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shadow-sm active:scale-95"
-                            title="Generate social media image card"
-                          >
-                            <Share2 className="w-3 h-3" />
-                            <span>Share my Trust Score</span>
-                          </button>
-                        </div>
-                      </div>
-                      <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-violet-600 rounded-full transition-all duration-500"
-                          style={{ width: `${linkedInTrustScore}%` }}
-                        />
-                      </div>
-                      {linkedInTrustReport?.trustFactors && (
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {linkedInTrustReport.trustFactors.map((tf: any, idx: number) => (
-                            <div
-                              key={`dash-conn-tf-${tf.name}-${idx}`}
-                              className="flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-400 bg-white dark:bg-zinc-950/60 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800"
-                            >
-                              <span className="truncate pr-2">{tf.name.split(" ")[0]}</span>
-                              <span className="font-mono font-semibold tabular-nums text-zinc-950 dark:text-white">
-                                {tf.score}%
-                              </span>
+                        <GlassCard className="border border-zinc-200 dark:border-zinc-800">
+                          <div className="mb-4">
+                            <h4 className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-widest">
+                              Network Graph Insights
+                            </h4>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                              Fastest adjacent skills to bridge first.
+                            </p>
+                          </div>
+                          <div className="space-y-3 text-xs">
+                            <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/25 text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                              <strong className="text-[#4c1d95] dark:text-purple-300 block mb-1">Core Skill Anchor:</strong>
+                              Your profile is strongly anchored around{" "}
+                              <span className="text-zinc-950 dark:text-white font-bold">{result.foundSkills.slice(0, 4).join(", ") || "your primary domain"}</span>.
                             </div>
-                          ))}
-                        </div>
-                      )}
-                      {linkedInTrustReport?.verificationSummary && (
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                          {linkedInTrustReport.verificationSummary}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* LinkedIn Score Impact Progress Bar */}
-                  <div className="mb-8 p-5 bg-violet-500/10 border border-violet-500/25 rounded-2xl relative overflow-hidden">
-                    <div className="flex justify-between items-end mb-3 relative z-10">
-                      <span className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-violet-600 dark:text-violet-400" /> LinkedIn
-                        Data Impact
-                      </span>
-                      <span className="text-[10px] font-black text-violet-700 dark:text-violet-300 uppercase bg-violet-500/15 px-2 py-1 rounded border border-violet-500/25">
-                        +15% Score Boost
-                      </span>
-                    </div>
-                    <div className="w-full h-3 bg-zinc-200 dark:bg-white/10 rounded-full overflow-hidden flex relative z-10">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{
-                          width: `${Math.max(10, result.overallScore - 15)}%`,
-                        }}
-                        transition={{ duration: 0.9 }}
-                        className="h-full bg-zinc-500"
-                      />
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `15%` }}
-                        transition={{ duration: 0.9, delay: 0.5 }}
-                        className="h-full bg-violet-600 relative"
-                      />
-                    </div>
-                    <p className="text-[9px] font-bold text-zinc-500 dark:text-zinc-400 uppercase mt-3 text-right tracking-[0.2em] relative z-10">
-                      Enhanced by Profile Verification
-                    </p>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-8 relative">
-                    <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-zinc-200 dark:bg-white/10 hidden md:block" />
-
-                    {/* Resume Side */}
-                    <div className="space-y-6">
-                      <div className="bg-zinc-50 dark:bg-zinc-950/60 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-                        <h4 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-2 border-b border-zinc-200 dark:border-zinc-800 pb-2">
-                          Resume Headline
-                        </h4>
-                        <p className="text-zinc-950 dark:text-white text-sm font-bold">
-                          {result.linkedinComparison.resumeHeadline}
-                        </p>
-                      </div>
-
-                      {result.linkedinComparison.missingFromLinkedIn &&
-                        result.linkedinComparison.missingFromLinkedIn.length >
-                          0 && (
-                          <div>
-                            <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                              <CheckCircle2 className="w-3 h-3" /> Present on
-                              Resume (Missing on LinkedIn)
-                            </h4>
-                            <ul className="space-y-2">
-                              {result.linkedinComparison.missingFromLinkedIn.map(
-                                (s, i) => (
-                                  <li
-                                    key={`li-miss-${s}-${i}`}
-                                    className="text-xs text-zinc-700 dark:text-zinc-300 flex items-start gap-2"
-                                  >
-                                    <span className="text-violet-600 dark:text-violet-400">
-                                      •
-                                    </span>{" "}
-                                    {s}
-                                  </li>
-                                ),
-                              )}
-                            </ul>
+                            <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                              <strong className="text-[#7e22ce] dark:text-purple-300 block mb-1">Highest-Value Additions:</strong>
+                              Prioritize demonstrating{" "}
+                              <span className="text-zinc-950 dark:text-white font-bold">
+                                {result.skillGapReport.slice(0, 2).map((g) => g.skill).join(", ") || "top missing terms"}
+                              </span>{" "}
+                              in your recent role bullets for maximum ATS lift.
+                            </div>
                           </div>
-                        )}
-                    </div>
-
-                    {/* LinkedIn Side */}
-                    <div className="space-y-6">
-                      <div className="bg-violet-500/10 p-5 rounded-2xl border border-violet-500/25">
-                        <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-2 border-b border-violet-500/20 pb-2">
-                          LinkedIn Headline
-                        </h4>
-                        <p className="text-zinc-950 dark:text-white text-sm font-bold">
-                          {result.linkedinComparison.linkedinHeadline}
-                        </p>
-                      </div>
-
-                      {result.linkedinComparison.missingFromResume &&
-                        result.linkedinComparison.missingFromResume.length >
-                          0 && (
-                          <div>
-                            <h4 className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                              <AlertCircle className="w-3 h-3" /> Present on
-                              LinkedIn (Missing on Resume)
-                            </h4>
-                            <ul className="space-y-2">
-                              {result.linkedinComparison.missingFromResume.map(
-                                (s, i) => (
-                                  <li
-                                    key={`res-miss-${s}-${i}`}
-                                    className="text-xs text-zinc-700 dark:text-zinc-300 flex items-start gap-2"
-                                  >
-                                    <span className="text-rose-500">•</span>{" "}
-                                    {s}
-                                  </li>
-                                ),
-                              )}
-                            </ul>
-                          </div>
-                        )}
-                    </div>
-                  </div>
-
-                  <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-white/5 mx-auto max-w-2xl text-center">
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium italic leading-relaxed">
-                      " {result.linkedinComparison.matchAnalysis} "
-                    </p>
-                  </div>
-                </GlassCard>
-              ) : (
-                <GlassCard className="mb-8 border-t-2 border-t-violet-600/70 overflow-hidden relative group">
-                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 p-2">
-                    <div className="flex items-start gap-4">
-                      <div className="h-12 w-12 rounded-2xl bg-violet-500/15 border border-violet-500/35 flex items-center justify-center text-violet-700 dark:text-violet-400 shrink-0">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                          <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-lg font-black text-zinc-950 dark:text-white uppercase tracking-tight">
-                            Connect LinkedIn Profile
-                          </h3>
-                          <span className="text-violet-700 dark:text-violet-400 text-[11px] font-bold">
-                            · +15% Verification Boost
-                          </span>
-                        </div>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 max-w-xl leading-relaxed">
-                          Sync your LinkedIn profile to run automated narrative alignment, discover missing executive skills, and benchmark your public presence against ATS standards.
-                        </p>
+                        </GlassCard>
                       </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => handleVerifyLinkedInTrust()}
-                        disabled={isVerifyingLinkedInTrust}
-                        className="px-4 py-3 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 text-violet-800 dark:text-violet-300 font-bold text-xs uppercase tracking-wider transition-all border border-violet-500/35 flex items-center justify-center gap-2 cursor-pointer shadow-sm whitespace-nowrap disabled:opacity-50"
-                      >
-                        <ShieldCheck className={`w-4 h-4 text-violet-700 dark:text-violet-400 ${isVerifyingLinkedInTrust ? "animate-spin" : ""}`} />
-                        <span>{isVerifyingLinkedInTrust ? "Verifying..." : "LinkedIn Trust Score"}</span>
-                        {linkedInTrustScore !== null && (
-                          <span className="font-mono font-bold tabular-nums text-zinc-950 dark:text-white ml-1">
-                            {linkedInTrustScore}%
-                          </span>
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsShareTrustScoreOpen(true)}
-                        className="px-4 py-3 rounded-xl bg-gradient-to-r from-violet-700 to-purple-700 hover:from-violet-600 hover:to-purple-600 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95 whitespace-nowrap"
-                        title="Generate a social media-ready image card of your verified credibility score"
-                      >
-                        <Share2 className="w-4 h-4" />
-                        <span>Share my Trust Score</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsTrustScoreWalkthroughOpen(true)}
-                        className="px-3.5 py-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-800 dark:text-purple-300 font-bold text-xs uppercase tracking-wider transition-all border border-purple-500/35 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap"
-                        title="Interactive guide on how to customize and share your Trust Score card"
-                      >
-                        <Info className="w-3.5 h-3.5 text-purple-700 dark:text-purple-400" />
-                        <span>Tour</span>
-                      </button>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setIsConnectLinkedInModalOpen(true)}
-                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-zinc-950 dark:bg-violet-700 hover:bg-zinc-800 dark:hover:bg-violet-600 text-white font-black text-xs uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2 shrink-0 cursor-pointer whitespace-nowrap"
-                      >
-                        <Zap className="w-4 h-4 text-violet-300" />
-                        <span>Connect Profile Now</span>
-                      </motion.button>
-                    </div>
-                  </div>
-
-                  {linkedInTrustScore !== null && (
-                    <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800 space-y-2.5">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
-                          <ShieldCheck className="w-4 h-4 text-violet-700 dark:text-violet-400 shrink-0" />
-                          <span className="font-bold text-zinc-950 dark:text-white">Credibility Score</span>
-                          <span aria-hidden="true">·</span>
-                          <span className="text-violet-700 dark:text-violet-300 font-medium">
-                            {linkedInTrustReport?.credibilityTier ||
-                              (linkedInTrustScore >= 85
-                                ? "Verified High Credibility"
-                                : linkedInTrustScore >= 70
-                                ? "Strong Profile Credibility"
-                                : "Moderate Credibility")}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-base font-mono font-bold tabular-nums text-violet-700 dark:text-violet-400">
-                            {linkedInTrustScore}% Credibility
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setIsLinkedInVerificationModalOpen(true)}
-                            className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white underline underline-offset-2 cursor-pointer whitespace-nowrap"
-                          >
-                            Full Verification Report
-                          </button>
-                        </div>
-                      </div>
-                      <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-violet-600 rounded-full transition-all duration-500"
-                          style={{ width: `${linkedInTrustScore}%` }}
-                        />
-                      </div>
-                      {linkedInTrustReport?.verificationSummary && (
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                          {linkedInTrustReport.verificationSummary}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </GlassCard>
-              )}
-                  </>
-                )}
-              </div>
-
-              {/* Skill Cloud Visualizer & D3 Force Network Graph */}
-              <div id="skill-vector-engine" style={{ order: sectionOrder.indexOf('skill-vector-engine') }} className="space-y-6">
-                {collapsedSections["skill-vector-engine"] ? (
-                  <GlassCard className="p-4 border-l-4 border-l-violet-600 bg-gradient-to-r from-violet-500/10 via-transparent to-transparent flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-700 dark:text-violet-400">
-                        <Share2 className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-wider">
-                            Skills Ecosystem & Knowledge Architecture
-                          </h3>
-                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 uppercase">
-                            Collapsed
-                          </span>
-                        </div>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-0.5">
-                          {result.foundSkills.length} Matched Capabilities · {result.skillGapReport.length} Missing Bridges · Force-Directed Graph
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => toggleSection("skill-vector-engine")}
-                      className="px-3.5 py-1.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 text-violet-800 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <span>Expand Section</span>
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    </button>
-                  </GlassCard>
-                ) : (
-                  <>
-                    {/* Section Header with Segmented View Switcher */}
-                    <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <Share2 className="w-4 h-4 text-violet-700 dark:text-violet-400 shrink-0" />
-                          <h3 className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-[0.25em]">
-                            Skills Ecosystem & Knowledge Architecture
-                          </h3>
-                          <span className="px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 text-[9px] font-extrabold uppercase">
-                            {skillVisualizationMode === "network" ? "D3 Force Graph" : "Tag Cloud"}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-1">
-                          {skillVisualizationMode === "network"
-                            ? "Interactive force-directed network visualizing interconnected technologies, domain clusters, and priority ATS skill gap bridges"
-                            : "Distribution of matched capabilities and severity ranking of missing role requirements"}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {/* Segmented Mode Selector */}
-                        <div className="flex items-center p-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs">
-                          <button
-                            type="button"
-                            onClick={() => setSkillVisualizationMode("network")}
-                            className={`px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer ${
-                              skillVisualizationMode === "network"
-                                ? "bg-gradient-to-r from-violet-700 to-purple-700 text-white shadow-sm"
-                                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
-                            }`}
-                          >
-                            <Share2 className="w-3.5 h-3.5" />
-                            <span>D3 Force Network</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSkillVisualizationMode("cloud")}
-                            className={`px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer ${
-                              skillVisualizationMode === "cloud"
-                                ? "bg-gradient-to-r from-violet-700 to-purple-700 text-white shadow-sm"
-                                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
-                            }`}
-                          >
-                            <Tag className="w-3.5 h-3.5" />
-                            <span>Tag Cloud & Bar Chart</span>
-                          </button>
-                        </div>
-
-                        {/* Collapse Section Button */}
-                        <button
-                          type="button"
-                          onClick={() => toggleSection("skill-vector-engine")}
-                          className="p-2 rounded-xl bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-all cursor-pointer"
-                          title="Collapse this section to declutter workspace"
-                        >
-                          <ChevronUp className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-
-                {skillVisualizationMode === "network" ? (
-                  <div className="space-y-6">
-                    {/* D3 Force-Directed Network Graph */}
-                    <PanelErrorBoundary compact title="D3 Skill Network Graph">
-                      <SkillNetworkGraph
-                        foundSkills={result.foundSkills || []}
-                        missingSkills={(result.skillGapReport || []).map((g) => g.skill)}
-                        skillGapReport={result.skillGapReport || []}
-                        onSkillClick={handleMissingSkillClick}
-                        height={580}
-                      />
-                    </PanelErrorBoundary>
-
-                    {/* Compact Severity & Demand Row */}
+                  ) : (
                     <div className="grid lg:grid-cols-2 gap-6">
-                      <GlassCard>
-                        <div className="flex flex-col items-center justify-center space-y-1 mb-4">
-                          <h4 className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest text-center">
-                            Skill Gap Priority Severity
-                          </h4>
-                          <p className="text-[10px] text-zinc-500 font-bold uppercase">
-                            Quantified urgency to bridge target role requirements
+                      <GlassCard className="border border-zinc-200 dark:border-zinc-800">
+                        <div className="mb-4">
+                          <h3 className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-widest">
+                            Skill Landscape Profile
+                          </h3>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                            Click any missing skill pill to preview where to add it.
                           </p>
                         </div>
-                        <div className="h-56 w-full">
+                        <SkillCloud
+                          found={result.foundSkills}
+                          missing={result.skillGapReport.map((g) => g.skill)}
+                          onSkillClick={handleMissingSkillClick}
+                        />
+                      </GlassCard>
+
+                      <GlassCard className="border border-zinc-200 dark:border-zinc-800">
+                        <div className="mb-4">
+                          <h3 className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-widest">
+                            Skill Gap Analysis
+                          </h3>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                            Priority severity of missing role requirements.
+                          </p>
+                        </div>
+                        <div className="h-64 w-full">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart
                               data={result.skillGapReport.map((sg) => ({
@@ -6867,10 +5981,10 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 severity: sg.importance.toLowerCase().includes("critical")
                                   ? 95
                                   : sg.importance.toLowerCase().includes("high")
-                                  ? 75
-                                  : sg.importance.toLowerCase().includes("medium")
-                                  ? 50
-                                  : 30,
+                                    ? 75
+                                    : sg.importance.toLowerCase().includes("medium")
+                                      ? 50
+                                      : 30,
                               }))}
                               margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                             >
@@ -6887,7 +6001,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                 tickFormatter={(val) => `${val}%`}
                               />
                               <RechartsTooltip
-                                cursor={{ fill: "rgba(139,92,246,0.06)" }}
+                                cursor={{ fill: "rgba(126,34,206,0.08)" }}
                                 content={({ active, payload }) => {
                                   if (active && payload && payload.length) {
                                     return (
@@ -6904,756 +6018,84 @@ AWS Certified Solutions Architect – Associate (2022)`;
                                   return null;
                                 }}
                               />
-                              <Bar dataKey="severity" fill="#e11d48" radius={[4, 4, 0, 0]} barSize={20} />
+                              <Bar
+                                dataKey="severity"
+                                fill="#e11d48"
+                                radius={[4, 4, 0, 0]}
+                                barSize={20}
+                                isAnimationActive={false}
+                              />
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
                       </GlassCard>
-
-                      <GlassCard>
-                        <div className="flex flex-col items-center justify-center space-y-1 mb-4">
-                          <h4 className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest text-center">
-                            Network Graph Insights
-                          </h4>
-                          <p className="text-[10px] text-zinc-500 font-bold uppercase">
-                            Technology clustering & adjacency recommendations
-                          </p>
-                        </div>
-                        <div className="space-y-3 text-xs">
-                          <div className="p-3.5 rounded-xl bg-violet-500/10 border border-violet-500/25 text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                            <strong className="text-violet-700 dark:text-violet-300 block mb-1">Ecosystem Density:</strong>
-                            Your primary cluster is anchored around{" "}
-                            <span className="text-zinc-950 dark:text-white font-bold">{result.foundSkills.slice(0, 4).join(", ")}</span>.
-                            Technologies connected by violet edges indicate native framework interoperability.
-                          </div>
-                          <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/25 text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                            <strong className="text-purple-700 dark:text-purple-300 block mb-1">Bridge Nodes (Dashed Purple Edges):</strong>
-                            Missing skills like{" "}
-                            <span className="text-purple-800 dark:text-purple-200 font-bold">
-                              {result.skillGapReport.slice(0, 2).map((g) => g.skill).join(", ") || "recommended skills"}
-                            </span>{" "}
-                            are connected directly to your existing proficiencies, showing the fastest path to bridge your gap without learning unrelated technologies.
-                          </div>
-                        </div>
-                      </GlassCard>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid lg:grid-cols-2 gap-8">
-                    <GlassCard>
-                      <div className="flex flex-col items-center justify-center space-y-2 mb-4">
-                        <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.3em] text-center">
-                          Skill Landscape Profile
-                        </h3>
-                        <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase">
-                          Visual distribution of matched & missing capabilities
-                        </p>
-                      </div>
-                      <SkillCloud
-                        found={result.foundSkills}
-                        missing={result.skillGapReport.map((g) => g.skill)}
-                        onSkillClick={handleMissingSkillClick}
-                      />
-                    </GlassCard>
-
-                    <GlassCard>
-                      <div className="flex flex-col items-center justify-center space-y-2 mb-4">
-                        <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.3em] text-center">
-                          Skill Gap Analysis
-                        </h3>
-                        <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase">
-                          Severity of missing requirements
-                        </p>
-                      </div>
-                      <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart
-                            data={result.skillGapReport.map((sg) => ({
-                              name: sg.skill,
-                              severity: sg.importance
-                                .toLowerCase()
-                                .includes("critical")
-                                ? 95
-                                : sg.importance.toLowerCase().includes("high")
-                                  ? 75
-                                  : sg.importance.toLowerCase().includes("medium")
-                                    ? 50
-                                    : 30,
-                            }))}
-                            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                          >
-                            <CartesianGrid
-                              strokeDasharray="3 3"
-                              stroke="rgba(161,161,170,0.2)"
-                              vertical={false}
-                            />
-                            <XAxis
-                              dataKey="name"
-                              stroke="#71717a"
-                              tick={{
-                                fill: "#71717a",
-                                fontSize: 10,
-                                fontWeight: 700,
-                              }}
-                              tickMargin={10}
-                            />
-                            <YAxis
-                              stroke="#71717a"
-                              tick={{ fill: "#71717a", fontSize: 10 }}
-                              tickFormatter={(val) => `${val}%`}
-                            />
-                            <RechartsTooltip
-                              cursor={{ fill: "rgba(139,92,246,0.06)" }}
-                              content={({ active, payload }) => {
-                                if (active && payload && payload.length) {
-                                  return (
-                                    <div className="bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg shadow-xl">
-                                      <p className="text-zinc-950 dark:text-white text-xs font-bold uppercase">
-                                        {payload[0].payload.name}
-                                      </p>
-                                      <p className="text-rose-600 dark:text-rose-400 text-[10px] font-black uppercase mt-1">
-                                        Gap Severity: {payload[0].value}%
-                                      </p>
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              }}
-                            />
-                            <Bar
-                              dataKey="severity"
-                              fill="#e11d48"
-                              radius={[4, 4, 0, 0]}
-                              barSize={20}
-                            />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </GlassCard>
-                  </div>
-                )}
-
-                <SkillDemandTrend
-                  role={result.careerPath.topRole || "Target Role"}
-                />
-                  </>
-                )}
-              </div>
-
-              <div className="grid lg:grid-cols-12 gap-8 mt-8">
-                {/* Core Strengths & Weaknesses */}
-                <GlassCard className="lg:col-span-12 p-8">
-                  <motion.div 
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true }}
-                    variants={{
-                      hidden: {},
-                      visible: {
-                        transition: {
-                          staggerChildren: 0.08
-                        }
-                      }
-                    }}
-                    className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
-                  >
-                    <motion.div 
-                      variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
-                      className="p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-violet-500/25 hover:bg-violet-500/5 transition-all group"
-                    >
-                      <div className="mb-4 flex items-center justify-between">
-                        <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest flex items-center gap-2">
-                          <ShieldCheck className="h-4 w-4" /> Core Strength
-                        </h4>
-                        <div className="h-6 w-6 rounded-full bg-violet-500/15 flex items-center justify-center group-hover:scale-105 transition-transform">
-                          <Activity className="h-3 w-3 text-violet-700 dark:text-violet-400" />
-                        </div>
-                      </div>
-                      <p className="text-sm text-zinc-950 dark:text-white font-black uppercase mb-3 line-clamp-2">
-                        Excellent {result.foundSkills[0] || "Domain"} Exposure
-                      </p>
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">
-                        Your experience in{" "}
-                        <span className="text-zinc-800 dark:text-zinc-200 font-bold">{result.foundSkills.slice(0, 3).join(", ")}</span> provides a strong foundation.
-                      </p>
-                    </motion.div>
-
-                    <motion.div 
-                      variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
-                      className="p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-rose-500/25 hover:bg-rose-500/5 transition-all group"
-                    >
-                      <div className="mb-4 flex items-center justify-between">
-                        <h4 className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest flex items-center gap-2">
-                          <Zap className="h-4 w-4" /> Priority Fix
-                        </h4>
-                        <div className="h-6 w-6 rounded-full bg-rose-500/15 flex items-center justify-center group-hover:scale-105 transition-transform">
-                          <AlertCircle className="h-3 w-3 text-rose-600 dark:text-rose-400" />
-                        </div>
-                      </div>
-                      <p className="text-sm text-zinc-950 dark:text-white font-black uppercase mb-3 line-clamp-2">
-                        Missing {result.skillGapReport[0]?.skill || "Core Keywords"}
-                      </p>
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">
-                        Recruiters scan for <span className="text-zinc-800 dark:text-zinc-200 font-bold">{result.skillGapReport[0]?.skill}</span>. Add this to your summary immediately.
-                      </p>
-                    </motion.div>
-
-                    <motion.div 
-                      variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
-                      className="p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-purple-500/25 hover:bg-purple-500/5 transition-all group"
-                    >
-                      <div className="mb-4 flex items-center justify-between">
-                        <h4 className="text-[10px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest flex items-center gap-2">
-                          <Target className="h-4 w-4" /> Target Role Fit
-                        </h4>
-                        <div className="h-6 w-6 rounded-full bg-purple-500/15 flex items-center justify-center group-hover:scale-105 transition-transform">
-                          <TrendingUp className="h-3 w-3 text-purple-700 dark:text-purple-400" />
-                        </div>
-                      </div>
-                      <p className="text-sm text-zinc-950 dark:text-white font-black uppercase mb-3 line-clamp-2">
-                        {result.careerPath?.topRole || "Target Leadership Role"}
-                      </p>
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">
-                        You are a <span className="text-purple-700 dark:text-purple-300 font-bold">{Math.round(result.careerPath?.confidence ?? 0)}%</span> match for this trajectory.
-                      </p>
-                    </motion.div>
-
-                    <motion.div 
-                      variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
-                      className="p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-violet-500/25 hover:bg-violet-500/5 transition-all group"
-                    >
-                      <div className="mb-4 flex items-center justify-between">
-                        <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest flex items-center gap-2">
-                          <Layers className="h-4 w-4" /> Keyword Health
-                        </h4>
-                        <div className="h-6 w-6 rounded-full bg-violet-500/15 flex items-center justify-center group-hover:scale-105 transition-transform">
-                          <Search className="h-3 w-3 text-violet-700 dark:text-violet-400" />
-                        </div>
-                      </div>
-                      <p className="text-sm text-zinc-950 dark:text-white font-black uppercase mb-3">
-                        {(result.atsAnalysis?.keywordDensity ?? 0) > 4 ? 'Well Optimized' : 'Under Optimized'}
-                      </p>
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">
-                        Keyword density is <span className="text-violet-700 dark:text-violet-300 font-bold">{(result.atsAnalysis?.keywordDensity ?? 0).toFixed(1)}%</span>.
-                        {result.atsAnalysis?.jobKeywordsFound && result.atsAnalysis.jobKeywordsFound.length > 0 
-                          ? ` Found ${result.atsAnalysis.jobKeywordsFound.length} core terms.` 
-                          : ' Need more exact matches.'}
-                      </p>
-                    </motion.div>
-
-                    {result.globalBenchmarking && (
-                      <motion.div 
-                        variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
-                        className="p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 hover:border-violet-500/35 transition-all md:col-span-2 lg:col-span-1 group"
-                      >
-                        <div className="mb-4 flex items-center justify-between">
-                          <h4 className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-2">
-                            <Briefcase className="h-4 w-4 text-purple-600 dark:text-purple-400" /> Experience Benchmark
-                          </h4>
-                          <div className="h-6 w-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center group-hover:scale-105 transition-transform">
-                            <BarChart2 className="h-3 w-3 text-purple-600 dark:text-purple-400" />
-                          </div>
-                        </div>
-                        <p className="text-[11px] text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium line-clamp-3">
-                          {result.globalBenchmarking}
-                        </p>
-                      </motion.div>
-                    )}
-
-                    {result.recruiterSummary && (
-                      <motion.div 
-                        variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
-                        className={`p-6 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-purple-500/25 hover:bg-purple-500/5 transition-all group ${!result.globalBenchmarking ? 'md:col-span-2 lg:col-span-2' : ''}`}
-                      >
-                        <div className="mb-4 flex items-center justify-between">
-                          <h4 className="text-[10px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest flex items-center gap-2">
-                            <Eye className="h-4 w-4" /> Board & Stakeholder Impression
-                          </h4>
-                          <div className="h-6 w-6 rounded-full bg-purple-500/15 flex items-center justify-center group-hover:scale-105 transition-transform">
-                            <Info className="h-3 w-3 text-purple-700 dark:text-purple-400" />
-                          </div>
-                        </div>
-                        <p className="text-[11px] text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium">
-                          {result.recruiterSummary}
-                        </p>
-                      </motion.div>
-                    )}
-                  </motion.div>
-
-                  {/* Career Roles Expansion with D3 Connected Graph */}
-                  <div className="mt-10 border-t border-zinc-200 dark:border-zinc-800 pt-10 space-y-6">
-                    <h4 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-violet-600 dark:text-violet-400" /> Career
-                      Trajectory & Vector Progression Graph
-                    </h4>
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">
-                      Connected D3 visualization showing progression from past experience to your primary & alternative target roles.
-                    </p>
-
-                    <PanelErrorBoundary compact title="D3 Trajectory Graph">
-                      <D3CareerGraph
-                        currentRole={result.targetRole || "Current Career Stage"}
-                        topRole={result.careerPath?.topRole || "Target Role"}
-                        confidence={result.careerPath?.confidence ?? 0}
-                        alternatives={result.careerPath?.alternatives || []}
-                        careerTimeline={result.careerTimeline || []}
-                        careerTrajectories={result.careerTrajectories}
-                      />
-                    </PanelErrorBoundary>
-
-                    <div className="relative flex flex-col md:flex-row items-stretch justify-between gap-6 py-4">
-                      <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500/20 via-purple-500/20 to-violet-800/20 -translate-y-1/2 hidden md:block" />
-                      <motion.div
-                        initial={{ scaleX: 0 }}
-                        whileInView={{ scaleX: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 1.0, ease: "easeInOut" }}
-                        className="absolute top-1/2 left-0 right-0 h-1 bg-gradient-to-r from-violet-600/70 via-purple-600/70 to-violet-800/70 -translate-y-1/2 origin-left hidden md:block rounded-full"
-                      />
-
-                      <motion.div
-                        className="relative z-10 w-full md:w-1/3 flex flex-col group"
-                        initial={{ opacity: 0, y: 16 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                      >
-                        <div className="flex-1 p-6 rounded-2xl bg-zinc-50 dark:bg-[#111116] border border-violet-500/40 group-hover:bg-violet-500/5 transition-all hover:-translate-y-1 flex flex-col items-center justify-center text-center shadow-sm">
-                          <span className="absolute top-1/2 -right-3 w-6 h-6 rounded-full bg-white dark:bg-[#111116] border-[3px] border-violet-600 -translate-y-1/2 hidden md:block z-20 transition-transform" />
-                          <p className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-2 border border-violet-500/35 px-3 py-1 rounded-md bg-violet-500/10">
-                            Primary Fit
-                          </p>
-                          <p className="text-lg text-zinc-950 dark:text-white font-bold">
-                            {result.careerPath.topRole}
-                          </p>
-                          <p className="text-sm font-black text-violet-700 dark:text-violet-300 mt-2 bg-violet-500/10 px-3 py-1 rounded-md inline-block">
-                            {result.careerPath.confidence}% Match
-                          </p>
-                        </div>
-                        {result.improvementPlan?.missingSkillsToHighlight &&
-                          result.improvementPlan.missingSkillsToHighlight
-                            .length > 0 && (
-                            <div className="mt-4 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50 dark:bg-white/5 mx-2 text-left">
-                              <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-2 border-b border-zinc-200 dark:border-zinc-800 pb-1">
-                                To Secure Role
-                              </p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {result.improvementPlan.missingSkillsToHighlight
-                                  .slice(0, 3)
-                                  .map((ms, msx) => (
-                                    <span
-                                      key={`miss-skill-${ms}-${msx}`}
-                                      className="text-[9px] font-black uppercase bg-violet-500/15 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded"
-                                    >
-                                      {ms}
-                                    </span>
-                                  ))}
-                              </div>
-                            </div>
-                          )}
-                      </motion.div>
-
-                      {result.careerPath.alternatives
-                        ?.slice(0, 2)
-                        .map((alt, i) => (
-                          <motion.div
-                            key={`alt-path-${alt.role || i}-${i}`}
-                            initial={{ opacity: 0, y: 16 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: 0.12 + i * 0.12 }}
-                            className="relative z-10 w-full md:w-1/3 flex flex-col group"
-                          >
-                            <div
-                              className={`flex-1 p-6 rounded-2xl bg-zinc-50 dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 ${i === 0 ? "hover:border-purple-500/50 hover:bg-purple-500/5" : "hover:border-violet-500/50 hover:bg-violet-500/5"} transition-all hover:-translate-y-1 flex flex-col items-center justify-center text-center shadow-sm`}
-                            >
-                              {i === 0 && (
-                                <span className="absolute top-1/2 -left-3 w-6 h-6 rounded-full bg-white dark:bg-[#111116] border-[3px] border-purple-600 -translate-y-1/2 hidden md:block z-20 transition-transform" />
-                              )}
-                              {i === 0 &&
-                                result.careerPath.alternatives.length > 1 && (
-                                  <span className="absolute top-1/2 -right-3 w-6 h-6 rounded-full bg-white dark:bg-[#111116] border-[3px] border-purple-600 -translate-y-1/2 hidden md:block z-20 transition-transform" />
-                                )}
-                              {i === 1 && (
-                                <span className="absolute top-1/2 -left-3 w-6 h-6 rounded-full bg-white dark:bg-[#111116] border-[3px] border-violet-700 -translate-y-1/2 hidden md:block z-20 transition-transform" />
-                              )}
-                              <p
-                                className={`text-[10px] font-black uppercase tracking-widest mb-2 border px-3 py-1 rounded-md ${i === 0 ? "text-purple-700 dark:text-purple-400 border-purple-500/35 bg-purple-500/10" : "text-violet-700 dark:text-violet-400 border-violet-500/35 bg-violet-500/10"}`}
-                              >
-                                Possible Pivot
-                              </p>
-                              <p className="text-lg text-zinc-950 dark:text-white font-bold">
-                                {alt.role}
-                              </p>
-                              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-3 line-clamp-3 leading-relaxed font-medium">
-                                {alt.reasoning || `${alt.match}% Match`}
-                              </p>
-                            </div>
-                          </motion.div>
-                        ))}
-                    </div>
-                  </div>
-                </GlassCard>
-
-                {/* Main Improvement Checklist */}
-                <div id="optimization-plan" className="lg:col-span-8 mb-8" style={{ order: sectionOrder.indexOf('optimization-plan') }}>
-                  {collapsedSections["optimization-plan"] ? (
-                    <GlassCard className="p-4 border-l-4 border-l-violet-600 bg-gradient-to-r from-violet-500/10 via-transparent to-transparent flex items-center justify-between shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-700 dark:text-violet-400">
-                          <TrendingUp className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-wider">
-                              Strategic Optimization Plan
-                            </h3>
-                            <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 uppercase">
-                              Collapsed
-                            </span>
-                          </div>
-                          <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-0.5">
-                            Priority Headline Updates, Content Rewrite Suggestions & Missing Skill Remediations
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => toggleSection("optimization-plan")}
-                        className="px-3.5 py-1.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 text-violet-800 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                      >
-                        <span>Expand Section</span>
-                        <ChevronDown className="w-3.5 h-3.5" />
-                      </button>
-                    </GlassCard>
-                  ) : (
-                    <GlassCard className="p-0 overflow-hidden">
-                      <div className="p-8 border-b border-zinc-200 dark:border-zinc-800 bg-gradient-to-r from-violet-500/5 to-transparent flex items-center justify-between">
-                        <div>
-                          <h3 className="text-lg font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-3">
-                            <TrendingUp className="h-5 w-5 text-violet-700 dark:text-violet-400" />
-                            Strategic Optimization Plan
-                          </h3>
-                          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2 font-medium">
-                            To reach ATS matching perfection and secure the targeted
-                            role, follow these prioritized actions.
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => toggleSection("optimization-plan")}
-                          className="p-2 rounded-xl bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 border border-zinc-200 dark:border-white/10 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-all cursor-pointer shrink-0"
-                          title="Collapse this section to declutter workspace"
-                        >
-                          <ChevronUp className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                  {/* High Priority Actions */}
-                  {result.improvementPlan && (
-                    <div className="p-8 grid md:grid-cols-2 gap-6 bg-zinc-50 dark:bg-black/20 border-b border-zinc-200 dark:border-white/5">
-                      {result.improvementPlan.resumeHeadlineUpdates &&
-                        result.improvementPlan.resumeHeadlineUpdates.length >
-                          0 && (
-                          <div>
-                            <h4 className="text-[10px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                              <Layout className="w-3 h-3" /> Title Updates
-                            </h4>
-                            <ul className="space-y-2">
-                              {result.improvementPlan.resumeHeadlineUpdates
-                                .slice(0, 3)
-                                .map((s, i) => (
-                                  <li
-                                    key={`upd-headline-${s.slice(0, 15)}-${i}`}
-                                    className="flex items-start gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-medium"
-                                  >
-                                    <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-purple-600 mt-1.5" />
-                                    <span>{s}</span>
-                                  </li>
-                                ))}
-                            </ul>
-                          </div>
-                        )}
-
-                      {result.improvementPlan.formattingFixes &&
-                        result.improvementPlan.formattingFixes.length > 0 && (
-                          <div>
-                            <h4 className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                              <FileText className="w-3 h-3" /> Layout Fixes
-                            </h4>
-                            <ul className="space-y-2">
-                              {result.improvementPlan.formattingFixes
-                                .slice(0, 3)
-                                .map((s, i) => (
-                                  <li
-                                    key={`upd-fmt-${s.slice(0, 15)}-${i}`}
-                                    className="flex items-start gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-medium"
-                                  >
-                                    <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5" />
-                                    <span>{s}</span>
-                                  </li>
-                                ))}
-                            </ul>
-                          </div>
-                        )}
-
-                      {result.improvementPlan.recommendedCertifications &&
-                        result.improvementPlan.recommendedCertifications
-                          .length > 0 && (
-                          <div>
-                            <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                              <Award className="w-3 h-3" /> Target Credentials
-                            </h4>
-                            <ul className="space-y-2">
-                              {result.improvementPlan.recommendedCertifications
-                                .slice(0, 3)
-                                .map((s, i) => (
-                                  <li
-                                    key={`upd-cert-${s.slice(0, 15)}-${i}`}
-                                    className="flex items-start gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-medium"
-                                  >
-                                    <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-violet-600 mt-1.5" />
-                                    <span>{s}</span>
-                                  </li>
-                                ))}
-                            </ul>
-                          </div>
-                        )}
-
-                      {result.improvementPlan.projectsToHighlight &&
-                        result.improvementPlan.projectsToHighlight.length >
-                          0 && (
-                          <div>
-                            <h4 className="text-[10px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                              <Briefcase className="w-3 h-3" /> Highlight
-                              Experience
-                            </h4>
-                            <ul className="space-y-2">
-                              {result.improvementPlan.projectsToHighlight
-                                .slice(0, 3)
-                                .map((s, i) => (
-                                  <li
-                                    key={`upd-proj-${s.slice(0, 15)}-${i}`}
-                                    className="flex items-start gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-medium"
-                                  >
-                                    <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-purple-600 mt-1.5" />
-                                    <span>{s}</span>
-                                  </li>
-                                ))}
-                            </ul>
-                          </div>
-                        )}
                     </div>
                   )}
 
-                  {/* Deep AI Recommendations */}
-                  <div className="p-8 space-y-6">
-                    <h4 className="text-[11px] font-black text-zinc-950 dark:text-white uppercase tracking-widest mb-4 flex items-center gap-2">
-                      <Wand2 className="h-4 w-4 text-violet-600 dark:text-violet-400" /> AI Content
-                      Rewrite Suggestions
-                    </h4>
-                    {[
-                      ...result.atsAnalysis.recommendations,
-                      ...result.suggestions,
-                    ]
-                      .slice(0, 5)
-                      .map((step, i) => (
-                        <motion.div
-                          initial={{ opacity: 0, x: 16 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.08 }}
-                          key={`rec-${step.slice(0, 20)}-${i}`}
-                          className="space-y-3"
-                        >
-                          <div
-                            className={`flex gap-5 p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-950/80 border transition-all items-start group ${selectedRecommendation === step ? "border-violet-600 bg-violet-500/5" : "border-zinc-200 dark:border-zinc-800 hover:border-violet-500/40"}`}
-                          >
-                            <div
-                              className={`h-10 w-10 mt-1 shrink-0 rounded-full border border-dashed flex items-center justify-center font-black text-xs transition-all ${selectedRecommendation === step ? "border-violet-600 bg-violet-500/20 text-violet-700 dark:text-violet-300" : "border-zinc-400 dark:border-zinc-600 text-zinc-500 dark:text-zinc-400 group-hover:border-violet-500 group-hover:text-violet-700 dark:group-hover:text-violet-400 group-hover:bg-violet-500/10"}`}
-                            >
-                              {i + 1}
-                            </div>
-                            <div className="flex-1 flex flex-col gap-3">
-                              <div className="flex items-start justify-between gap-4">
-                                <p className="text-zinc-800 dark:text-zinc-200 font-medium text-sm leading-relaxed pr-4">
-                                  {step}
-                                </p>
-                                {selectedRecommendation === step ? (
-                                  <button
-                                    onClick={() =>
-                                      handleExpandRecommendation(step)
-                                    }
-                                    className="p-2 rounded bg-zinc-200/70 dark:bg-white/5 hover:bg-zinc-300 dark:hover:bg-white/10 text-violet-700 dark:text-violet-400 shrink-0 transition-colors cursor-pointer"
-                                  >
-                                    <ChevronUp className="h-4 w-4" />
-                                  </button>
-                                ) : null}
-                              </div>
+                  <SkillDemandTrend
+                    role={result.careerPath.topRole || "Target Role"}
+                  />
 
-                              {selectedRecommendation !== step && (
-                                <button
-                                  onClick={() =>
-                                    handleExpandRecommendation(step)
-                                  }
-                                  className="self-start flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-violet-700 dark:text-violet-300 hover:text-violet-950 dark:hover:text-white bg-violet-500/10 hover:bg-violet-500/20 px-4 py-2.5 rounded-xl transition-all border border-violet-500/25 hover:border-violet-500/40 cursor-pointer"
-                                >
-                                  <BrainCircuit className="h-3.5 w-3.5" />{" "}
-                                  Generate Actionable Example
-                                </button>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Expanded Detail View */}
-                          <AnimatePresence>
-                            {selectedRecommendation === step && (
-                              <motion.div
-                                key={`rec-detail-${i}`}
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: "auto" }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="overflow-hidden"
-                              >
-                                <div className="p-6 rounded-2xl bg-zinc-100 dark:bg-[#0D0D12] border border-violet-500/25 shadow-inner ml-14 relative">
-                                  <div className="absolute top-[-10px] left-10 w-4 h-4 bg-zinc-100 dark:bg-[#0D0D12] border-t border-l border-violet-500/25 rotate-45 transform origin-center z-10" />
-
-                                  {isGeneratingRecDetail ? (
-                                    <div className="flex flex-col items-center justify-center py-6 space-y-4">
-                                      <Loader2 className="h-6 w-6 text-violet-600 dark:text-violet-400 animate-spin" />
-                                      <p className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
-                                        Generating strategic insights...
-                                      </p>
-                                    </div>
-                                  ) : recommendationDetail ? (
-                                    <div className="space-y-6">
-                                      <div>
-                                        <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                          <Info className="h-3.5 w-3.5" />{" "}
-                                          Context & Rationale
-                                        </h4>
-                                        <p className="text-zinc-700 dark:text-zinc-300 text-sm leading-relaxed">
-                                          {recommendationDetail.explanation}
-                                        </p>
-                                      </div>
-
-                                      {recommendationDetail.examples &&
-                                        recommendationDetail.examples.length >
-                                          0 && (
-                                          <div>
-                                            <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                              <TrendingUp className="h-3.5 w-3.5" />{" "}
-                                              Implementation Examples
-                                            </h4>
-                                            <div className="space-y-3">
-                                              {recommendationDetail.examples.map(
-                                                (example, eIdx) => (
-                                                  <div
-                                                    key={`ex-${selectedRecommendation?.slice(0, 15)}-${eIdx}`}
-                                                    className="group/ex relative p-4 pr-12 rounded-xl bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/5 text-sm text-zinc-800 dark:text-zinc-300 leading-relaxed font-mono"
-                                                  >
-                                                    {example}
-                                                    <button
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigator.clipboard.writeText(example);
-                                                        setCopiedExampleText(example);
-                                                        setTimeout(() => {
-                                                          setCopiedExampleText((cur) => (cur === example ? null : cur));
-                                                        }, 2000);
-                                                      }}
-                                                      className="absolute top-4 right-4 p-2 rounded-lg bg-zinc-100 dark:bg-white/5 opacity-0 group-hover/ex:opacity-100 hover:bg-zinc-200 dark:hover:bg-white/10 transition-all cursor-pointer text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
-                                                      title="Copy to clipboard"
-                                                    >
-                                                      {copiedExampleText === example ? (
-                                                        <Check className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
-                                                      ) : (
-                                                        <Copy className="h-3.5 w-3.5" />
-                                                      )}
-                                                    </button>
-                                                  </div>
-                                                ),
-                                              )}
-                                            </div>
-                                          </div>
-                                        )}
-                                    </div>
-                                  ) : (
-                                    <div className="text-center py-4 text-rose-500 text-xs">
-                                      Failed to load details. Please try again.
-                                    </div>
-                                  )}
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </motion.div>
-                      ))}
-                  </div>
-                </GlassCard>
-              )}
-            </div>
-
-                {/* Sidebar Details */}
-                <div className="lg:col-span-4 space-y-8">
-                  <GlassCard>
-                    <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-6">
-                      Missing Skills
-                    </h3>
-                    <div className="space-y-4">
-                      {result.skillGapReport.map((gap, i) => (
-                        <div
-                          key={`gap-${gap.skill || i}-${i}`}
-                          className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/5 group relative overflow-hidden transition-all duration-300"
-                        >
-                          <div className="absolute inset-0 bg-violet-500/10 translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
-                          <div className="relative z-10 flex flex-col">
-                            <span className="text-[11px] font-black text-zinc-950 dark:text-white uppercase">
-                              {gap.skill}
-                            </span>
-                            <span className="text-[9px] font-bold text-violet-700 dark:text-violet-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" /> Fix for +
-                              {gap.importance === "Critical" ? 10 : 5}% Boost
-                            </span>
-                          </div>
-                          <span
-                            className={`text-[9px] font-black px-2 py-1 rounded relative z-10 transition-colors ${gap.importance === "Critical" ? "bg-rose-500/15 text-rose-700 dark:text-rose-400 group-hover:bg-rose-500/25" : "bg-purple-500/15 text-purple-700 dark:text-purple-400 group-hover:bg-purple-500/25"} uppercase`}
-                          >
-                            {gap.importance}
-                          </span>
-                        </div>
-                      ))}
-                      {result.skillGapReport.length === 0 && (
-                        <p className="text-[11px] text-zinc-500 italic">
-                          No significant missing skills detected.
-                        </p>
-                      )}
-                    </div>
-                  </GlassCard>
-
-                  <GlassCard>
-                    <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">
-                        Keyword Analysis
+                  {/* Missing Skills & Keyword Analysis */}
+                  <div className="grid lg:grid-cols-2 gap-6">
+                    <GlassCard className="border border-zinc-200 dark:border-zinc-800">
+                      <h3 className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-widest mb-5">
+                        Missing Skills & Gap Impact
                       </h3>
-                      {result.atsAnalysis.jobKeywordsFound &&
-                        result.atsAnalysis.jobKeywordsMissing && (
-                          <div className="text-xs font-black text-zinc-950 dark:text-white">
+                      <div className="space-y-3">
+                        {result.skillGapReport.map((gap, i) => (
+                          <div
+                            key={`gap-${gap.skill || i}-${i}`}
+                            className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 transition-colors duration-150"
+                          >
+                            <div className="flex flex-col">
+                              <span className="text-xs font-black text-zinc-950 dark:text-white uppercase">
+                                {gap.skill}
+                              </span>
+                              <span className="text-[11px] font-semibold text-[#4c1d95] dark:text-purple-300 mt-0.5 flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" /> Add for +{gap.importance === "Critical" ? 10 : 5}% estimated fit
+                              </span>
+                            </div>
+                            <span
+                              className={`text-[10px] font-black px-2 py-1 rounded uppercase ${
+                                gap.importance === "Critical"
+                                  ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30"
+                                  : "bg-purple-500/15 text-[#4c1d95] dark:text-purple-300 border border-purple-500/30"
+                              }`}
+                            >
+                              {gap.importance}
+                            </span>
+                          </div>
+                        ))}
+                        {result.skillGapReport.length === 0 && (
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            No significant missing skills detected.
+                          </p>
+                        )}
+                      </div>
+                    </GlassCard>
+
+                    <GlassCard className="border border-zinc-200 dark:border-zinc-800">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-widest">
+                          Keyword Analysis
+                        </h3>
+                        {result.atsAnalysis.jobKeywordsFound && result.atsAnalysis.jobKeywordsMissing && (
+                          <div className="text-xs font-black font-mono tabular-nums text-[#4c1d95] dark:text-purple-300">
                             {Math.round(
                               (result.atsAnalysis.jobKeywordsFound.length /
                                 (result.atsAnalysis.jobKeywordsFound.length +
-                                  result.atsAnalysis.jobKeywordsMissing
-                                    .length)) *
+                                  result.atsAnalysis.jobKeywordsMissing.length)) *
                                 100,
-                            ) || 0}
-                            % Match
+                            ) || 0}% Match
                           </div>
                         )}
-                    </div>
+                      </div>
 
-                    {result.atsAnalysis.jobKeywordsFound &&
-                      result.atsAnalysis.jobKeywordsMissing && (
+                      {result.atsAnalysis.jobKeywordsFound && result.atsAnalysis.jobKeywordsMissing && (
                         <div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden mb-5">
                           <div
-                            className="h-full bg-violet-600 rounded-full transition-all duration-1000"
+                            className="h-full bg-[#7e22ce] rounded-full transition-all duration-150"
                             style={{
                               width: `${Math.round((result.atsAnalysis.jobKeywordsFound.length / (result.atsAnalysis.jobKeywordsFound.length + result.atsAnalysis.jobKeywordsMissing.length)) * 100) || 0}%`,
                             }}
@@ -7661,238 +6103,653 @@ AWS Certified Solutions Architect – Associate (2022)`;
                         </div>
                       )}
 
-                    <div className="space-y-5">
-                      <div>
-                        <h4 className="text-[9px] font-black text-violet-700 dark:text-violet-400 uppercase mb-2">
-                          Resume Top Keywords
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {result.atsAnalysis.topResumeKeywords
-                            ?.slice(0, 10)
-                            .map((kw, i) => (
+                      <div className="space-y-5">
+                        <div>
+                          <h4 className="text-[10px] font-black text-zinc-600 dark:text-zinc-400 uppercase tracking-wider mb-2">
+                            Top Resume Keywords
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {result.atsAnalysis.topResumeKeywords?.slice(0, 10).map((kw, i) => (
                               <span
                                 key={`kw-${kw}-${i}`}
-                                className="text-[10px] font-bold px-2.5 py-1 bg-violet-500/10 border border-violet-500/30 rounded-md text-violet-800 dark:text-violet-300 hover:bg-violet-500/20 transition-all cursor-default"
+                                className="text-[11px] font-bold px-2.5 py-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md text-zinc-800 dark:text-zinc-200"
                               >
                                 {kw}
                               </span>
                             ))}
+                          </div>
                         </div>
-                      </div>
 
-                      {result.atsAnalysis.jobKeywordsFound &&
-                        result.atsAnalysis.jobKeywordsFound.length > 0 && (
+                        {result.atsAnalysis.jobKeywordsFound && result.atsAnalysis.jobKeywordsFound.length > 0 && (
                           <div>
-                            <h4 className="text-[9px] font-black text-purple-700 dark:text-purple-400 uppercase mb-2 flex items-center gap-1.5">
-                              <CheckCircle2 className="h-3 w-3 text-purple-600 dark:text-purple-400" />{" "}
-                              Matched Job Keywords
+                            <h4 className="text-[10px] font-black text-[#4c1d95] dark:text-purple-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-[#7e22ce] dark:text-purple-400" /> Matched Job Keywords
                             </h4>
                             <div className="flex flex-wrap gap-2">
-                              {result.atsAnalysis.jobKeywordsFound?.map(
-                                (kw, i) => (
-                                  <span
-                                    key={`jkf-${kw}-${i}`}
-                                    className="text-[10px] font-bold px-2.5 py-1 bg-purple-500/10 border border-purple-500/30 rounded-md text-purple-800 dark:text-purple-300 hover:bg-purple-500/20 transition-all cursor-default"
-                                  >
-                                    {kw}
-                                  </span>
-                                ),
-                              )}
+                              {result.atsAnalysis.jobKeywordsFound.map((kw, i) => (
+                                <span
+                                  key={`jkf-${kw}-${i}`}
+                                  className="text-[11px] font-bold px-2.5 py-1 bg-purple-500/10 border border-purple-500/30 rounded-md text-[#4c1d95] dark:text-purple-300"
+                                >
+                                  {kw}
+                                </span>
+                              ))}
                             </div>
                           </div>
                         )}
 
-                      {result.atsAnalysis.jobKeywordsMissing &&
-                        result.atsAnalysis.jobKeywordsMissing.length > 0 && (
+                        {result.atsAnalysis.jobKeywordsMissing && result.atsAnalysis.jobKeywordsMissing.length > 0 && (
                           <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="text-[9px] font-black text-rose-600 dark:text-rose-400 uppercase flex items-center gap-1.5">
-                                <XCircle className="h-3 w-3 text-rose-500" />{" "}
-                                Missing Job Keywords
+                            <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                              <h4 className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <XCircle className="h-3.5 w-3.5 text-rose-500" /> Missing Job Keywords
                               </h4>
                               <button
+                                type="button"
                                 onClick={copyMissingKeywordsForDrafting}
-                                className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/35 text-[9px] font-black uppercase text-rose-700 dark:text-rose-200 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm"
-                                title="Copy missing keywords formatted for bullet point drafting prompt"
+                                className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-[10px] font-bold uppercase text-rose-700 dark:text-rose-300 transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
                               >
                                 {hasCopiedKeywords ? (
                                   <>
-                                    <Check className="w-3 h-3 text-violet-600 dark:text-violet-400" />
-                                    <span className="text-violet-700 dark:text-violet-300">Copied Prompt!</span>
+                                    <Check className="w-3 h-3 text-[#7e22ce] dark:text-purple-400" />
+                                    <span>Copied</span>
                                   </>
                                 ) : (
                                   <>
-                                    <Copy className="w-3 h-3 text-rose-600 dark:text-rose-300" />
-                                    <span>Copy Keywords for Bullet Drafting</span>
+                                    <Copy className="w-3 h-3" />
+                                    <span>Copy for Drafting</span>
                                   </>
                                 )}
                               </button>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                              {result.atsAnalysis.jobKeywordsMissing
-                                ?.slice(0, 12)
-                                .map((kw, i) => (
-                                  <button
-                                    key={`jkm-${kw}-${i}`}
-                                    onClick={(e) => handleMissingKeywordClick(kw, e)}
-                                    title="Click for exact sentence placement recommendation"
-                                    className="text-[10px] font-bold px-2.5 py-1 bg-rose-500/10 border border-rose-500/30 rounded-md text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 transition-all cursor-pointer flex items-center gap-1 group active:scale-95"
-                                  >
-                                    <span>{kw}</span>
-                                    <Wand2 className="w-2.5 h-2.5 text-rose-600 dark:text-rose-400 transition-transform" />
-                                  </button>
-                                ))}
+                              {result.atsAnalysis.jobKeywordsMissing.slice(0, 12).map((kw, i) => (
+                                <button
+                                  type="button"
+                                  key={`jkm-${kw}-${i}`}
+                                  onClick={(e) => handleMissingKeywordClick(kw, e)}
+                                  title="Click for exact sentence placement suggestion"
+                                  className="text-[11px] font-bold px-2.5 py-1 bg-rose-500/10 border border-rose-500/30 rounded-md text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 transition-colors duration-150 cursor-pointer flex items-center gap-1"
+                                >
+                                  <span>{kw}</span>
+                                  <Wand2 className="w-3 h-3" />
+                                </button>
+                              ))}
                             </div>
                           </div>
                         )}
 
-                      {result.atsAnalysis.keywordOptimizations &&
-                        result.atsAnalysis.keywordOptimizations.length > 0 && (
-                          <div className="pt-4 border-t border-zinc-200 dark:border-white/10 mt-6">
-                            <h4 className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                              <Wand2 className="h-3.5 w-3.5" /> Keyword
-                              Optimizations
+                        {result.atsAnalysis.keywordOptimizations && result.atsAnalysis.keywordOptimizations.length > 0 && (
+                          <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                            <h4 className="text-[10px] font-black text-[#4c1d95] dark:text-purple-300 uppercase tracking-widest mb-3 flex items-center gap-2">
+                              <Wand2 className="h-3.5 w-3.5" /> Keyword Placement Phrases
                             </h4>
-                            <div className="space-y-4">
-                              {result.atsAnalysis.keywordOptimizations.map(
-                                (opt, i) => (
-                                  <details
-                                    key={`ko-${opt.keyword}-${i}`}
-                                    className="group bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-xl px-4 py-3 transition-colors hover:border-violet-500/35"
-                                  >
-                                    <summary className="text-[11px] font-bold text-zinc-950 dark:text-white flex items-center justify-between cursor-pointer outline-none list-none [&::-webkit-details-marker]:hidden">
-                                      <div className="flex items-center gap-2">
-                                        <span className="h-1.5 w-1.5 rounded-full bg-violet-600" />
-                                        {opt.keyword}
-                                      </div>
-                                      <ChevronDown className="h-3.5 w-3.5 text-zinc-400 transition-transform duration-200 group-open:rotate-180" />
-                                    </summary>
-                                    <div className="space-y-2 mt-4">
-                                      {opt.suggestedPhrases.map(
-                                        (phrase, pIdx) => (
-                                          <div
-                                            key={`phrase-${opt.keyword}-${i}-${pIdx}`}
-                                            className="group/phrase relative p-3 pr-10 rounded-lg bg-zinc-100 dark:bg-black/40 border border-zinc-200 dark:border-white/5 text-xs text-zinc-800 dark:text-zinc-300 leading-relaxed font-mono"
-                                          >
-                                            {phrase}
-                                            <button
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                navigator.clipboard.writeText(
-                                                  phrase,
-                                                );
-                                                setCopiedPhraseText(phrase);
-                                                setTimeout(() => {
-                                                  setCopiedPhraseText((cur) => (cur === phrase ? null : cur));
-                                                }, 2000);
-                                              }}
-                                              className="absolute top-1/2 -translate-y-1/2 right-3 p-1.5 rounded-md bg-white dark:bg-white/5 opacity-0 group-hover/phrase:opacity-100 hover:bg-zinc-200 dark:hover:bg-white/10 transition-all cursor-pointer text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
-                                              title="Copy suggested phrase"
-                                            >
-                                              {copiedPhraseText === phrase ? (
-                                                <Check className="h-3 w-3 text-violet-600 dark:text-violet-400" />
-                                              ) : (
-                                                <Copy className="h-3 w-3" />
-                                              )}
-                                            </button>
-                                          </div>
-                                        ),
-                                      )}
+                            <div className="space-y-2.5">
+                              {result.atsAnalysis.keywordOptimizations.map((opt, i) => (
+                                <details
+                                  key={`ko-${opt.keyword}-${i}`}
+                                  className="group bg-zinc-50 dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 transition-colors duration-150 hover:border-purple-500/40"
+                                >
+                                  <summary className="text-xs font-bold text-zinc-950 dark:text-white flex items-center justify-between cursor-pointer outline-none list-none [&::-webkit-details-marker]:hidden">
+                                    <div className="flex items-center gap-2">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-[#7e22ce]" />
+                                      {opt.keyword}
                                     </div>
-                                  </details>
-                                ),
-                              )}
+                                    <ChevronDown className="h-3.5 w-3.5 text-zinc-400 transition-transform duration-150 group-open:rotate-180" />
+                                  </summary>
+                                  <div className="space-y-2 mt-3">
+                                    {opt.suggestedPhrases.map((phrase, pIdx) => (
+                                      <div
+                                        key={`phrase-${opt.keyword}-${i}-${pIdx}`}
+                                        className="group/phrase relative p-3 pr-10 rounded-lg bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-800 dark:text-zinc-300 leading-relaxed font-mono"
+                                      >
+                                        {phrase}
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigator.clipboard.writeText(phrase);
+                                            setCopiedPhraseText(phrase);
+                                            setTimeout(() => {
+                                              setCopiedPhraseText((cur) => (cur === phrase ? null : cur));
+                                            }, 2000);
+                                          }}
+                                          className="absolute top-1/2 -translate-y-1/2 right-3 p-1.5 rounded-md bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-150 cursor-pointer text-zinc-600 dark:text-zinc-400"
+                                          title="Copy suggested phrase"
+                                        >
+                                          {copiedPhraseText === phrase ? (
+                                            <Check className="h-3 w-3 text-[#7e22ce] dark:text-purple-400" />
+                                          ) : (
+                                            <Copy className="h-3 w-3" />
+                                          )}
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </details>
+                              ))}
                             </div>
                           </div>
                         )}
+                      </div>
+                    </GlassCard>
+                  </div>
+                </div>
+              )}
+
+              {activeStudioTab === "career" && !isExecutiveMode && (
+                <div className="space-y-8">
+                  {/* Career Progression Timeline */}
+                  {result.careerTimeline && result.careerTimeline.length > 0 && (
+                    <GlassCard className="p-6 md:p-8 border border-zinc-200 dark:border-zinc-800">
+                      <div className="flex flex-col items-center justify-center space-y-1.5 mb-8">
+                        <h3 className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-[0.25em] text-center">
+                          Career Progression Timeline
+                        </h3>
+                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-semibold">
+                          Chronological trajectory extracted from your resume
+                        </p>
+                      </div>
+
+                      <div className="relative pl-4 md:pl-8 max-w-4xl mx-auto">
+                        <div className="absolute left-[27px] md:left-[43px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-[#4c1d95] via-[#7e22ce] to-transparent opacity-30"></div>
+
+                        <div className="space-y-10">
+                          {result.careerTimeline.map((item, idx) => (
+                            <div
+                              key={`timeline-${item.role || idx}-${item.company || idx}-${idx}`}
+                              className="relative pl-12 md:pl-16"
+                            >
+                              <div className="absolute left-[-5px] md:left-[11px] top-1 h-6 w-6 rounded-full bg-white dark:bg-[#111116] border-2 border-[#7e22ce] flex items-center justify-center shadow-sm z-10">
+                                <div className="h-2 w-2 rounded-full bg-[#4c1d95] dark:bg-purple-400"></div>
+                              </div>
+
+                              <div className="flex flex-col md:flex-row md:items-baseline md:justify-between mb-1.5 gap-2">
+                                <h4 className="text-base md:text-lg font-black text-zinc-950 dark:text-white">
+                                  {item.role}
+                                </h4>
+                                <span className="text-xs font-bold text-[#4c1d95] dark:text-purple-300 bg-purple-500/10 px-3 py-1 rounded-md border border-purple-500/25 whitespace-nowrap">
+                                  {item.duration}
+                                </span>
+                              </div>
+
+                              <p className="text-sm font-bold text-zinc-600 dark:text-zinc-400 mb-3">
+                                {item.company}
+                              </p>
+
+                              <ul className="space-y-1.5">
+                                {item.highlights.map((highlight, hIdx) => (
+                                  <li
+                                    key={`timeline-hl-${idx}-${hIdx}`}
+                                    className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium flex items-start gap-2.5"
+                                  >
+                                    <span className="text-[#7e22ce] dark:text-purple-400 mt-1">•</span>
+                                    <span>{highlight}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </GlassCard>
+                  )}
+
+                  {/* Core Strengths & Trajectory Graph */}
+                  <GlassCard className="p-6 md:p-8 border border-zinc-200 dark:border-zinc-800">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+                      <div className="p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-purple-500/25 transition-colors duration-150">
+                        <div className="mb-3 flex items-center justify-between">
+                          <h4 className="text-[10px] font-black text-[#4c1d95] dark:text-purple-300 uppercase tracking-widest flex items-center gap-2">
+                            <ShieldCheck className="h-4 w-4" /> Core Strength
+                          </h4>
+                          <Activity className="h-3.5 w-3.5 text-[#7e22ce] dark:text-purple-400" />
+                        </div>
+                        <p className="text-sm text-zinc-950 dark:text-white font-black uppercase mb-2 line-clamp-2">
+                          Strong {result.foundSkills[0] || "Domain"} Exposure
+                        </p>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                          Your experience in{" "}
+                          <span className="text-zinc-900 dark:text-zinc-200 font-bold">{result.foundSkills.slice(0, 3).join(", ") || "key competencies"}</span> provides a strong foundation.
+                        </p>
+                      </div>
+
+                      <div className="p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-rose-500/25 transition-colors duration-150">
+                        <div className="mb-3 flex items-center justify-between">
+                          <h4 className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest flex items-center gap-2">
+                            <Zap className="h-4 w-4" /> Priority Fix
+                          </h4>
+                          <AlertCircle className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+                        </div>
+                        <p className="text-sm text-zinc-950 dark:text-white font-black uppercase mb-2 line-clamp-2">
+                          Missing {result.skillGapReport[0]?.skill || "Core Keywords"}
+                        </p>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                          Recruiters scan for <span className="text-zinc-900 dark:text-zinc-200 font-bold">{result.skillGapReport[0]?.skill || "target terms"}</span>. Add concrete evidence to recent experience bullets.
+                        </p>
+                      </div>
+
+                      <div className="p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-purple-500/25 transition-colors duration-150">
+                        <div className="mb-3 flex items-center justify-between">
+                          <h4 className="text-[10px] font-black text-[#4c1d95] dark:text-purple-300 uppercase tracking-widest flex items-center gap-2">
+                            <Target className="h-4 w-4" /> Target Role Fit
+                          </h4>
+                          <TrendingUp className="h-3.5 w-3.5 text-[#7e22ce] dark:text-purple-400" />
+                        </div>
+                        <p className="text-sm text-zinc-950 dark:text-white font-black uppercase mb-2 line-clamp-2">
+                          {result.careerPath?.topRole || "Target Leadership Role"}
+                        </p>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                          Estimated <span className="text-[#4c1d95] dark:text-purple-300 font-bold">{Math.round(result.careerPath?.confidence ?? 0)}%</span> fit for this career trajectory.
+                        </p>
+                      </div>
+
+                      <div className="p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 transition-colors duration-150">
+                        <div className="mb-3 flex items-center justify-between">
+                          <h4 className="text-[10px] font-black text-[#4c1d95] dark:text-purple-300 uppercase tracking-widest flex items-center gap-2">
+                            <Layers className="h-4 w-4" /> Keyword Health
+                          </h4>
+                          <Search className="h-3.5 w-3.5 text-[#7e22ce] dark:text-purple-400" />
+                        </div>
+                        <p className="text-sm text-zinc-950 dark:text-white font-black uppercase mb-2">
+                          {(result.atsAnalysis?.keywordDensity ?? 0) > 4 ? "Well Optimized" : "Needs More Exact Terms"}
+                        </p>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                          Keyword density is <span className="text-[#4c1d95] dark:text-purple-300 font-bold">{(result.atsAnalysis?.keywordDensity ?? 0).toFixed(1)}%</span>.
+                          {result.atsAnalysis?.jobKeywordsFound && result.atsAnalysis.jobKeywordsFound.length > 0
+                            ? ` Found ${result.atsAnalysis.jobKeywordsFound.length} core terms.`
+                            : " Include more target job keywords."}
+                        </p>
+                      </div>
+
+                      {result.globalBenchmarking && (
+                        <div className="p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 transition-colors duration-150">
+                          <div className="mb-3 flex items-center justify-between">
+                            <h4 className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-2">
+                              <Briefcase className="h-4 w-4 text-[#7e22ce] dark:text-purple-400" /> Experience Benchmark
+                            </h4>
+                            <BarChart2 className="h-3.5 w-3.5 text-[#7e22ce] dark:text-purple-400" />
+                          </div>
+                          <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed line-clamp-3">
+                            {result.globalBenchmarking}
+                          </p>
+                        </div>
+                      )}
+
+                      {result.recruiterSummary && (
+                        <div className={`p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-950/60 border border-purple-500/25 transition-colors duration-150 ${!result.globalBenchmarking ? "md:col-span-2" : ""}`}>
+                          <div className="mb-3 flex items-center justify-between">
+                            <h4 className="text-[10px] font-black text-[#4c1d95] dark:text-purple-300 uppercase tracking-widest flex items-center gap-2">
+                              <Eye className="h-4 w-4" /> Stakeholder Impression
+                            </h4>
+                            <Info className="h-3.5 w-3.5 text-[#7e22ce] dark:text-purple-400" />
+                          </div>
+                          <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                            {result.recruiterSummary}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-8 border-t border-zinc-200 dark:border-zinc-800 pt-8 space-y-6">
+                      <div>
+                        <h4 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                          <TrendingUp className="h-5 w-5 text-[#7e22ce] dark:text-purple-400" /> Career Trajectory & Role Pivots
+                        </h4>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                          Connected progression from past roles to your primary and alternative target paths.
+                        </p>
+                      </div>
+
+                      <PanelErrorBoundary compact title="D3 Trajectory Graph">
+                        <D3CareerGraph
+                          currentRole={result.targetRole || "Current Career Stage"}
+                          topRole={result.careerPath?.topRole || "Target Role"}
+                          confidence={result.careerPath?.confidence ?? 0}
+                          alternatives={result.careerPath?.alternatives || []}
+                          careerTimeline={result.careerTimeline || []}
+                          careerTrajectories={result.careerTrajectories}
+                        />
+                      </PanelErrorBoundary>
+
+                      <div className="relative flex flex-col md:flex-row items-stretch justify-between gap-6 py-2">
+                        <div className="relative z-10 w-full md:w-1/3 flex flex-col">
+                          <div className="flex-1 p-6 rounded-2xl bg-zinc-50 dark:bg-[#111116] border border-[#7e22ce]/40 flex flex-col items-center justify-center text-center shadow-sm">
+                            <p className="text-[10px] font-black text-[#4c1d95] dark:text-purple-300 uppercase tracking-widest mb-2 border border-purple-500/35 px-3 py-1 rounded-md bg-purple-500/10">
+                              Primary Fit
+                            </p>
+                            <p className="text-lg text-zinc-950 dark:text-white font-bold">
+                              {result.careerPath.topRole}
+                            </p>
+                            <p className="text-sm font-black text-[#4c1d95] dark:text-purple-300 mt-2 bg-purple-500/10 px-3 py-1 rounded-md inline-block">
+                              {result.careerPath.confidence}% Match
+                            </p>
+                          </div>
+                          {result.improvementPlan?.missingSkillsToHighlight && result.improvementPlan.missingSkillsToHighlight.length > 0 && (
+                            <div className="mt-3 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 text-left">
+                              <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-2 border-b border-zinc-200 dark:border-zinc-800 pb-1">
+                                Key Skills to Highlight
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {result.improvementPlan.missingSkillsToHighlight.slice(0, 3).map((ms, msx) => (
+                                  <span
+                                    key={`miss-skill-${ms}-${msx}`}
+                                    className="text-[10px] font-bold uppercase bg-purple-500/15 text-[#4c1d95] dark:text-purple-300 px-2 py-0.5 rounded"
+                                  >
+                                    {ms}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {result.careerPath.alternatives?.slice(0, 2).map((alt, i) => (
+                          <div
+                            key={`alt-path-${alt.role || i}-${i}`}
+                            className="relative z-10 w-full md:w-1/3 flex flex-col"
+                          >
+                            <div className="flex-1 p-6 rounded-2xl bg-zinc-50 dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 flex flex-col items-center justify-center text-center shadow-sm">
+                              <p className="text-[10px] font-black uppercase tracking-widest mb-2 border px-3 py-1 rounded-md text-[#4c1d95] dark:text-purple-300 border-purple-500/35 bg-purple-500/10">
+                                Possible Pivot
+                              </p>
+                              <p className="text-lg text-zinc-950 dark:text-white font-bold">
+                                {alt.role}
+                              </p>
+                              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-3 line-clamp-3 leading-relaxed">
+                                {alt.reasoning || `${alt.match}% Match`}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </GlassCard>
 
-                  <GlassCard>
-                    <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-6">
-                      Expert Summary
-                    </h3>
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed italic border-l-2 border-violet-500/30 pl-4">
-                      "{result.summary}"
-                    </p>
-                  </GlassCard>
+                  <div className="grid lg:grid-cols-12 gap-8">
+                    {/* Strategic Optimization Plan */}
+                    <div id="optimization-plan" className="lg:col-span-8">
+                      <GlassCard className="p-0 overflow-hidden border border-zinc-200 dark:border-zinc-800">
+                        <div className="p-6 md:p-8 border-b border-zinc-200 dark:border-zinc-800 bg-purple-500/5">
+                          <h3 className="text-base font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-3">
+                            <TrendingUp className="h-5 w-5 text-[#4c1d95] dark:text-purple-400" />
+                            Strategic Optimization Plan
+                          </h3>
+                          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1.5">
+                            Prioritized actions to strengthen alignment for this target role.
+                          </p>
+                        </div>
 
-                  {result.sectionsDetailed &&
-                    result.sectionsDetailed.length > 0 && (
-                      <GlassCard>
-                        <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                          <Layers className="h-4 w-4 text-violet-600 dark:text-violet-400" /> Extracted
-                          Sections
+                        {result.improvementPlan && (
+                          <div className="p-6 md:p-8 grid md:grid-cols-2 gap-6 bg-zinc-50 dark:bg-zinc-950/40 border-b border-zinc-200 dark:border-zinc-800">
+                            {result.improvementPlan.resumeHeadlineUpdates && result.improvementPlan.resumeHeadlineUpdates.length > 0 && (
+                              <div>
+                                <h4 className="text-[10px] font-black text-[#4c1d95] dark:text-purple-300 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                  <Layout className="w-3.5 h-3.5" /> Title Updates
+                                </h4>
+                                <ul className="space-y-2">
+                                  {result.improvementPlan.resumeHeadlineUpdates.slice(0, 3).map((s, i) => (
+                                    <li key={`upd-headline-${s.slice(0, 15)}-${i}`} className="flex items-start gap-2 text-xs text-zinc-700 dark:text-zinc-300">
+                                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-[#7e22ce] mt-1.5" />
+                                      <span>{s}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {result.improvementPlan.formattingFixes && result.improvementPlan.formattingFixes.length > 0 && (
+                              <div>
+                                <h4 className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                  <FileText className="w-3.5 h-3.5" /> Layout Fixes
+                                </h4>
+                                <ul className="space-y-2">
+                                  {result.improvementPlan.formattingFixes.slice(0, 3).map((s, i) => (
+                                    <li key={`upd-fmt-${s.slice(0, 15)}-${i}`} className="flex items-start gap-2 text-xs text-zinc-700 dark:text-zinc-300">
+                                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5" />
+                                      <span>{s}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {result.improvementPlan.recommendedCertifications && result.improvementPlan.recommendedCertifications.length > 0 && (
+                              <div>
+                                <h4 className="text-[10px] font-black text-[#4c1d95] dark:text-purple-300 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                  <Award className="w-3.5 h-3.5" /> Target Credentials
+                                </h4>
+                                <ul className="space-y-2">
+                                  {result.improvementPlan.recommendedCertifications.slice(0, 3).map((s, i) => (
+                                    <li key={`upd-cert-${s.slice(0, 15)}-${i}`} className="flex items-start gap-2 text-xs text-zinc-700 dark:text-zinc-300">
+                                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-[#4c1d95] mt-1.5" />
+                                      <span>{s}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {result.improvementPlan.projectsToHighlight && result.improvementPlan.projectsToHighlight.length > 0 && (
+                              <div>
+                                <h4 className="text-[10px] font-black text-[#7e22ce] dark:text-purple-300 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                  <Briefcase className="w-3.5 h-3.5" /> Highlight Experience
+                                </h4>
+                                <ul className="space-y-2">
+                                  {result.improvementPlan.projectsToHighlight.slice(0, 3).map((s, i) => (
+                                    <li key={`upd-proj-${s.slice(0, 15)}-${i}`} className="flex items-start gap-2 text-xs text-zinc-700 dark:text-zinc-300">
+                                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-[#7e22ce] mt-1.5" />
+                                      <span>{s}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="p-6 md:p-8 space-y-5">
+                          <h4 className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                            <Wand2 className="h-4 w-4 text-[#7e22ce] dark:text-purple-400" /> AI Content Rewrite Suggestions
+                          </h4>
+                          {[...result.atsAnalysis.recommendations, ...result.suggestions]
+                            .slice(0, 5)
+                            .map((step, i) => (
+                              <div key={`rec-${step.slice(0, 20)}-${i}`} className="space-y-3">
+                                <div
+                                  className={`flex gap-4 p-4 md:p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-950/80 border transition-colors duration-150 items-start ${
+                                    selectedRecommendation === step
+                                      ? "border-[#7e22ce] bg-purple-500/5"
+                                      : "border-zinc-200 dark:border-zinc-800 hover:border-purple-500/40"
+                                  }`}
+                                >
+                                  <div
+                                    className={`h-9 w-9 mt-0.5 shrink-0 rounded-full border border-dashed flex items-center justify-center font-black text-xs ${
+                                      selectedRecommendation === step
+                                        ? "border-[#7e22ce] bg-purple-500/20 text-[#4c1d95] dark:text-purple-300"
+                                        : "border-zinc-400 dark:border-zinc-600 text-zinc-600 dark:text-zinc-400"
+                                    }`}
+                                  >
+                                    {i + 1}
+                                  </div>
+                                  <div className="flex-1 flex flex-col gap-3">
+                                    <div className="flex items-start justify-between gap-4">
+                                      <p className="text-zinc-800 dark:text-zinc-200 text-sm leading-relaxed">
+                                        {step}
+                                      </p>
+                                      {selectedRecommendation === step && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleExpandRecommendation(step)}
+                                          className="p-2 rounded-lg bg-zinc-200/70 dark:bg-zinc-800 text-[#4c1d95] dark:text-purple-300 shrink-0 transition-colors duration-150 cursor-pointer"
+                                        >
+                                          <ChevronUp className="h-4 w-4" />
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    {selectedRecommendation !== step && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleExpandRecommendation(step)}
+                                        className="self-start flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#4c1d95] dark:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 px-3.5 py-2 rounded-xl transition-colors duration-150 border border-purple-500/25 cursor-pointer"
+                                      >
+                                        <BrainCircuit className="h-3.5 w-3.5" /> Generate Actionable Example
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {selectedRecommendation === step && (
+                                  <div className="p-5 rounded-2xl bg-zinc-100 dark:bg-[#0D0D12] border border-purple-500/25 ml-6 md:ml-12">
+                                    {isGeneratingRecDetail ? (
+                                      <div className="flex flex-col items-center justify-center py-5 space-y-3">
+                                        <Loader2 className="h-5 w-5 text-[#7e22ce] dark:text-purple-400 animate-spin" />
+                                        <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
+                                          Generating actionable examples...
+                                        </p>
+                                      </div>
+                                    ) : recommendationDetail ? (
+                                      <div className="space-y-5">
+                                        <div>
+                                          <h4 className="text-[10px] font-black text-[#4c1d95] dark:text-purple-300 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                            <Info className="h-3.5 w-3.5" /> Context & Rationale
+                                          </h4>
+                                          <p className="text-zinc-700 dark:text-zinc-300 text-sm leading-relaxed">
+                                            {recommendationDetail.explanation}
+                                          </p>
+                                        </div>
+
+                                        {recommendationDetail.examples && recommendationDetail.examples.length > 0 && (
+                                          <div>
+                                            <h4 className="text-[10px] font-black text-[#4c1d95] dark:text-purple-300 uppercase tracking-widest mb-2.5 flex items-center gap-2">
+                                              <TrendingUp className="h-3.5 w-3.5" /> Implementation Examples
+                                            </h4>
+                                            <div className="space-y-2.5">
+                                              {recommendationDetail.examples.map((example, eIdx) => (
+                                                <div
+                                                  key={`ex-${selectedRecommendation?.slice(0, 15)}-${eIdx}`}
+                                                  className="group/ex relative p-3.5 pr-11 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-800 dark:text-zinc-300 leading-relaxed font-mono"
+                                                >
+                                                  {example}
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      navigator.clipboard.writeText(example);
+                                                      setCopiedExampleText(example);
+                                                      setTimeout(() => {
+                                                        setCopiedExampleText((cur) => (cur === example ? null : cur));
+                                                      }, 2000);
+                                                    }}
+                                                    className="absolute top-3 right-3 p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-150 cursor-pointer text-zinc-600 dark:text-zinc-400"
+                                                    title="Copy to clipboard"
+                                                  >
+                                                    {copiedExampleText === example ? (
+                                                      <Check className="h-3.5 w-3.5 text-[#7e22ce] dark:text-purple-400" />
+                                                    ) : (
+                                                      <Copy className="h-3.5 w-3.5" />
+                                                    )}
+                                                  </button>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div className="text-center py-4 text-rose-500 text-xs">
+                                        Failed to load details. Please try again.
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                        </div>
+                      </GlassCard>
+                    </div>
+
+                    {/* Career Sidebar: Expert Summary & Extracted Sections */}
+                    <div className="lg:col-span-4 space-y-6">
+                      <GlassCard className="border border-zinc-200 dark:border-zinc-800">
+                        <h3 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.2em] mb-4">
+                          Expert Summary
                         </h3>
-                        <div className="space-y-4">
-                          {result.sectionsDetailed.map((section, idx) => (
-                            <div key={`section-det-${section.sectionName || idx}-${idx}`} className="group relative">
-                              <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/5 hover:border-violet-500/30 transition-colors">
-                                <h4 className="text-[11px] font-black text-zinc-950 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-violet-600 opacity-60 group-hover:opacity-100 transition-opacity" />
+                        <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed italic border-l-2 border-[#7e22ce]/40 pl-4">
+                          "{result.summary}"
+                        </p>
+                      </GlassCard>
+
+                      {result.sectionsDetailed && result.sectionsDetailed.length > 0 && (
+                        <GlassCard className="border border-zinc-200 dark:border-zinc-800">
+                          <h3 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                            <Layers className="h-4 w-4 text-[#7e22ce] dark:text-purple-400" /> Extracted Sections
+                          </h3>
+                          <div className="space-y-3">
+                            {result.sectionsDetailed.map((section, idx) => (
+                              <div
+                                key={`section-det-${section.sectionName || idx}-${idx}`}
+                                className="flex flex-col gap-1.5 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 transition-colors duration-150 hover:border-purple-500/35"
+                              >
+                                <h4 className="text-xs font-black text-zinc-950 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-[#7e22ce]" />
                                   {section.sectionName}
                                 </h4>
-                                <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed border-l border-zinc-200 dark:border-white/10 pl-3 ml-0.5 mt-1">
+                                <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed border-l border-zinc-200 dark:border-zinc-800 pl-3 ml-0.5 mt-0.5">
                                   {section.summary}
                                 </p>
                               </div>
+                            ))}
+                          </div>
+                        </GlassCard>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Interview Simulator & Drafts */}
+                  <div className="grid lg:grid-cols-2 gap-8">
+                    {result.interviewQuestions && result.interviewQuestions.length > 0 && (
+                      <GlassCard className="border border-zinc-200 dark:border-zinc-800">
+                        <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-2">
+                          <BrainCircuit className="h-4 w-4 text-[#7e22ce] dark:text-purple-400" />
+                          Interview Simulator
+                        </h3>
+                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-semibold mb-5">
+                          Likely questions based on your profile and role gaps
+                        </p>
+                        <div className="space-y-3">
+                          {result.interviewQuestions.map((q, idx) => (
+                            <div
+                              key={`iq-${q.slice(0, 20)}-${idx}`}
+                              className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/25 text-zinc-800 dark:text-zinc-200 text-sm font-medium"
+                            >
+                              <span className="text-[#4c1d95] dark:text-purple-400 font-black mr-2">
+                                Q:
+                              </span>
+                              {q}
                             </div>
                           ))}
                         </div>
                       </GlassCard>
                     )}
 
-                </div>
-              </div>
-
-                  {/* New Recruiter & Insights Sections */}
-                  <div className="grid lg:grid-cols-2 gap-8">
-                    {/* Interview Readiness */}
-                    {result.interviewQuestions &&
-                      result.interviewQuestions.length > 0 && (
-                        <GlassCard>
-                          <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-2">
-                            <BrainCircuit className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                            Interview Simulator
-                          </h3>
-                          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em] mb-6">
-                            Likely questions based on your profile gaps
-                          </p>
-                          <div className="space-y-4">
-                            {result.interviewQuestions.map((q, idx) => (
-                              <div
-                                key={`iq-${q.slice(0, 20)}-${idx}`}
-                                className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/25 text-zinc-700 dark:text-zinc-300 text-sm font-medium"
-                              >
-                                <span className="text-purple-600 dark:text-purple-400 font-black mr-2">
-                                  Q:
-                                </span>
-                                {q}
-                              </div>
-                            ))}
-                          </div>
-                        </GlassCard>
-                      )}
-
-                    {/* AI Re-writes */}
-                    <div className="space-y-8">
+                    <div className="space-y-6">
                       {result.resumeRewriteDraft && (
-                        <GlassCard className="border-t-2 border-t-violet-600">
+                        <GlassCard className="border border-zinc-200 dark:border-zinc-800 border-t-2 border-t-[#7e22ce]">
                           <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-2">
-                            <Wand2 className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                            <Wand2 className="h-4 w-4 text-[#7e22ce] dark:text-purple-400" />
                             Optimized Headline Draft
                           </h3>
-                          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em] mb-4">
-                            AI-generated rewrite for this role
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-semibold mb-4">
+                            Tailored headline rewrite for this role
                           </p>
-                          <div className="relative p-5 rounded-xl bg-violet-500/5 border border-violet-500/20 group">
+                          <div className="relative p-4 pr-11 rounded-xl bg-purple-500/5 border border-purple-500/20">
                             <button
-                              onClick={() =>
-                                navigator.clipboard.writeText(
-                                  result.resumeRewriteDraft || "",
-                                )
-                              }
-                              className="absolute top-2 right-2 p-2 rounded-lg bg-zinc-200/60 dark:bg-white/5 hover:bg-violet-500/20 text-zinc-600 dark:text-zinc-400 hover:text-violet-700 dark:hover:text-violet-400 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                              type="button"
+                              onClick={() => navigator.clipboard.writeText(result.resumeRewriteDraft || "")}
+                              className="absolute top-2.5 right-2.5 p-2 rounded-lg bg-zinc-200/70 dark:bg-zinc-900 hover:bg-purple-500/20 text-zinc-600 dark:text-zinc-400 hover:text-[#4c1d95] dark:hover:text-purple-300 transition-colors duration-150 cursor-pointer"
+                              title="Copy headline draft"
                             >
                               <Copy className="h-3.5 w-3.5" />
                             </button>
@@ -7904,22 +6761,22 @@ AWS Certified Solutions Architect – Associate (2022)`;
                       )}
 
                       {result.recruiterSummary && (
-                        <GlassCard className="border-t-2 border-t-purple-600">
+                        <GlassCard className="border border-zinc-200 dark:border-zinc-800 border-t-2 border-t-[#4c1d95]">
                           <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-2">
-                            <Search className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                            <Search className="h-4 w-4 text-[#4c1d95] dark:text-purple-400" />
                             Recruiter Perspective
                           </h3>
-                          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em] mb-4">
-                            Candid assessment of your fit
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-semibold mb-4">
+                            Candid assessment of your overall fit
                           </p>
-                          <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium">
+                          <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
                             {result.recruiterSummary}
                           </p>
                           {result.globalBenchmarking && (
-                            <div className="mt-4 pt-4 border-t border-purple-500/20 flex items-start gap-3">
-                              <Award className="h-5 w-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
-                              <p className="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium">
-                                <strong className="text-purple-700 dark:text-purple-300">
+                            <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800 flex items-start gap-3">
+                              <Award className="h-5 w-5 text-[#7e22ce] dark:text-purple-400 shrink-0 mt-0.5" />
+                              <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                                <strong className="text-[#4c1d95] dark:text-purple-300">
                                   Global Benchmark:
                                 </strong>{" "}
                                 {result.globalBenchmarking}
@@ -7933,107 +6790,84 @@ AWS Certified Solutions Architect – Associate (2022)`;
 
                   {/* Cover Letter Draft */}
                   {result.coverLetterDraft && (
-                    <GlassCard>
-                      <div className="flex items-center justify-between mb-6">
+                    <GlassCard className="border border-zinc-200 dark:border-zinc-800">
+                      <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
                         <div>
                           <h3 className="text-sm font-black text-zinc-950 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                            AI Cover Letter Draft
+                            <FileText className="h-4 w-4 text-[#7e22ce] dark:text-purple-400" />
+                            Cover Letter Draft
                           </h3>
-                          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em] mt-1">
-                            Starting template mapped to the JD
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-semibold mt-1">
+                            Starting template mapped to the job description
                           </p>
                         </div>
                         <button
-                          onClick={() =>
-                            navigator.clipboard.writeText(
-                              result.coverLetterDraft || "",
-                            )
-                          }
-                          className="px-4 py-2 rounded-lg bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-zinc-700 dark:text-zinc-300 hover:bg-violet-500/15 hover:text-violet-700 dark:hover:text-violet-400 hover:border-violet-500/30 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest cursor-pointer"
+                          type="button"
+                          onClick={() => navigator.clipboard.writeText(result.coverLetterDraft || "")}
+                          className="px-4 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-purple-500/40 hover:text-[#4c1d95] dark:hover:text-purple-300 transition-colors duration-150 flex items-center gap-2 text-xs font-bold uppercase tracking-wider cursor-pointer"
                         >
-                          <Copy className="h-3 w-3" /> Copy to Clipboard
+                          <Copy className="h-3.5 w-3.5" /> Copy to Clipboard
                         </button>
                       </div>
-                      <div className="p-6 md:p-8 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/5 font-serif text-zinc-800 dark:text-zinc-300 leading-loose text-sm whitespace-pre-wrap">
+                      <div className="p-6 md:p-8 rounded-2xl bg-zinc-50 dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 font-serif text-zinc-800 dark:text-zinc-300 leading-loose text-sm whitespace-pre-wrap">
                         {result.coverLetterDraft}
                       </div>
                     </GlassCard>
                   )}
-                </div>
-              )}
-{/* Floating Action Buttons */}
-              {!isExecutiveMode && activeStudioTab !== "canvas" && (
-                <div className={`fixed top-1/4 left-4 z-50 transition-all duration-300 ${isQuickLinksOpen ? 'w-64' : 'w-12'}`}>
-                  <div className="bg-white/95 dark:bg-[#111116]/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex">
-                    <div className="w-12 flex flex-col items-center py-4 border-r border-zinc-200 dark:border-white/5 shrink-0">
-                      <button 
-                        onClick={() => setIsQuickLinksOpen(!isQuickLinksOpen)}
-                        className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-colors p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
-                        title="Quick Links"
-                      >
-                        <Layers className="h-5 w-5" />
-                      </button>
-                    </div>
-                    {isQuickLinksOpen && (
-                      <div className="p-4 w-52 flex flex-col gap-2">
-                        <h4 className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-2 px-2">Quick Links</h4>
-                        <button onClick={() => document.getElementById('scoring-infrastructure')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-violet-700 dark:hover:text-violet-400 hover:bg-zinc-100 dark:hover:bg-white/5 px-3 py-2 rounded-lg transition-colors cursor-pointer">Overall Match</button>
-                        <button onClick={() => document.getElementById('skill-vector-engine')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-violet-700 dark:hover:text-violet-400 hover:bg-zinc-100 dark:hover:bg-white/5 px-3 py-2 rounded-lg transition-colors cursor-pointer">Skill Landscape</button>
-                        <button onClick={() => document.getElementById('career-progression')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-violet-700 dark:hover:text-violet-400 hover:bg-zinc-100 dark:hover:bg-white/5 px-3 py-2 rounded-lg transition-colors cursor-pointer">Career Timeline</button>
-                        <button onClick={() => document.getElementById('optimization-plan')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-violet-700 dark:hover:text-violet-400 hover:bg-zinc-100 dark:hover:bg-white/5 px-3 py-2 rounded-lg transition-colors cursor-pointer">Strategic Plan</button>
-                        <button onClick={() => document.getElementById('career-simulator')?.scrollIntoView({ behavior: 'smooth' })} className="text-left text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-violet-700 dark:hover:text-violet-400 hover:bg-zinc-100 dark:hover:bg-white/5 px-3 py-2 rounded-lg transition-colors cursor-pointer">Career Simulator</button>
-                      </div>
-                    )}
+
+                  {/* Scoring Calibration & Model Training Studio */}
+                  <div id="model-training-studio-section">
+                    <PanelErrorBoundary compact title="Scoring Weight Calibration">
+                      <ModelTrainingStudio
+                        result={result}
+                        resumeText={
+                          result?.atsMetadata?.rawText ||
+                          result?.resumeRewriteDraft ||
+                          result?.summary ||
+                          ""
+                        }
+                        jobDescription={jobDescription}
+                        linkedinUrl={linkedinUrl}
+                        linkedinData={linkedinData}
+                        onAnalysisUpdated={setResult}
+                      />
+                    </PanelErrorBoundary>
                   </div>
                 </div>
               )}
-              <div className="fixed bottom-32 right-6 md:right-8 z-[195] flex flex-col gap-4">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={exportToExcel}
-                  title="Export Summary to Excel"
-                  aria-label="Export Summary to Excel"
-                  className="h-12 w-12 rounded-2xl bg-violet-700 hover:bg-violet-600 text-white shadow-2xl shadow-violet-500/20 flex items-center justify-center group relative overflow-hidden active:scale-95 transition-all cursor-pointer"
-                >
-                  <Download className="h-5 w-5 relative z-10" />
-                </motion.button>
-              </div>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
       </main>
 
-      <footer className="py-20 border-t border-zinc-200 dark:border-white/5 text-center mt-20 bg-zinc-50/70 dark:bg-[#09090B]/60 relative">
-        <div className="flex items-center justify-center gap-3 mb-6 opacity-90 dark:opacity-70">
-          <BrainCircuit className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+      <footer className="py-16 border-t border-zinc-200 dark:border-zinc-800/80 text-center mt-16 bg-zinc-50/70 dark:bg-[#09090b]/80 relative">
+        <div className="flex items-center justify-center gap-3 mb-5">
+          <BrainCircuit className="h-5 w-5 text-[#7e22ce] dark:text-purple-400" />
           <span className="font-display font-black text-sm uppercase tracking-widest text-zinc-900 dark:text-white">
             Executive Career Intelligence
           </span>
         </div>
-        <div className="flex justify-center mb-8">
+        <div className="flex justify-center mb-6">
           <button
+            type="button"
             onClick={() => setIsPurgePromptOpen(true)}
-            className="px-6 py-2.5 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-700 dark:text-rose-400 hover:bg-rose-600 hover:text-white transition-all duration-300 text-[10px] font-black uppercase tracking-widest cursor-pointer"
+            className="px-6 py-2 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-700 dark:text-rose-400 hover:bg-rose-600 hover:text-white transition-colors duration-150 text-[10px] font-black uppercase tracking-widest cursor-pointer"
           >
             Purge Session
           </button>
         </div>
-        <div className="flex justify-center gap-8 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-6">
-          <a href="#" className="hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+        <div className="flex justify-center gap-8 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-5">
+          <a href="#" className="hover:text-[#7e22ce] dark:hover:text-purple-400 transition-colors duration-150">
             Privacy Priority
           </a>
-          <a href="#" className="hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+          <a href="#" className="hover:text-[#7e22ce] dark:hover:text-purple-400 transition-colors duration-150">
             Secure Processing
           </a>
-          <a href="#" className="hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+          <a href="#" className="hover:text-[#7e22ce] dark:hover:text-purple-400 transition-colors duration-150">
             Session Only
           </a>
         </div>
         <p className="text-zinc-500 dark:text-zinc-400 text-[10px] font-bold uppercase tracking-[0.2em]">
-          © 2026 Professional Career Intelligence. All data processed locally
-          for this session.
+          © 2026 Professional Career Intelligence. All data processed locally for this session.
         </p>
       </footer>
 
@@ -8043,9 +6877,9 @@ AWS Certified Solutions Architect – Associate (2022)`;
           href="https://personal-portfolio--serenayt06.replit.app/"
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex items-center gap-3 bg-white/95 dark:bg-[#111116]/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-full shadow-xl hover:border-violet-500/40 transition-all ease-out duration-300 w-fit"
+          className="group flex items-center gap-3 bg-white/95 dark:bg-[#111116]/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-full shadow-xl hover:border-purple-500/50 transition-colors duration-150 w-fit"
         >
-          <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest group-hover:text-violet-700 dark:group-hover:text-violet-400 transition-colors">
+          <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest group-hover:text-[#4c1d95] dark:group-hover:text-purple-400 transition-colors duration-150">
             Portfolio
           </span>
           <svg
@@ -8058,7 +6892,7 @@ AWS Certified Solutions Architect – Associate (2022)`;
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-violet-600 dark:text-violet-400"
+            className="text-[#7e22ce] dark:text-purple-400"
           >
             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
             <polyline points="15 3 21 3 21 9"></polyline>
@@ -8069,12 +6903,12 @@ AWS Certified Solutions Architect – Associate (2022)`;
           href="https://www.linkedin.com/in/arjun-pv1312"
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex items-center gap-3 bg-white/95 dark:bg-[#111116]/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-full shadow-xl hover:border-purple-500/40 transition-all ease-out duration-300 w-fit"
+          className="group flex items-center gap-3 bg-white/95 dark:bg-[#111116]/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-full shadow-xl hover:border-purple-500/50 transition-colors duration-150 w-fit"
         >
-          <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest group-hover:text-purple-700 dark:group-hover:text-purple-400 transition-colors">
+          <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest group-hover:text-[#4c1d95] dark:group-hover:text-purple-400 transition-colors duration-150">
             LinkedIn
           </span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="text-violet-600 dark:text-violet-400 opacity-85 group-hover:opacity-100 transition-opacity">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="text-[#7e22ce] dark:text-purple-400">
             <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
           </svg>
         </a>
@@ -8086,75 +6920,67 @@ AWS Certified Solutions Architect – Associate (2022)`;
           <button
             type="button"
             onClick={() => setIsCopilotDrawerOpen((prev) => !prev)}
-            className="fixed bottom-6 left-6 z-[180] flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white/95 dark:bg-[#111116]/95 hover:bg-zinc-50 dark:hover:bg-zinc-900 border border-violet-500/35 text-zinc-950 dark:text-white shadow-2xl shadow-violet-500/15 transition-all cursor-pointer active:scale-95"
+            className="fixed bottom-6 left-6 z-[180] flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white/95 dark:bg-[#111116]/95 hover:bg-zinc-50 dark:hover:bg-zinc-900 border border-purple-500/35 text-zinc-950 dark:text-white shadow-2xl transition-colors duration-150 cursor-pointer"
             title="Open ATS Gap Copilot to inspect what is missing and apply 1-click resume fixes"
           >
-            <div className="w-7 h-7 rounded-lg bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-violet-600 dark:text-violet-400">
+            <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-[#7e22ce] dark:text-purple-400">
               <Bot className="w-4 h-4" />
             </div>
             <div className="text-left">
               <div className="text-xs font-bold leading-tight text-zinc-950 dark:text-white">
                 ATS Gap Copilot
               </div>
-              <div className="text-[10px] font-mono tabular-nums text-violet-600 dark:text-violet-400">
+              <div className="text-[10px] font-mono tabular-nums text-[#4c1d95] dark:text-purple-400">
                 Score {result.overallScore}% · Quick Fixes
               </div>
             </div>
           </button>
 
-          <AnimatePresence>
-            {isCopilotDrawerOpen && (
-              <motion.div
-                initial={{ opacity: 0, x: -24 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -24 }}
-                transition={{ duration: 0.2 }}
-                className="fixed bottom-20 left-6 z-[190] w-[420px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-7rem)] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111116] shadow-2xl overflow-hidden flex flex-col"
-              >
-                <div className="px-4 py-2.5 bg-zinc-50 dark:bg-zinc-900/90 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-2 text-xs font-bold text-zinc-950 dark:text-white">
-                    <Wand2 className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
-                    <span>Synchronized ATS Gap Copilot</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsCopilotDrawerOpen(false)}
-                    className="p-1 rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-200/70 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                    aria-label="Close ATS Gap Copilot Drawer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+          {isCopilotDrawerOpen && (
+            <div className="fixed bottom-20 left-6 z-[190] w-[420px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-7rem)] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111116] shadow-2xl overflow-hidden flex flex-col">
+              <div className="px-4 py-2.5 bg-zinc-50 dark:bg-zinc-900/90 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2 text-xs font-bold text-zinc-950 dark:text-white">
+                  <Wand2 className="w-3.5 h-3.5 text-[#7e22ce] dark:text-purple-400" />
+                  <span>Synchronized ATS Gap Copilot</span>
                 </div>
-                <div className="flex-1 min-h-0">
-                  <AtsCopilotChat
-                    compact
-                    messages={sharedChatMessages}
-                    onMessagesChange={setSharedChatMessages}
-                    persona={sharedChatPersona}
-                    onPersonaChange={setSharedChatPersona}
-                    modelMode={sharedChatModelMode}
-                    onModelModeChange={setSharedChatModelMode}
-                    resumeText={
-                      result?.atsMetadata?.rawText ||
-                      result?.resumeRewriteDraft ||
-                      result?.summary ||
-                      result?.executiveSummary ||
-                      ""
-                    }
-                    jobDescription={jobDescription}
-                    analysisResult={result}
-                    currentResumeData={sharedResumeData}
-                    onApplyPatch={handleApplyPatchFromDrawer}
-                    onOpenBuilder={() => {
-                      setIsCopilotDrawerOpen(false);
-                      setIsResumeBuilderOpen(true);
-                    }}
-                    externalPromptRequest={copilotExternalPrompt}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                <button
+                  type="button"
+                  onClick={() => setIsCopilotDrawerOpen(false)}
+                  className="p-1 rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-200/70 dark:hover:bg-zinc-800 transition-colors duration-150 cursor-pointer"
+                  aria-label="Close ATS Gap Copilot Drawer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex-1 min-h-0">
+                <AtsCopilotChat
+                  compact
+                  messages={sharedChatMessages}
+                  onMessagesChange={setSharedChatMessages}
+                  persona={sharedChatPersona}
+                  onPersonaChange={setSharedChatPersona}
+                  modelMode={sharedChatModelMode}
+                  onModelModeChange={setSharedChatModelMode}
+                  resumeText={
+                    result?.atsMetadata?.rawText ||
+                    result?.resumeRewriteDraft ||
+                    result?.summary ||
+                    result?.executiveSummary ||
+                    ""
+                  }
+                  jobDescription={jobDescription}
+                  analysisResult={result}
+                  currentResumeData={sharedResumeData}
+                  onApplyPatch={handleApplyPatchFromDrawer}
+                  onOpenBuilder={() => {
+                    setIsCopilotDrawerOpen(false);
+                    setIsResumeBuilderOpen(true);
+                  }}
+                  externalPromptRequest={copilotExternalPrompt}
+                />
+              </div>
+            </div>
+          )}
         </>
       )}
 

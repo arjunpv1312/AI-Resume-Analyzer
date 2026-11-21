@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import * as d3 from "d3";
-import { motion, AnimatePresence } from "motion/react";
 import {
   Users,
   Search,
@@ -71,20 +70,20 @@ export const CIRCLE_CONFIG: Record<
 > = {
   faang: {
     label: "Enterprise & Cloud Tech",
-    color: "#7c3aed",
-    glowColor: "rgba(124, 58, 237, 0.35)",
+    color: "#7e22ce",
+    glowColor: "rgba(126, 34, 206, 0.35)",
     description: "Senior engineering leaders & hiring managers across Tier-1 enterprise cloud organizations",
   },
   scaleup: {
     label: "High-Growth Scaleups",
-    color: "#9333ea",
-    glowColor: "rgba(147, 51, 234, 0.35)",
+    color: "#a855f7",
+    glowColor: "rgba(168, 85, 247, 0.35)",
     description: "Engineering heads & staff architects at Stripe, Databricks, OpenAI & Vercel",
   },
   "vc-exec": {
     label: "VC & Executive Search",
-    color: "#6d28d9",
-    glowColor: "rgba(109, 40, 217, 0.35)",
+    color: "#4c1d95",
+    glowColor: "rgba(76, 29, 149, 0.35)",
     description: "Partners, talent partners & executive recruiters at Tier-1 venture funds",
   },
   architecture: {
@@ -95,8 +94,8 @@ export const CIRCLE_CONFIG: Record<
   },
   alumni: {
     label: "Shared Engineering Alumni",
-    color: "#5b21b6",
-    glowColor: "rgba(91, 33, 182, 0.35)",
+    color: "#4c1d95",
+    glowColor: "rgba(76, 29, 149, 0.35)",
     description: "Former colleagues & university engineering alumni network",
   },
 };
@@ -115,7 +114,7 @@ export const EXECUTIVE_NETWORK_CONTACTS = [
     warmIntroVia: "Direct 1st-degree connection",
     suggestedNote:
       "Hi Sarah, great seeing Databricks' recent scaling milestones. I'm currently exploring executive systems leadership roles that match my distributed systems background. Would love to catch up briefly if your teams have an opening.",
-    avatarColor: "#6d28d9",
+    avatarColor: "#4c1d95",
   },
   {
     id: "contact-2",
@@ -130,7 +129,7 @@ export const EXECUTIVE_NETWORK_CONTACTS = [
     warmIntroVia: "Direct 1st-degree connection",
     suggestedNote:
       "Hey David, hope all is well! I noticed your group at GCP is expanding cloud reliability infrastructure. Given my recent architecture focus, I'd appreciate 10 minutes to learn about priority initiatives on your radar.",
-    avatarColor: "#18181b",
+    avatarColor: "#09090b",
   },
   {
     id: "contact-3",
@@ -145,7 +144,7 @@ export const EXECUTIVE_NETWORK_CONTACTS = [
     warmIntroVia: "Warm intro via Sarah Chen (VP of Engineering)",
     suggestedNote:
       "Hi Priya, Sarah Chen recommended I connect with you regarding OpenAI's infrastructure team growth. I have 8+ years leading distributed systems and would love to discuss alignment with current open mandates.",
-    avatarColor: "#7c3aed",
+    avatarColor: "#7e22ce",
   },
   {
     id: "contact-4",
@@ -160,7 +159,7 @@ export const EXECUTIVE_NETWORK_CONTACTS = [
     warmIntroVia: "Direct 1st-degree connection",
     suggestedNote:
       "Hi Marcus, following Stripe's latest architecture articles with great interest. I'm exploring staff/principal systems opportunities and would love your perspective on the current engineering culture.",
-    avatarColor: "#5b21b6",
+    avatarColor: "#4c1d95",
   },
   {
     id: "contact-5",
@@ -175,7 +174,7 @@ export const EXECUTIVE_NETWORK_CONTACTS = [
     warmIntroVia: "Warm intro via David Rodriguez (Google Cloud)",
     suggestedNote:
       "Dear Elena, David Rodriguez suggested we connect. I'm evaluating executive technology mandates across Sequoia's enterprise portfolio and would welcome sharing my verified profile dossier.",
-    avatarColor: "#9333ea",
+    avatarColor: "#7e22ce",
   },
   {
     id: "contact-6",
@@ -265,7 +264,7 @@ export const EXECUTIVE_NETWORK_CONTACTS = [
     warmIntroVia: "Direct 1st-degree connection",
     suggestedNote:
       "Hi Jessica, hope all is well! Reaching out to the alumni network as I'm evaluating senior technology executive opportunities. Would welcome any leads or referrals within the alumni ecosystem.",
-    avatarColor: "#86198f",
+    avatarColor: "#6b21a8",
   },
 ];
 
@@ -280,10 +279,10 @@ export interface LinkedInConnectionNetworkProps {
 }
 
 export const LinkedInConnectionNetwork: React.FC<LinkedInConnectionNetworkProps> = ({
-  candidateName = "Alex Mercer",
+  candidateName = "Candidate",
   targetRole = "Senior Technology Leader",
   linkedinUrl = "",
-  trustScore = 88,
+  trustScore = null,
   className = "",
   height = 540,
 }) => {
@@ -349,11 +348,11 @@ export const LinkedInConnectionNetwork: React.FC<LinkedInConnectionNetworkProps>
       circleLabel: "You (Candidate)",
       degree: "1st",
       isCandidate: true,
-      referralScore: trustScore || 88,
+      referralScore: trustScore || 86,
       hiringStatus: "Seeking Executive Mandate",
       mutualContacts: [],
       suggestedNote: "",
-      avatarColor: "#6d28d9",
+      avatarColor: "#4c1d95",
       radius: 30,
       connections: [],
     });
@@ -606,12 +605,12 @@ export const LinkedInConnectionNetwork: React.FC<LinkedInConnectionNetworkProps>
       .attr("r", (d) => d.radius + 4)
       .attr("fill", "none")
       .attr("stroke", (d) => {
-        if (d.isCandidate) return isDark ? "#c084fc" : "#6d28d9";
-        if (d.isCircleHub) return CIRCLE_CONFIG[d.circle]?.color || "#7c3aed";
+        if (d.isCandidate) return isDark ? "#c084fc" : "#4c1d95";
+        if (d.isCircleHub) return CIRCLE_CONFIG[d.circle]?.color || "#7e22ce";
         return d.degree === "1st"
           ? isDark
             ? "#a855f7"
-            : "#6d28d9"
+            : "#4c1d95"
           : isDark
           ? "#d8b4fe"
           : "#a855f7";
@@ -625,20 +624,20 @@ export const LinkedInConnectionNetwork: React.FC<LinkedInConnectionNetworkProps>
       .append("circle")
       .attr("r", (d) => d.radius)
       .attr("fill", (d) => {
-        if (d.isCandidate) return "#6d28d9";
+        if (d.isCandidate) return "#4c1d95";
         if (d.isCircleHub) return isDark ? "#09090b" : "#18181b";
         return isDark ? "#18181b" : "#ffffff";
       })
       .attr("stroke", (d) => {
-        if (d.isCandidate) return isDark ? "#e9d5ff" : "#5b21b6";
-        if (d.isCircleHub) return CIRCLE_CONFIG[d.circle]?.color || "#7c3aed";
+        if (d.isCandidate) return isDark ? "#e9d5ff" : "#4c1d95";
+        if (d.isCircleHub) return CIRCLE_CONFIG[d.circle]?.color || "#7e22ce";
         return d.degree === "1st"
           ? isDark
             ? "#a855f7"
-            : "#6d28d9"
+            : "#4c1d95"
           : isDark
           ? "#c084fc"
-          : "#9333ea";
+          : "#7e22ce";
       })
       .attr("stroke-width", (d) =>
         d.isCandidate ? 2.8 : d.isCircleHub ? 2.2 : 1.8
@@ -676,7 +675,7 @@ export const LinkedInConnectionNetwork: React.FC<LinkedInConnectionNetworkProps>
       .attr("text-anchor", "middle")
       .text((d) => (d.isCandidate ? "Candidate (You)" : d.name))
       .attr("fill", (d) => {
-        if (d.isCandidate) return isDark ? "#c084fc" : "#5b21b6";
+        if (d.isCandidate) return isDark ? "#c084fc" : "#4c1d95";
         if (d.isCircleHub) return isDark ? "#d4d4d8" : "#27272a";
         return isDark ? "#f4f4f5" : "#09090b";
       })
@@ -1096,14 +1095,10 @@ export const LinkedInConnectionNetwork: React.FC<LinkedInConnectionNetworkProps>
         )}
 
         {/* Contact Referral Inspector Drawer */}
-        <AnimatePresence>
-          {selectedContact && (
-            <motion.div
-              initial={{ x: 340, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 340, opacity: 0 }}
-              className="absolute top-4 right-4 bottom-4 w-80 sm:w-88 max-w-[calc(100%-2rem)] bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl p-5 flex flex-col justify-between z-30 overflow-y-auto"
-            >
+        {selectedContact && (
+          <div
+            className="absolute top-4 right-4 bottom-4 w-80 sm:w-88 max-w-[calc(100%-2rem)] bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl p-5 flex flex-col justify-between z-30 overflow-y-auto"
+          >
               <div>
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="flex items-center gap-3">
@@ -1229,9 +1224,8 @@ export const LinkedInConnectionNetwork: React.FC<LinkedInConnectionNetworkProps>
                   </a>
                 )}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          </div>
+        )}
       </div>
     </div>
   );

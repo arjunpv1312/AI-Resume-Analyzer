@@ -181,8 +181,8 @@ export const ResumeHealthWidget: React.FC<ResumeHealthWidgetProps> = ({
     },
   ];
 
-  const radarStroke = isDark ? "#a855f7" : "#6d28d9";
-  const radarFill = isDark ? "#7c3aed" : "#7c3aed";
+  const radarStroke = isDark ? "#a855f7" : "#4c1d95";
+  const radarFill = isDark ? "#7e22ce" : "#7e22ce";
   const gridStroke = isDark ? "rgba(255,255,255,0.12)" : "rgba(24,24,27,0.12)";
   const angleTickColor = isDark ? "#d4d4d8" : "#27272a";
   const radiusTickColor = isDark ? "#71717a" : "#71717a";
@@ -268,9 +268,10 @@ export const ResumeHealthWidget: React.FC<ResumeHealthWidgetProps> = ({
                   strokeWidth={2.5}
                   fill={radarFill}
                   fillOpacity={isDark ? 0.35 : 0.22}
+                  isAnimationActive={false}
                   dot={{
                     r: 4,
-                    fill: isDark ? "#c084fc" : "#7c3aed",
+                    fill: isDark ? "#c084fc" : "#7e22ce",
                     stroke: isDark ? "#09090b" : "#ffffff",
                     strokeWidth: 1.5,
                   }}

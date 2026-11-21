@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import {
   X,
   Link2,
@@ -378,18 +377,13 @@ export function ConnectLinkedInModal({
   const currentHandle = url ? extractHandle(normalizeLinkedInUrl(url)) : "";
 
   return (
-    <AnimatePresence>
+    <div
+      key="connect-linkedin-backdrop"
+      className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md"
+    >
       <div
-        key="connect-linkedin-backdrop"
-        className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md"
+        className="relative max-w-lg w-full bg-white dark:bg-[#111116] rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden p-6 sm:p-7 max-h-[90vh] overflow-y-auto text-zinc-950 dark:text-zinc-100"
       >
-        <motion.div
-          initial={{ scale: 0.96, opacity: 0, y: 10 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.96, opacity: 0, y: 10 }}
-          transition={{ duration: 0.2 }}
-          className="relative max-w-lg w-full bg-white dark:bg-[#111116] rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden p-6 sm:p-7 max-h-[90vh] overflow-y-auto text-zinc-950 dark:text-zinc-100"
-        >
           <button
             type="button"
             onClick={onClose}
@@ -511,10 +505,7 @@ export function ConnectLinkedInModal({
 
             {/* Granular Import Progress Bar */}
             {(isRetrieving || importStep !== "idle") && (
-              <motion.div
-                initial={{ opacity: 0, height: 0, y: -6 }}
-                animate={{ opacity: 1, height: "auto", y: 0 }}
-                exit={{ opacity: 0, height: 0 }}
+              <div
                 className="p-4 rounded-xl bg-zinc-50 dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 space-y-3 overflow-hidden"
               >
                 <div className="flex items-center justify-between">
@@ -555,10 +546,9 @@ export function ConnectLinkedInModal({
                 </div>
 
                 <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-violet-700 to-purple-500 rounded-full"
-                    animate={{ width: `${importProgress}%` }}
-                    transition={{ duration: 0.35, ease: "easeOut" }}
+                  <div
+                    className="h-full bg-gradient-to-r from-[#4c1d95] to-[#7e22ce] rounded-full transition-[width] duration-150"
+                    style={{ width: `${importProgress}%` }}
                   />
                 </div>
 
@@ -599,7 +589,7 @@ export function ConnectLinkedInModal({
                     );
                   })}
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {/* Optional OAuth Token Collapsible Section */}
@@ -832,8 +822,7 @@ export function ConnectLinkedInModal({
               )}
             </div>
           </div>
-        </motion.div>
       </div>
-    </AnimatePresence>
+    </div>
   );
 }

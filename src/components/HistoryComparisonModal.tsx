@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import {
   X,
   TrendingUp,
@@ -176,18 +175,13 @@ IMPROVEMENT DELTA:
   };
 
   return (
-    <AnimatePresence>
+    <div
+      key="history-comparison-backdrop"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-sm overflow-y-auto"
+    >
       <div
-        key="history-comparison-backdrop"
-        className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-sm overflow-y-auto"
+        className="bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-6xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto"
       >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.97, y: 14 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.97, y: 14 }}
-          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-6xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto"
-        >
           {/* Header */}
           <div className="px-6 py-5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#09090b] flex flex-wrap items-center justify-between gap-4 shrink-0">
             <div className="flex items-center gap-3">
@@ -519,8 +513,7 @@ IMPROVEMENT DELTA:
               )}
             </div>
           </div>
-        </motion.div>
       </div>
-    </AnimatePresence>
+    </div>
   );
 };

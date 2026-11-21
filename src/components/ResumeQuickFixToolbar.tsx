@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import {
   Wand2,
   Layout,
@@ -63,11 +62,8 @@ export const ResumeQuickFixToolbar: React.FC<ResumeQuickFixToolbarProps> = ({
 
   return (
     <div className="sticky top-3 z-30 w-full max-w-4xl mx-auto px-2">
-      <motion.div
-        initial={{ y: -8, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="rounded-2xl bg-white/95 dark:bg-[#111116]/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 shadow-lg p-2.5 sm:p-3 text-zinc-950 dark:text-white"
+      <div
+        className="rounded-2xl bg-white/95 dark:bg-[#111116]/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 shadow-lg p-2.5 sm:p-3 text-zinc-950 dark:text-white transition-colors duration-150"
       >
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           {/* Left Title & Status */}
@@ -339,20 +335,15 @@ export const ResumeQuickFixToolbar: React.FC<ResumeQuickFixToolbarProps> = ({
         </div>
 
         {/* Active Toast / Feedback Notification */}
-        <AnimatePresence>
-          {activeToastMessage && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2 text-xs text-violet-700 dark:text-violet-300"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400 shrink-0" />
-              <span>{activeToastMessage}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+        {activeToastMessage && (
+          <div
+            className="mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2 text-xs text-violet-700 dark:text-violet-300"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400 shrink-0" />
+            <span>{activeToastMessage}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import {
   Copy,
   Check,
@@ -178,29 +177,24 @@ export const MissingKeywordHelper: React.FC<MissingKeywordHelperProps> = ({
   };
 
   return (
-    <AnimatePresence>
-      <div
-        key={`missing-kw-backdrop-${keyword}`}
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm sm:p-0"
-      >
-        <div className="fixed inset-0" onClick={onClose} />
+    <div
+      key={`missing-kw-backdrop-${keyword}`}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm sm:p-0"
+    >
+      <div className="fixed inset-0" onClick={onClose} />
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 12 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: 12 }}
-          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          style={
-            anchorPosition && window.innerWidth > 768
-              ? {
-                  position: "fixed",
-                  top: Math.min(Math.max(anchorPosition.top, 80), window.innerHeight - 480),
-                  left: Math.min(Math.max(anchorPosition.left - 200, 20), window.innerWidth - 460),
-                }
-              : undefined
-          }
-          className="relative z-10 w-full max-w-lg bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl p-5 overflow-hidden"
-        >
+      <div
+        style={
+          anchorPosition && window.innerWidth > 768
+            ? {
+                position: "fixed",
+                top: Math.min(Math.max(anchorPosition.top, 80), window.innerHeight - 480),
+                left: Math.min(Math.max(anchorPosition.left - 200, 20), window.innerWidth - 460),
+              }
+            : undefined
+        }
+        className="relative z-10 w-full max-w-lg bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl p-5 overflow-hidden"
+      >
           {/* Top clean accent bar */}
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-rose-600 via-purple-600 to-violet-600" />
 
@@ -348,8 +342,7 @@ export const MissingKeywordHelper: React.FC<MissingKeywordHelperProps> = ({
               )}
             </div>
           </div>
-        </motion.div>
       </div>
-    </AnimatePresence>
+    </div>
   );
 };

@@ -1,5 +1,4 @@
 import React, { useState, useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { useReactToPrint } from "react-to-print";
 import {
   X,
@@ -46,7 +45,7 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
   fileName = "Resume.pdf",
   linkedinUrl = "",
   linkedInTrustScore,
-  candidateName = "Alex Mercer",
+  candidateName = "Candidate",
   initialTemplate = "modern-executive",
 }) => {
   // Export Template layout state
@@ -171,14 +170,10 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
   };
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-[140] flex items-center justify-center p-3 md:p-6 bg-black/75 backdrop-blur-md overflow-hidden">
-        <motion.div
-          initial={{ scale: 0.97, opacity: 0, y: 12 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.97, opacity: 0, y: 12 }}
-          className="max-w-6xl w-full h-[92vh] bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-zinc-900 dark:text-zinc-100"
-        >
+    <div className="fixed inset-0 z-[140] flex items-center justify-center p-3 md:p-6 bg-black/75 backdrop-blur-md overflow-hidden">
+      <div
+        className="max-w-6xl w-full h-[92vh] bg-white dark:bg-[#111116] border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-zinc-900 dark:text-zinc-100"
+      >
           {/* Header */}
           <div className="px-6 py-4 bg-white dark:bg-[#111116] border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
@@ -1045,25 +1040,31 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                         >
                           8. LinkedIn Cross-Vector Credibility Audit
                         </h2>
-                        <div className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-xl flex items-center justify-between">
-                          <div className="space-y-1">
-                            <span className="text-xs font-bold text-zinc-950 flex items-center gap-1.5">
-                              <ShieldCheck className="w-4 h-4 text-violet-700" />
-                              <span>Public LinkedIn Profile Trust Score</span>
-                            </span>
-                            <span className="text-[11px] text-zinc-600 font-mono block">
-                              {linkedinUrl ? `Target Profile: ${linkedinUrl}` : "Verified Resume Persona Baseline"}
-                            </span>
+                        {linkedinUrl.trim() || typeof linkedInTrustScore === "number" ? (
+                          <div className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-xl flex items-center justify-between">
+                            <div className="space-y-1">
+                              <span className="text-xs font-bold text-zinc-950 flex items-center gap-1.5">
+                                <ShieldCheck className="w-4 h-4 text-violet-700" />
+                                <span>Public LinkedIn Profile Trust Score</span>
+                              </span>
+                              <span className="text-[11px] text-zinc-600 font-mono block">
+                                Target Profile: {linkedinUrl}
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xl font-black text-violet-700 tabular-nums block">
+                                {linkedInTrustScore ?? 86}%
+                              </span>
+                              <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded bg-violet-100 text-violet-800">
+                                {linkedInTrustScore && linkedInTrustScore >= 85 ? "High Trust" : "Verified Alignment"}
+                              </span>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <span className="text-xl font-black text-violet-700 tabular-nums block">
-                              {linkedInTrustScore ?? (linkedinUrl ? 86 : 78)}%
-                            </span>
-                            <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded bg-violet-100 text-violet-800">
-                              {linkedInTrustScore && linkedInTrustScore >= 85 ? "High Trust" : "Verified Alignment"}
-                            </span>
+                        ) : (
+                          <div className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-600">
+                            <strong className="text-zinc-950">LinkedIn Profile: Missing (Not Linked)</strong> — Excluded from resume scoring with zero penalty.
                           </div>
-                        </div>
+                        )}
                       </div>
                     )}
 
@@ -1278,15 +1279,21 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                         <h2 className="text-xs font-bold uppercase tracking-wider text-black border-b border-zinc-400 pb-0.5">
                           7. LINKEDIN CROSS-VECTOR IDENTITY VERIFICATION
                         </h2>
-                        <div className="p-2.5 border border-zinc-300 font-mono text-xs flex items-center justify-between">
-                          <div>
-                            <span>PROFILE: {linkedinUrl || "Active Candidate Baseline"}</span>
-                            <div className="text-[10px] text-zinc-600 mt-0.5">STATUS: Verified Cross-Vector Audit</div>
+                        {linkedinUrl.trim() || typeof linkedInTrustScore === "number" ? (
+                          <div className="p-2.5 border border-zinc-300 font-mono text-xs flex items-center justify-between">
+                            <div>
+                              <span>PROFILE: {linkedinUrl}</span>
+                              <div className="text-[10px] text-zinc-600 mt-0.5">STATUS: Verified Cross-Vector Audit</div>
+                            </div>
+                            <div className="text-right font-bold text-sm tabular-nums">
+                              {linkedInTrustScore ?? 86}% TRUST INDEX
+                            </div>
                           </div>
-                          <div className="text-right font-bold text-sm tabular-nums">
-                            {linkedInTrustScore ?? (linkedinUrl ? 86 : 78)}% TRUST INDEX
+                        ) : (
+                          <div className="p-2.5 border border-zinc-300 font-mono text-xs text-zinc-700">
+                            STATUS: LinkedIn Profile Missing (Excluded from scoring)
                           </div>
-                        </div>
+                        )}
                       </div>
                     )}
 
@@ -1423,7 +1430,7 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
                           <span className="w-2 h-2 rounded-full bg-violet-700" />
                           <span>Candidate Value Proposition & Strategic Summary</span>
                         </h2>
-                        <div className="border-l-4 border-l-violet-700 bg-violet-50/50 p-4 rounded-r-xl border border-y-violet-100 border-r-violet-100">
+                        <div className="bg-violet-50/60 p-4 rounded-xl border border-violet-200">
                           <p className="text-xs text-zinc-800 leading-relaxed font-medium">
                             {result.executiveSummary || result.summary}
                           </p>
@@ -1621,27 +1628,33 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
 
                     {/* 7. LinkedIn Credibility */}
                     {includeLinkedIn && (
-                      <div className="p-4 rounded-2xl bg-violet-50 border border-violet-200 flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-2">
-                            <ShieldCheck className="w-4 h-4 text-violet-700" />
-                            <span className="text-xs font-bold text-zinc-950">
-                              Verified LinkedIn Trust Score
+                      linkedinUrl.trim() || typeof linkedInTrustScore === "number" ? (
+                        <div className="p-4 rounded-2xl bg-violet-50 border border-violet-200 flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <ShieldCheck className="w-4 h-4 text-violet-700" />
+                              <span className="text-xs font-bold text-zinc-950">
+                                Verified LinkedIn Trust Score
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-zinc-600 font-mono block">
+                              {linkedinUrl}
                             </span>
                           </div>
-                          <span className="text-[11px] text-zinc-600 font-mono block">
-                            {linkedinUrl ? linkedinUrl : "Authenticated Executive Candidate Baseline"}
-                          </span>
+                          <div className="text-right">
+                            <span className="text-2xl font-black text-violet-700 tabular-nums block">
+                              {linkedInTrustScore ?? 86}%
+                            </span>
+                            <span className="text-[9px] font-mono uppercase font-bold text-purple-700">
+                              Authenticated
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <span className="text-2xl font-black text-violet-700 tabular-nums block">
-                            {linkedInTrustScore ?? (linkedinUrl ? 86 : 78)}%
-                          </span>
-                          <span className="text-[9px] font-mono uppercase font-bold text-purple-700">
-                            Authenticated
-                          </span>
+                      ) : (
+                        <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs text-zinc-600">
+                          <strong className="text-zinc-950">LinkedIn Profile: Missing (Not Linked)</strong> — Excluded from score calculation.
                         </div>
-                      </div>
+                      )
                     )}
 
                     {/* Creative Footer */}
@@ -1654,8 +1667,7 @@ export const PdfExportPreviewModal: React.FC<PdfExportPreviewModalProps> = ({
               </div>
             </div>
           </div>
-        </motion.div>
       </div>
-    </AnimatePresence>
+    </div>
   );
 };
